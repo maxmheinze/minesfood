@@ -70,7 +70,7 @@ foodprices <- do.call("rbind", mget(ls()))
 
 # Save it
 
-write_csv(foodprices, "./data/foodprices.csv")
+write_csv(foodprices, "./data_local/foodprices.csv")
 
 
 
