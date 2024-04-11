@@ -11,14 +11,7 @@ pacman::p_load(
   magrittr
 )
 
-set_rhdx_config(hdx_site = "prod")
 
+# load food prices  -------------------------------------------------------
 
-
-# Define List of Countries ------------------------------------------------
-pacman::p_load(
-  tidyverse,
-  rhdx,
-  countrycode,
-  magrittr
-)
+foodprices <- read_csv("data_local/foodprices.csv")
