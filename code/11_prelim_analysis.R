@@ -31,3 +31,14 @@ ggplot(GHA_maize, aes(x = date, y = price)) +
   geom_line() + 
   facet_wrap(~market)
 
+
+
+GHA_prices <- foodprices %>% 
+  filter(countryiso3 == "TZA") %>%
+  filter(commodity %in% c("Wheat")) %>%
+  filter(unit == "100 KG") 
+
+ggplot(GHA_prices, aes(x = date, y = price)) +
+  geom_line() + 
+  facet_wrap(~admin_1)
+
