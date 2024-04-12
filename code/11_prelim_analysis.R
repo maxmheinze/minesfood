@@ -21,11 +21,12 @@ foodprices <- read_csv("data_local/foodprices.csv")
 
 GHA_prices <- foodprices %>% 
   filter(countryiso3 == "GHA") %>%
-  filter(commodity %in% c("Maize","Wheat")) %>%
-  filter(unit == "KG") 
+  filter(commodity %in% c("Maize","Wheat"))
 
 # plotting Ghana Maize Prices across markets
-GHA_maize <- GHA_prices %>% filter(commodity == "Maize")
+GHA_maize <- GHA_prices %>% 
+  filter(commodity == "Maize") %>%
+  filter(unit %in% c("100 KG"))
 
 ggplot(GHA_maize, aes(x = date, y = price)) +
   geom_line() + 
@@ -33,10 +34,9 @@ ggplot(GHA_maize, aes(x = date, y = price)) +
 
 
 
-GHA_prices <- foodprices %>% 
+TZA_prices <- foodprices %>% 
   filter(countryiso3 == "TZA") %>%
-  filter(commodity %in% c("Wheat")) %>%
-  filter(unit == "100 KG") 
+  filter(commodity %in% c("Wheat")) 
 
 ggplot(GHA_prices, aes(x = date, y = price)) +
   geom_line() + 
