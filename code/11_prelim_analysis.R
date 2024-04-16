@@ -55,15 +55,6 @@ ggplot(TZA_prices, aes(x = date, y = price)) +
 
 TAZ_map <- ne_countries(scale = 110, country = "United Republic of Tanzania", returnclass = "sf")
 
-ggplot() +
-  geom_sf(data = TAZ_map, fill = "lightgrey", color = "black") +  # Base map
-  geom_sf(data = TZA_prices, aes(color = market), alpha = 0.75) +  # Mines with categorized fill
-  scale_colour_manual(values = cols) +
-  geom_sf(data = GH_TZ_polygons_V2, fill = "yellow", alpha = 0.5) +  # Highlighted areas
-  ggtitle("Extent of Mines in Tanzania") +
-  theme_minimal() +
-  theme(legend.position = "bottom", text = element_text(size = 12)) +
-  labs(fill = "Primary Commodity")  # Rename legend title
 
 
 # loading commodity prices from world bank pink sheet ---------------------
@@ -99,10 +90,10 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(commodity == "Maize") %>%
+  filter(commodity == "Wheat") %>%
   filter(unit %in% c("100 KG")) %>%
   mutate(year = year(date)) %>%
   left_join(commodity_prices)
 
-summary(lm(log(price) ~ log(Gold) + market + as.factor(date), prices))
+summary(lm(log(price/usdprice) ~ log(Gold) + as.character((market))*as.factor(date), prices))
 
