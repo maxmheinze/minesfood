@@ -14,7 +14,8 @@ pacman::p_load(
   haven, 
   rnaturalearth, 
   rnaturalearthdata, 
-  sf
+  sf, 
+  readxl
 )
 
 
@@ -45,7 +46,8 @@ ggplot(GHA_maize, aes(x = date, y = price)) +
 TZA_prices <- foodprices %>% 
   filter(countryiso3 == "TZA") %>%
   filter(commodity %in% c("Maize")) %>%
-  filter(unit %in% c("100 KG"))
+  filter(unit %in% c("100 KG")) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84")
 
 ggplot(TZA_prices, aes(x = date, y = price)) +
   geom_line() + 
@@ -53,16 +55,54 @@ ggplot(TZA_prices, aes(x = date, y = price)) +
 
 TAZ_map <- ne_countries(scale = 110, country = "United Republic of Tanzania", returnclass = "sf")
 
-st_as_sf(TZA_prices)
-
 ggplot() +
   geom_sf(data = TAZ_map, fill = "lightgrey", color = "black") +  # Base map
-  geom_sf(data = TZA_prices, aes(color = primary_commodity), alpha = 0.75) +  # Mines with categorized fill
+  geom_sf(data = TZA_prices, aes(color = market), alpha = 0.75) +  # Mines with categorized fill
   scale_colour_manual(values = cols) +
   geom_sf(data = GH_TZ_polygons_V2, fill = "yellow", alpha = 0.5) +  # Highlighted areas
-  ggtitle("Extent of Mines in Ghana") +
+  ggtitle("Extent of Mines in Tanzania") +
   theme_minimal() +
   theme(legend.position = "bottom", text = element_text(size = 12)) +
   labs(fill = "Primary Commodity")  # Rename legend title
 
+
+# loading commodity prices from world bank pink sheet ---------------------
+
+# Replace 'path_to_file.xlsx' with the actual file path
+commodity <- read_excel("data_local/CMO-Historical-Data-Annual.xlsx", sheet = 'Annual Prices (Real)', skip = 6)
+
+# Filter the data for the gold price column and the years 2014 to 2023
+commodity_prices <- commodity %>%
+  select('...1', 'Gold', 'Zinc', 'Aluminum', 'Copper', 'Coal, South Afican', 'Iron ore, cfr spot', 'Nickel') %>%
+  filter(...1 >= 1995 & ...1 <= 2023) %>%
+  rename("year" = "...1") %>%
+  rename("coal" = "Coal, South Afican") %>%
+  rename("iron" = "Iron ore, cfr spot") %>%
+  mutate(across(c(2:8), as.numeric)) %>%
+  mutate(l_gold = lag(Gold, 1)) %>%
+  mutate(l2_gold = lag(Gold, 2)) %>%
+  mutate(l_nickel = lag(Nickel, 1)) %>%
+  mutate(l2_nickel = lag(Nickel, 2)) %>%
+  mutate(l_zinc = lag(Zinc, 1)) %>%
+  mutate(l2_zinc = lag(Zinc, 2)) %>%
+  mutate(l_aluminium = lag(Aluminum, 1)) %>%
+  mutate(l2_aluminium = lag(Aluminum, 2)) %>%
+  mutate(l_copper = lag(Copper, 1))  %>%
+  mutate(l2_copper = lag(Copper, 2))  %>%
+  mutate(l_iron = lag(iron, 1)) %>%
+  mutate(l2_iron = lag(iron, 2)) %>%
+  mutate(l_coal = lag(coal, 1)) %>%
+  mutate(l2_coal = lag(coal, 2)) 
+
+
+
+# merging food prices and global commodity prices -------------------------
+
+prices <- foodprices %>% 
+  filter(commodity == "Maize") %>%
+  filter(unit %in% c("100 KG")) %>%
+  mutate(year = year(date)) %>%
+  left_join(commodity_prices)
+
+summary(lm(log(price) ~ log(Gold) + market + as.factor(date), prices))
 
