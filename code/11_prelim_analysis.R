@@ -90,10 +90,25 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(commodity == "Wheat") %>%
+  filter(commodity == "Maize") %>%
   filter(unit %in% c("100 KG")) %>%
   mutate(year = year(date)) %>%
-  left_join(commodity_prices)
+  left_join(commodity_prices) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84") %>%
+  filter(countryiso3 %in% c("GHA"))
 
 summary(lm(log(price/usdprice) ~ log(Gold) + as.character((market))*as.factor(date), prices))
+
+
+
+# loading mining polygons -------------------------------------------------
+
+polygons <- st_read("data_local/polygons/polygons_V2.shp")
+
+prices %>% 
+  st_join(polygons)
+
+# loading PRIO-GRID raster ------------------------------------------------
+
+
 
