@@ -113,11 +113,11 @@ mines_sf <- st_transform(mines_sf, 32630)  # UTM zone 30N
 markets_sf <- st_transform(prices, 32630)
 
 # Calculate distances to nearest mine
-distance_to_mine <- st_distance(markets_sf, mines_sf, by_element = TRUE)
+distance_to_mine <- st_distance(markets_sf, mines_sf)
 nearest_distance <- apply(distance_to_mine, 1, min)  # get the minimum distance for each market
 
 # Add Distance to Data Frame
-markets$distance_to_nearest_mine <- nearest_distance
+markets_sf$distance_to_nearest_mine <- nearest_distance
 
 
 
