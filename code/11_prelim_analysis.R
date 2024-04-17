@@ -90,14 +90,14 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(commodity == "Maize") %>%
+  filter(commodity == "Maize") %>% # Selecting the Commodity
   filter(unit %in% c("100 KG")) %>%
   mutate(year = year(date)) %>%
   left_join(commodity_prices) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84") %>%
-  filter(countryiso3 %in% c("GHA"))
+  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84" , agr = "constant") %>%
+  filter(countryiso3 %in% c("GHA")) # filtering for GHANA!
 
-summary(lm(log(price/usdprice) ~ log(Gold) + as.character((market))*as.factor(date), prices))
+summary(lm(log(price/usdprice) ~ log(Gold) + as.character((admin1))*as.factor(date), prices))
 
 
 
@@ -105,12 +105,15 @@ summary(lm(log(price/usdprice) ~ log(Gold) + as.character((market))*as.factor(da
 
 mines_sf <- st_read("data_local/polygons/polygons_V2.shp")
 
+Ghana <- mines_sf %>%
+  filter(COUNTRY == "Ghana")
+
 # Transform both datasets to a local projection (for example, UTM zone for Ghana)
 mines_sf <- st_transform(mines_sf, 32630)  # UTM zone 30N
 markets_sf <- st_transform(prices, 32630)
 
 # Calculate distances to nearest mine
-distance_to_mine <- st_distance(prices, mines_sf, by_element = TRUE)
+distance_to_mine <- st_distance(markets_sf, mines_sf, by_element = TRUE)
 nearest_distance <- apply(distance_to_mine, 1, min)  # get the minimum distance for each market
 
 # Add Distance to Data Frame
