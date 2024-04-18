@@ -15,7 +15,8 @@ pacman::p_load(
   rnaturalearth, 
   rnaturalearthdata, 
   sf, 
-  readxl
+  readxl, 
+  rgeos
 )
 
 
@@ -40,7 +41,7 @@ ggplot(GHA_maize, aes(x = date, y = price)) +
   facet_wrap(~market)
 
 
-# Creating Map of Market Locatiosn ----------------------------------------
+# Creating Map of Market Locations ----------------------------------------
 
 
 TZA_prices <- foodprices %>% 
@@ -90,12 +91,12 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(commodity == "Maize") %>% # Selecting the Commodity
-  filter(unit %in% c("100 KG")) %>%
+  filter(countryiso3 %in% c("GHA"))  %>% # filtering for GHANA!
+  filter(commodity == "Rice (local)") %>% # Selecting the Commodity
+  filter(unit %in% c("50 KG")) %>%
   mutate(year = year(date)) %>%
   left_join(commodity_prices) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84" , agr = "constant") %>%
-  filter(countryiso3 %in% c("GHA")) # filtering for GHANA!
+  st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84" , agr = "constant") 
 
 summary(lm(log(price/usdprice) ~ log(Gold) + as.character((admin1))*as.factor(date), prices))
 
@@ -109,16 +110,40 @@ Ghana <- mines_sf %>%
   filter(COUNTRY == "Ghana")
 
 # Transform both datasets to a local projection (for example, UTM zone for Ghana)
-mines_sf <- st_transform(mines_sf, 32630)  # UTM zone 30N
+mines_sf_gha <- st_transform(Ghana, 32630)  # UTM zone 30N
 markets_sf <- st_transform(prices, 32630)
 
+# Filtering for market locations
+market_points <- markets_sf %>%
+  distinct(market, geometry)
+
 # Calculate distances to nearest mine
-distance_to_mine <- st_distance(markets_sf, mines_sf)
+distance_to_mine <- st_distance(market_points, mines_sf_gha) # matrix of markets to mining polygons // We will have to make this faster to scale the code
 nearest_distance <- apply(distance_to_mine, 1, min)  # get the minimum distance for each market
 
-# Add Distance to Data Frame
-markets_sf$distance_to_nearest_mine <- nearest_distance
+# Adding names to columns of market points distance vector
+market_distances <- cbind(market_points, nearest_distance)
 
+# converting to tibble to conduct merging operation
+market_distances %<>% 
+  as_tibble()
+
+# Adding Distances to Market Locations
+markets_sf_gha_dist <- left_join(markets_sf, market_distances)
+
+markets_distances <- markets_sf_gha_dist %>%
+  mutate(nearest_distance = nearest_distance/1000) %>%
+  mutate(mine = ifelse(nearest_distance < 50, 1, 0))
+
+m1 <- summary(lm(log(price) ~ (mine)*log(l_gold) + as.factor(date) + admin1, markets_distances))
+
+m1$coefficients["mine:log(Gold)",]
+m1$coefficients["mine:log(l_gold)",]
+
+
+m2 <- summary(lm(log(price) ~ (nearest_distance) + as.factor(date) + admin1, markets_distances))
+
+m2
 
 
 # loading PRIO-GRID raster ------------------------------------------------
