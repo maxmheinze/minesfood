@@ -66,12 +66,12 @@ commodity <- read_excel("data_local/CMO-Historical-Data-Annual.xlsx", sheet = 'A
 
 # Filter the data for the gold price column and the years 2014 to 2023
 commodity_prices <- commodity %>%
-  select('...1', 'Gold', 'Zinc', 'Aluminum', 'Copper', 'Coal, South Afican', 'Iron ore, cfr spot', 'Nickel') %>%
+  select('...1', 'Gold', 'Zinc', 'Aluminum', 'Copper', 'Coal, South Afican', 'Iron ore, cfr spot', 'Nickel', 'Crude oil, average', 'Cocoa', 'Sugar, world', 'Coffee, Robusta', 'Coffee, Arabica') %>%
   filter(...1 >= 1995 & ...1 <= 2023) %>%
   rename("year" = "...1") %>%
   rename("coal" = "Coal, South Afican") %>%
   rename("iron" = "Iron ore, cfr spot") %>%
-  mutate(across(c(2:8), as.numeric)) %>%
+  mutate(across(c(2:10), as.numeric)) %>%
   mutate(l_gold = lag(Gold, 1)) %>%
   mutate(l2_gold = lag(Gold, 2)) %>%
   mutate(l_nickel = lag(Nickel, 1)) %>%
@@ -92,18 +92,16 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(countryiso3 %in% c("TZA", "GHA", "ZMB"))  %>% # filtering for GHANA!
-  filter(commodity == "Maize (white)") %>% # Selecting the Commodity
+  filter(countryiso3 %in% c("T"))  %>% 
+  filter(commodity == "Maize") %>% # Selecting the Commodity
   filter(unit %in% c("KG")) %>%
   mutate(year = year(date)) %>%
   left_join(commodity_prices) %>%
   group_by(market, year) %>%
   mutate(price = mean(price)) %>%
-  distinct(market, year, admin1, price, admin2, commodity, countryiso3, longitude, latitude) %>%
+  distinct(market,year, admin1, price, admin2, commodity, countryiso3, longitude, latitude, Gold, l_gold) %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84" , agr = "constant") 
   
-
-summary(lm(log(price/usdprice) ~ log(Gold) + as.character((admin1))*as.factor(date), prices))
 
 
 
@@ -112,7 +110,7 @@ summary(lm(log(price/usdprice) ~ log(Gold) + as.character((admin1))*as.factor(da
 mines_sf <- st_read("data_local/polygons/polygons_V2.shp")
 
 Mines <- mines_sf %>%
-  filter(COUNTRY %in% c("United Republic of Tanzania","Zambia", "Ghana"))
+  filter(COUNTRY %in% c("United Republic of Tanzania","Zambia", "Ghana")) 
 
 # Transform both datasets to a local projection (for example, UTM zone for Ghana)
 mines_sf_ <- st_transform(Mines, 32630)  # UTM zone 30N
@@ -140,13 +138,26 @@ markets_distances <- markets_sf_gha_dist %>%
   mutate(nearest_distance = nearest_distance/1000) %>%
   mutate(mine = ifelse(nearest_distance < 50, 1, 0))
 
-m1 <- summary(lm(log(price) ~ (mine)*log(Gold) + as.factor(date) + admin1, markets_distances))
+
+
+
+
+
+# Descriptices and Sanity Checks on the Food Price Data -------------------
+
+
+
+
+
+
+m1 <- summary(lm(log(price) ~ (mine)*log(l_gold) + as.factor(date) + admin1, markets_distances))
+
 
 m3 <- feols(log(price) ~ (mine)*log(Gold)  | admin1 + date, markets_distances)
 
 
-
 m1$coefficients["mine:log(Gold)", ]
+
 m1$coefficients["mine:log(l_gold)", ]
 
 m2 <- summary(lm(log(price) ~ (nearest_distance) + as.factor(year) + admin1, markets_distances))
@@ -156,6 +167,5 @@ m2
 fixest::feols(log(price) ~ (nearest_distance) | admin1 + year, markets_distances)
 
 # loading PRIO-GRID raster ------------------------------------------------
-
 
 
