@@ -93,7 +93,7 @@ commodity_prices <- commodity %>%
 
 prices <- foodprices %>% 
   filter(countryiso3 %in% c("GHA"))  %>% 
-  filter(commodity %in% c("Maize", "Wheat")) %>% # Selecting the Commodity
+  filter(commodity %in% c("Maize")) %>% # Selecting the Commodity
   filter(unit %in% c("KG")) %>%
   filter(pricetype == "Retail") %>%
   mutate(year = year(date)) %>%
@@ -150,7 +150,9 @@ markets_distances <- markets_sf_gha_dist %>%
 
 
 
-m1 <- summary(lm(log(price) ~ (mine) + as.factor(year)*admin1 + commodity, markets_distances))
+m1 <- summary(lm(log(price) ~ (mine) * log(Gold) + as.factor(year)*admin1, markets_distances))
+
+
 
 
 summary(fixest::feols(log(price) ~ (mine)*log(l_gold) | admin1^year, markets_distances))
