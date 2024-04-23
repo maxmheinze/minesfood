@@ -16,7 +16,6 @@ pacman::p_load(
   rnaturalearthdata, 
   sf, 
   readxl, 
-  rgeos,
   fixest
 )
 
@@ -24,6 +23,7 @@ pacman::p_load(
 # load food prices  -------------------------------------------------------
 
 foodprices <- read_csv("data_local/foodprices.csv")
+
 
 
 # looking at the data -----------------------------------------------------
@@ -92,25 +92,25 @@ commodity_prices <- commodity %>%
 # merging food prices and global commodity prices -------------------------
 
 prices <- foodprices %>% 
-  filter(countryiso3 %in% c("T"))  %>% 
-  filter(commodity == "Maize") %>% # Selecting the Commodity
+  filter(countryiso3 %in% c("GHA"))  %>% 
+  filter(commodity %in% c("Maize", "Wheat")) %>% # Selecting the Commodity
   filter(unit %in% c("KG")) %>%
+  filter(pricetype == "Retail") %>%
   mutate(year = year(date)) %>%
   left_join(commodity_prices) %>%
   group_by(market, year) %>%
   mutate(price = mean(price)) %>%
   distinct(market,year, admin1, price, admin2, commodity, countryiso3, longitude, latitude, Gold, l_gold) %>%
+  filter(!is.na(longitude)) %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = "WGS84" , agr = "constant") 
-  
-
 
 
 # loading mining polygons -------------------------------------------------
 
 mines_sf <- st_read("data_local/polygons/polygons_V2.shp")
 
-Mines <- mines_sf %>%
-  filter(COUNTRY %in% c("United Republic of Tanzania","Zambia", "Ghana")) 
+Mines <- mines_sf #%>%
+  #filter(COUNTRY %in% c("United Republic of Tanzania","Zambia", "Ghana")) 
 
 # Transform both datasets to a local projection (for example, UTM zone for Ghana)
 mines_sf_ <- st_transform(Mines, 32630)  # UTM zone 30N
@@ -150,7 +150,10 @@ markets_distances <- markets_sf_gha_dist %>%
 
 
 
-m1 <- summary(lm(log(price) ~ (mine)*log(l_gold) + as.factor(date) + admin1, markets_distances))
+m1 <- summary(lm(log(price) ~ (mine) + as.factor(year)*admin1 + commodity, markets_distances))
+
+
+summary(fixest::feols(log(price) ~ (mine)*log(l_gold) | admin1^year, markets_distances))
 
 
 m3 <- feols(log(price) ~ (mine)*log(Gold)  | admin1 + date, markets_distances)
