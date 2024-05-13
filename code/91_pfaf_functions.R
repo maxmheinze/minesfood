@@ -167,6 +167,31 @@ pfaf_list_downstream <- function(pfaf_codes_vector, reflexive = TRUE) {
   # vector of downstream basins for each of the basins contained in the
   # input vector.
   
+  # Check if reflexive is TRUE or FALSE
+  if (!is.logical(reflexive) || length(reflexive) != 1) {
+    stop("Reflexive must be a single logical value (TRUE or FALSE).")
+  }
+  
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings must be of the same length.")
+  }
+  
   # Initialize a list to store downstream basin vectors, name it 
   # using the original basin codes.
   downstream_list <- vector("list", length(pfaf_codes_vector))
@@ -224,6 +249,31 @@ pfaf_list_upstream <- function(pfaf_codes_vector, reflexive = TRUE) {
   # all of them against each other and outputs a list containing a 
   # vector of upstream basins for each of the basins contained in the
   # input vector.
+  
+  # Check if reflexive is TRUE or FALSE
+  if (!is.logical(reflexive) || length(reflexive) != 1) {
+    stop("Reflexive must be a single logical value (TRUE or FALSE).")
+  }
+  
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings must be of the same length.")
+  }
   
   # Initialize a list to store upstream basin vectors, name it 
   # using the original basin codes.
@@ -286,6 +336,37 @@ pfaf_distance <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
   # the basins are entered does not matter. If two basins are entered that
   # are not connected by a water flow, the function will output NA.
   
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the input vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements of the input vector must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings in the input vector must be of the same length.")
+  }
+  
+  # Check if inputs are actual river basin codes
+  if (!is.character(pfaf_code_i) || length(pfaf_code_i) != 1 || 
+      !is.character(pfaf_code_ii) || length(pfaf_code_ii) != 1) {
+    stop("Both river basin codes must be character strings.")
+  }
+  
+  # Check if they are contained in the input vector
+  if (!(pfaf_code_i %in% pfaf_codes_vector && pfaf_code_ii %in% pfaf_codes_vector)) {
+    stop("Both river basin strings must be contained in the input vector.")
+  }
+  
   # If i is downstream
   if(pfaf_downstream(pfaf_code_i, pfaf_code_ii)){
     
@@ -324,6 +405,38 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
   # to the other specified basin. The order in which the basins are entered
   # does not matter. The output vector will always start from the upstream
   # basin.
+  
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the input vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements of the input vector must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings in the input vector must be of the same length.")
+  }
+  
+  # Check if inputs are actual river basin codes
+  if (!is.character(pfaf_code_i) || length(pfaf_code_i) != 1 || 
+      !is.character(pfaf_code_ii) || length(pfaf_code_ii) != 1) {
+    stop("Both river basin codes must be character strings.")
+  }
+  
+  # Check if they are contained in the input vector
+  if (!(pfaf_code_i %in% pfaf_codes_vector && pfaf_code_ii %in% pfaf_codes_vector)) {
+    stop("Both river basin strings must be contained in the input vector.")
+  }
+  
   
   # If i is downstream
   if(pfaf_downstream(pfaf_code_i, pfaf_code_ii)){
