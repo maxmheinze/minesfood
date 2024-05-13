@@ -112,9 +112,15 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
       m <- nchar(pfaf_code_ii) - n
       
       # If m is 0, the second basin encompasses the first (lower-level) basin. We determine the
-      # first basin to not be downstream of the second basin since it is not affected by all of the basin.
+      # first basin to not be downstream of the second basin since it is not affected by all of the basin
+      # except if all of the remaining digits in the code of the first basin are 1, since then 
+      # it is located at the "drain" of the larger basin.
       if (m == 0) {
-        return(FALSE)
+        if (any(strsplit(substr(pfaf_code_i, n+1, nchar(pfaf_code_i)), "")[[1]]!=1)) {
+          return(FALSE)
+        } else {
+        return(TRUE)
+        }
       }
       
       # Check if the number made up by the first m remaining digits of pfaf_code_i is smaller than that of pfaf_code_ii.
@@ -141,9 +147,12 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
   }
 }
 
+strsplit(substr("111", 0, nchar("111")), "")
+(any(strsplit(substr("121", 0, nchar("111")), "")[[1]]!=1))
+
 # Check whether a basin is upstream of another basin
 pfaf_upstream <- function(pfaf_code_i, pfaf_code_ii) {
-  # Usafe 
+
   # If i is upstream of ii, ii must be downstream of i. Thus:
   return(pfaf_downstream(pfaf_code_ii, pfaf_code_i))
 }
@@ -156,6 +165,20 @@ pfaf_upstream <- function(pfaf_code_i, pfaf_code_ii) {
 # --------------------
 `%DS%` <- pfaf_downstream
 `%US%` <- pfaf_upstream
+
+
+# Check a Vector of Basin Codes Against Each Other ------------------------
+
+pfaf_matrix <- function(pfaf_codes_vector) {
+  # Create a matrix with all possible comparisons
+  result_matrix <- outer(pfaf_codes_vector, pfaf_codes_vector, Vectorize(pfaf_downstream))
+  
+  # Set the names of rows and columns to the elements of the input vector
+  dimnames(result_matrix) <- list(pfaf_codes_vector, pfaf_codes_vector)
+  
+  return(result_matrix)
+}
+
 
 
 # Output a List of Basins that are Downstream of Each Basin ---------------
