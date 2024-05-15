@@ -1,7 +1,7 @@
 
 # Check Whether a Basin Is Downstream of Another Basin --------------------
 
-pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
+pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii, HydroBASINS = TRUE) {
   # This function checks two strings against each other. The strings should represent
   # Pfafstetter river basin codes. The function outputs TRUE if the first string is
   # downstream of the second, and FALSE if it is not downstream. The function can
@@ -11,7 +11,12 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
   # 1 to be considered downstream of Basin 2. Thus, a basin that contains another basin
   # is considered downstream of that basin, a basin that is contained within another
   # basin is not considered downstream of that basin. A basin is also considered
-  # as being downstream of itself.
+  # as being downstream of itself. The HydroBASINS = TRUE option accounts for two spe-
+  # cifics of the HydroBASINS data set: (1) The first three digits are allocated arbi-
+  # trarily and do not indicate any up/downstream relations and (2) the digit 0 is 
+  # used to indicate a "skip" of one level, which is done in the dataset in order to
+  # keep basin sizes at the same level comparable. In traditional Pfafstetter coding,
+  # 0 indicates a sink, which means that 
   
   # Usage:
   # --------------------
@@ -28,6 +33,34 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
   if (!is.character(pfaf_code_i) || !is.character(pfaf_code_ii)) {
     stop("Both inputs must be character strings.")
   }
+  
+  # For the HydroBASINS codes, we only consider pairs where the first
+  # three digits are equal. Since these are then absorbed by the 
+  # "disregard first n digits that are equal" rule, no further modifi-
+  # cations inside this function are necessary.
+  if (HydroBASINS == TRUE) {
+    if (substr(pfaf_code_i, 1, 3) != substr(pfaf_code_ii, 1, 3)) {
+      return(FALSE)
+    }
+  }
+  
+  # Check whether any of the strings contains 0 if we use traditional
+  # Pfafstetter coding. Output FALSE if that is the case, except if it
+  # is in the portion from the left where the strings are equal.
+  if (HydroBASINS == FALSE) {
+    # Count from the left the digits that are equal
+    n <- sum(sapply(1:nchar(pfaf_code_i), function(x) substr(pfaf_code_i, 1, x) == substr(pfaf_code_ii, 1, x)))
+    
+    # Remove the first n digits from both strings
+    substring_i <- substr(pfaf_code_i, n+1, nchar(pfaf_code_i))
+    substring_ii <- substr(pfaf_code_ii, n+1, nchar(pfaf_code_ii))
+    
+    # Check if the remaining digits in either string contain '0'
+    if (grepl("0", substring_i) || grepl("0", substring_ii)) {
+      return(FALSE)
+    }
+  }
+  
   
   # If strings are of same length (i.e. the main use case)
   if (nchar(pfaf_code_i) == nchar(pfaf_code_ii)) {
@@ -49,10 +82,11 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
     }
     
     # Check if all remaining digits of pfaf_code_i are odd. If at least one is not, output FALSE
-    remaining_digits_i <- as.integer(strsplit(substr(pfaf_code_i, n+1, nchar(pfaf_code_i)), "")[[1]])
-    if (any(remaining_digits_i %% 2 == 0)) {
+    remaining_digits_i <- substr(pfaf_code_i, n + 1, nchar(pfaf_code_i))
+    even_digits_pattern <- if (HydroBASINS == TRUE) "[2468]" else "[02468]"
+    if (grepl(even_digits_pattern, remaining_digits_i)) {
       return(FALSE)
-    }
+    } 
     
     # Return TRUE otherwise (we are still in the part of equal-length strings)
     return(TRUE)
@@ -94,14 +128,15 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
       }
       
       # If it is smaller, check whether all remaining digits are odd. 
-      remaining_digits_i <- as.integer(strsplit(substr(pfaf_code_i, n+1, nchar(pfaf_code_i)), "")[[1]])
+      remaining_digits_i <- substr(pfaf_code_i, n + 1, nchar(pfaf_code_i))
+      even_digits_pattern <- if (HydroBASINS == TRUE) "[2468]" else "[02468]"
       
-      # If not, output FALSE.
-      if (any(remaining_digits_i %% 2 == 0)) {
+      # Return FALSE if at least one is not
+      if (grepl(even_digits_pattern, remaining_digits_i)) {
         return(FALSE)
-      }
+      } 
       
-      # If yes, output TRUE.
+      # Otherwise, output TRUE.
       return(TRUE)
       
     # This part concerns cases where the second string is shorter than the first string. That is,
@@ -116,12 +151,14 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
       # except if all of the remaining digits in the code of the first basin are 1, since then 
       # it is located at the "drain" of the larger basin.
       if (m == 0) {
-        if (any(strsplit(substr(pfaf_code_i, n+1, nchar(pfaf_code_i)), "")[[1]]!=1)) {
+        drain_exception_pattern <- if (HydroBASINS == TRUE) "^[01]+$" else "^1+$"
+        if (!grepl(drain_exception_pattern, substr(pfaf_code_i, n+1, nchar(pfaf_code_i)))) {
           return(FALSE)
         } else {
-        return(TRUE)
+          return(TRUE)
         }
       }
+      
       
       # Check if the number made up by the first m remaining digits of pfaf_code_i is smaller than that of pfaf_code_ii.
       # Same process as above, again, the longer string needs to be cut off at n + m.
@@ -133,13 +170,14 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
         return(FALSE)
       }
       
-      # If it is smaller, Check if all remaining digits of pfaf_code_i are odd
-      remaining_digits_i <- as.integer(strsplit(substr(pfaf_code_i, n+m+1, nchar(pfaf_code_i)), "")[[1]])
+     # If it is smaller, Check if all remaining digits of pfaf_code_i are odd
+      remaining_digits_i <- substr(pfaf_code_i, n + m + 1, nchar(pfaf_code_i))
+      even_digits_pattern <- if (HydroBASINS == TRUE) "[2468]" else "[02468]"
       
       # Return FALSE if at least one is not
-      if (any(remaining_digits_i %% 2 == 0)) {
+      if (grepl(even_digits_pattern, remaining_digits_i)) {
         return(FALSE)
-      }
+      } 
       
       # Return TRUE otherwise.
       return(TRUE)
@@ -147,14 +185,12 @@ pfaf_downstream <- function(pfaf_code_i, pfaf_code_ii) {
   }
 }
 
-strsplit(substr("111", 0, nchar("111")), "")
-(any(strsplit(substr("121", 0, nchar("111")), "")[[1]]!=1))
 
 # Check whether a basin is upstream of another basin
-pfaf_upstream <- function(pfaf_code_i, pfaf_code_ii) {
+pfaf_upstream <- function(pfaf_code_i, pfaf_code_ii, HydroBASINS = TRUE) {
 
   # If i is upstream of ii, ii must be downstream of i. Thus:
-  return(pfaf_downstream(pfaf_code_ii, pfaf_code_i))
+  return(pfaf_downstream(pfaf_code_ii, pfaf_code_i, HydroBASINS = HydroBASINS))
 }
 
 # Same functions, easier syntax
@@ -163,15 +199,18 @@ pfaf_upstream <- function(pfaf_code_i, pfaf_code_ii) {
 # > "123" %DS% "125"
 # [1] TRUE
 # --------------------
-`%DS%` <- pfaf_downstream
-`%US%` <- pfaf_upstream
+`%D%` <- pfaf_downstream
+`%U%` <- pfaf_upstream
 
 
 # Check a Vector of Basin Codes Against Each Other ------------------------
 
-pfaf_matrix <- function(pfaf_codes_vector) {
+pfaf_matrix <- function(pfaf_codes_vector, HydroBASINS = TRUE) {
+  # Create a vectorized version of pfaf_downstream that includes the HydroBASINS parameter
+  pfaf_downstream_vectorized <- Vectorize(function(i, ii) pfaf_downstream(i, ii, HydroBASINS = HydroBASINS))
+  
   # Create a matrix with all possible comparisons
-  result_matrix <- outer(pfaf_codes_vector, pfaf_codes_vector, Vectorize(pfaf_downstream))
+  result_matrix <- outer(pfaf_codes_vector, pfaf_codes_vector, pfaf_downstream_vectorized)
   
   # Set the names of rows and columns to the elements of the input vector
   dimnames(result_matrix) <- list(pfaf_codes_vector, pfaf_codes_vector)
@@ -181,9 +220,10 @@ pfaf_matrix <- function(pfaf_codes_vector) {
 
 
 
+
 # Output a List of Basins that are Downstream of Each Basin ---------------
 
-pfaf_list_downstream <- function(pfaf_codes_vector, reflexive = TRUE) {
+pfaf_list_downstream <- function(pfaf_codes_vector, HydroBASINS = TRUE, reflexive = TRUE) {
   # This function takes as input a vector containing a number of river
   # basin codes. It then uses the pfaf_downstream() function to compare
   # all of them against each other and outputs a list containing a 
@@ -242,7 +282,7 @@ pfaf_list_downstream <- function(pfaf_codes_vector, reflexive = TRUE) {
           
           # Check if the j-th basin is downstream of the i-th basin. If yes,
           # add it to the vector that will be added to the output list.
-          if (pfaf_downstream(pfaf_codes_vector[j], current_basin)) {
+          if (pfaf_downstream(pfaf_codes_vector[j], current_basin, HydroBASINS = HydroBASINS)) {
             downstream_basins <- c(downstream_basins, pfaf_codes_vector[j])
           }
         }
@@ -250,7 +290,7 @@ pfaf_list_downstream <- function(pfaf_codes_vector, reflexive = TRUE) {
       # If the reflexive option is set to TRUE, do the same but do not include
       # the line that avoids a self-comparison.  
       } else {
-        if (pfaf_downstream(pfaf_codes_vector[j], current_basin)) {
+        if (pfaf_downstream(pfaf_codes_vector[j], current_basin, HydroBASINS = HydroBASINS)) {
           downstream_basins <- c(downstream_basins, pfaf_codes_vector[j])
         }
       }
@@ -266,7 +306,7 @@ pfaf_list_downstream <- function(pfaf_codes_vector, reflexive = TRUE) {
 
 # Output a List of Basins that are Upstream of Each Basin -----------------
 
-pfaf_list_upstream <- function(pfaf_codes_vector, reflexive = TRUE) {
+pfaf_list_upstream <- function(pfaf_codes_vector, HydroBASINS = TRUE, reflexive = TRUE) {
   # This function takes as input a vector containing a number of river
   # basin codes. It then uses the pfaf_upstream() function to compare
   # all of them against each other and outputs a list containing a 
@@ -325,7 +365,7 @@ pfaf_list_upstream <- function(pfaf_codes_vector, reflexive = TRUE) {
           
           # Check if the j-th basin is downstream of the i-th basin. If yes,
           # add it to the vector that will be added to the output list.
-          if (pfaf_upstream(pfaf_codes_vector[j], current_basin)) {
+          if (pfaf_upstream(pfaf_codes_vector[j], current_basin, HydroBASINS = HydroBASINS)) {
             upstream_basins <- c(upstream_basins, pfaf_codes_vector[j])
           }
         }
@@ -333,7 +373,7 @@ pfaf_list_upstream <- function(pfaf_codes_vector, reflexive = TRUE) {
         # If the reflexive option is set to TRUE, do the same but do not include
         # the line that avoids a self-comparison.  
       } else {
-        if (pfaf_upstream(pfaf_codes_vector[j], current_basin)) {
+        if (pfaf_upstream(pfaf_codes_vector[j], current_basin, HydroBASINS = HydroBASINS)) {
           upstream_basins <- c(upstream_basins, pfaf_codes_vector[j])
         }
       }
@@ -351,7 +391,7 @@ pfaf_list_upstream <- function(pfaf_codes_vector, reflexive = TRUE) {
 # Check the Distance Between Two Basins -----------------------------------
 
 
-pfaf_distance <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
+pfaf_distance <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector, HydroBASINS = TRUE) {
   # This function calculates the distance between two basins. The distance
   # between a basin and itself is 0. The distance between a basin and the
   # one directly upstream or downstream is 1. The distance to the basin 
@@ -391,25 +431,25 @@ pfaf_distance <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
   }
   
   # If i is downstream
-  if(pfaf_downstream(pfaf_code_i, pfaf_code_ii)){
+  if(pfaf_downstream(pfaf_code_i, pfaf_code_ii, HydroBASINS = HydroBASINS)){
     
     # Filter the vector of all basins for those that i is downstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_i, x))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_i, x, HydroBASINS = HydroBASINS))]
     
     # Filter the vector of all basins for those that ii is upstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_ii))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_ii, HydroBASINS = HydroBASINS))]
     
     # Return the number of basins left minus one.
     return(length(pfaf_codes_vector)-1)
   }
   # If i is upstream
-  if(pfaf_downstream(pfaf_code_ii, pfaf_code_i)){
+  if(pfaf_downstream(pfaf_code_ii, pfaf_code_i, HydroBASINS = HydroBASINS)){
     
     # Filter the vector of all basins for those that ii is downstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_ii, x))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_ii, x, HydroBASINS = HydroBASINS))]
     
     # Filter the vector of all basins for those that i is upstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_i))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_i, HydroBASINS = HydroBASINS))]
     
     # Return the number of basins left minus one.
     return(length(pfaf_codes_vector)-1)
@@ -422,7 +462,7 @@ pfaf_distance <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
 
 # Compute the Path Between Two Basins -------------------------------------
 
-pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
+pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector, HydroBASINS = TRUE) {
   # This function outputs the "path" between two basins, i.e., an ordered
   # vector of all basins that water flows through on its way from the one 
   # to the other specified basin. The order in which the basins are entered
@@ -462,13 +502,13 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
   
   
   # If i is downstream
-  if(pfaf_downstream(pfaf_code_i, pfaf_code_ii)){
+  if(pfaf_downstream(pfaf_code_i, pfaf_code_ii, HydroBASINS = HydroBASINS)){
     
     # Filter the vector of all basins for those that i is downstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_i, x))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_i, x, HydroBASINS = HydroBASINS))]
     
     # Filter the vector of all basins for those that ii is upstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_ii))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_ii, HydroBASINS = HydroBASINS))]
     
     # The remaining vector contains only basins that are on the path from 
     # ii to i. Thus, we can sort them using pfaf_downstream()
@@ -476,7 +516,7 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
     for (i in 2:n) {
       key <- pfaf_codes_vector[i]
       j <- i - 1
-      while (j > 0 && !pfaf_downstream(key, pfaf_codes_vector[j])) {
+      while (j > 0 && !pfaf_downstream(key, pfaf_codes_vector[j], HydroBASINS = HydroBASINS)) {
         pfaf_codes_vector[j + 1] <- pfaf_codes_vector[j]
         j <- j - 1
       }
@@ -486,13 +526,13 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
     return(pfaf_codes_vector)
   }
   # If i is upstream
-  if(pfaf_downstream(pfaf_code_ii, pfaf_code_i)){
+  if(pfaf_downstream(pfaf_code_ii, pfaf_code_i, HydroBASINS = HydroBASINS)){
     
     # Filter the vector of all basins for those that ii is downstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_ii, x))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(pfaf_code_ii, x, HydroBASINS = HydroBASINS))]
     
     # Filter the vector of all basins for those that i is upstream of
-    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_i))]
+    pfaf_codes_vector <- pfaf_codes_vector[sapply(pfaf_codes_vector, function(x) pfaf_downstream(x, pfaf_code_i, HydroBASINS = HydroBASINS))]
     
     # The remaining vector contains only basins that are on the path from 
     # ii to i. Thus, we can sort them using pfaf_downstream()
@@ -500,7 +540,7 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
     for (i in 2:n) {
       key <- pfaf_codes_vector[i]
       j <- i - 1
-      while (j > 0 && !pfaf_downstream(key, pfaf_codes_vector[j])) {
+      while (j > 0 && !pfaf_downstream(key, pfaf_codes_vector[j], HydroBASINS = HydroBASINS)) {
         pfaf_codes_vector[j + 1] <- pfaf_codes_vector[j]
         j <- j - 1
       }
@@ -514,4 +554,4 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector) {
   }
 }
 
-   
+
