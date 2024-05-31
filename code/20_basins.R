@@ -4,13 +4,13 @@ library("dplyr")
 library("tmap")
 
 # Mining polygons
-mines <- st_read("data/mines/global_mining_polygons_v2.gpkg")
+mines <- st_read("/data/jde/mines/global_mining_polygons_v2.gpkg")
 # Subset to Tanzania and use centroids for faster processing
 m <- mines |> filter(ISO3_CODE == "TZA") |> st_centroid()
 
 # https://data.hydrosheds.org/file/hydrobasins/standard/hybas_af_lev01-12_v1c.zip
 lvl <- "12"
-s <- st_read(paste0("data/hybas_af_lev01-12_v1c/hybas_af_lev", lvl, "_v1c.shp"))
+s <- st_read(paste0("/data/jde/hybas/hybas_af_lev", lvl, "_v1c.shp"))
 s <- st_make_valid(s)
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
 # s |> select(NEXT_DOWN) |> plot()
