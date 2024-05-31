@@ -19,7 +19,7 @@ int <- st_intersects(s, m)
 # Get the IDs of the basins that contain mines
 treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
 
-stream <- \(id, n = 1L, max = 5L, down = TRUE) {
+stream <- \(id, n = 1L, max = 11L, down = TRUE) {
   if(n >= max) return()
   if(down) {
     id_next <- d[["NEXT_DOWN"]][d[["HYBAS_ID"]] == id]
@@ -36,11 +36,11 @@ upstream_ids <- sapply(treated_id, stream, down = FALSE)
 #   We should probably at least track the order of a basin
 
 s <- s |> mutate(
-  status = case_when(
-    HYBAS_ID %in% unlist(downstream_ids) ~ "downstream",
-    HYBAS_ID %in% unlist(upstream_ids) ~ "upstream",
-    HYBAS_ID %in% treated_id ~ "mine",
-  .default = NA_character_))
+  status = ifelse(HYBAS_ID %in% treated_id, "mine",
+    ifelse(HYBAS_ID %in% unlist(downstream_ids), "downstream",
+      ifelse(HYBAS_ID %in% unlist(upstream_ids), "upstream",
+        NA_character_)))
+  )
 
 # Plot areas
 t <- st_crop(s, st_bbox(s |> filter(!is.na(status)))) |>
