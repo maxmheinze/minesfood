@@ -60,4 +60,6 @@ upstream_ids_vector <- unlist(upstream_ids)
 sample_basins_tza <- s %>%
   filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
 
+# oops
 write_sf(sample_basins_tza, "/data/jde/mines/global_mining_polygons_v2.gpkg")
+
