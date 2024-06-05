@@ -50,3 +50,14 @@ t <- st_crop(s, st_bbox(s |> filter(!is.na(status)))) |>
   tm_shape(m) +
   tm_dots(col = "black", border.col = "white", size = .3, shape = 23)
 tmap_save(t, paste0("basins_mines-l", lvl, ".png"))
+
+
+# Extracting the treated and untreated basins to prepare in GEE
+downstream_ids_vector <- unlist(downstream_ids)
+upstream_ids_vector <- unlist(upstream_ids)
+
+# extracting treated and untreated polygons 
+sample_basins_tza <- s %>%
+  filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
+
+write_sf(sample_basins_tza, "/data/jde/mines/global_mining_polygons_v2.gpkg")
