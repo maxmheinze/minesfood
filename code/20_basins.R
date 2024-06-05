@@ -60,4 +60,4 @@ upstream_ids_vector <- unlist(upstream_ids)
 sample_basins_tza <- s %>%
   filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
 
-#write_sf(sample_basins_tza, "data/sample_basins_tza.shp")
+write_sf(sample_basins_tza, "~/minesfood/data/sample_basins_tza.shp")
