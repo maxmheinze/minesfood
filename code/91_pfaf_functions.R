@@ -555,3 +555,219 @@ pfaf_path <- function(pfaf_code_i, pfaf_code_ii, pfaf_codes_vector, HydroBASINS 
 }
 
 
+# Output a List of Basins that are Downstream of Each Basin ---------------
+
+pfaf_downstream_new <- function(pfaf_code_i, pfaf_code_ii, HydroBASINS = TRUE) {
+  # This function checks two strings against each other to determine
+  # if pfaf_code_i is downstream of pfaf_code_ii.
+  
+  if (grepl("[^0-9]", pfaf_code_i) || grepl("[^0-9]", pfaf_code_ii)) {
+    stop("Input strings can only contain numbers.")
+  }
+  
+  if (!is.character(pfaf_code_i) || !is.character(pfaf_code_ii)) {
+    stop("Both inputs must be character strings.")
+  }
+  
+  if (HydroBASINS) {
+    if (substr(pfaf_code_i, 1, 3) != substr(pfaf_code_ii, 1, 3)) {
+      return(FALSE)
+    }
+  }
+  
+  # Find the common prefix length
+  min_length <- min(nchar(pfaf_code_i), nchar(pfaf_code_ii))
+  common_prefix_length <- sum(sapply(1:min_length, function(x) substr(pfaf_code_i, x, x) == substr(pfaf_code_ii, x, x)))
+  
+  remaining_i <- substr(pfaf_code_i, common_prefix_length + 1, nchar(pfaf_code_i))
+  remaining_ii <- substr(pfaf_code_ii, common_prefix_length + 1, nchar(pfaf_code_ii))
+  
+  if (HydroBASINS == FALSE) {
+    if (grepl("0", remaining_i) || grepl("0", remaining_ii)) {
+      return(FALSE)
+    }
+  }
+  
+  # Handle equal-length strings
+  if (nchar(pfaf_code_i) == nchar(pfaf_code_ii)) {
+    if (common_prefix_length == nchar(pfaf_code_i)) {
+      return(TRUE)
+    }
+    remaining_i_int <- as.integer(remaining_i)
+    remaining_ii_int <- as.integer(remaining_ii)
+    if (is.na(remaining_i_int) || is.na(remaining_ii_int) || remaining_i_int >= remaining_ii_int) {
+      return(FALSE)
+    }
+    if (grepl(if (HydroBASINS) "[2468]" else "[02468]", remaining_i)) {
+      return(FALSE)
+    }
+    return(TRUE)
+  }
+  
+  # Handle different-length strings
+  shorter_length <- min(nchar(pfaf_code_i), nchar(pfaf_code_ii))
+  remaining_i_cut <- substr(pfaf_code_i, common_prefix_length + 1, common_prefix_length + shorter_length)
+  remaining_ii_cut <- substr(pfaf_code_ii, common_prefix_length + 1, common_prefix_length + shorter_length)
+  
+  remaining_i_cut_int <- as.integer(remaining_i_cut)
+  remaining_ii_cut_int <- as.integer(remaining_ii_cut)
+  
+  if (nchar(pfaf_code_i) < nchar(pfaf_code_ii)) {
+    if (common_prefix_length == nchar(pfaf_code_i)) {
+      return(TRUE)
+    }
+    if (remaining_i_cut_int >= remaining_ii_cut_int) {
+      return(FALSE)
+    }
+    if (grepl(if (HydroBASINS) "[2468]" else "[02468]", remaining_i)) {
+      return(FALSE)
+    }
+    return(TRUE)
+  } else {
+    if (common_prefix_length == nchar(pfaf_code_ii)) {
+      if (!grepl(if (HydroBASINS) "^[01]+$" else "^1+$", remaining_i)) {
+        return(FALSE)
+      } else {
+        return(TRUE)
+      }
+    }
+    if (remaining_i_cut_int >= remaining_ii_cut_int) {
+      return(FALSE)
+    }
+    remaining_i_final <- substr(pfaf_code_i, common_prefix_length + shorter_length + 1, nchar(pfaf_code_i))
+    if (grepl(if (HydroBASINS) "[2468]" else "[02468]", remaining_i_final)) {
+      return(FALSE)
+    }
+    return(TRUE)
+  }
+}
+
+
+pfaf_downstream_all <- function(pfaf_code_i, pfaf_codes_vector, HydroBASINS = TRUE, reflexive = TRUE) {
+  # This function takes as input a vector containing a number of river
+  # basin codes. It then uses the pfaf_downstream() function to compare
+  # all of them against each other and outputs a list containing a 
+  # vector of downstream basins for each of the basins contained in the
+  # input vector.
+  
+  # Before we start, check that there are no letters in the strings.
+  if (grepl("[^0-9]", pfaf_code_i)) {
+    stop("Input code can only contain numbers.")
+  }
+  
+  # Check whether they are strings
+  if (!is.character(pfaf_code_i)) {
+    stop("Input code must be a character string.")
+  }
+  
+  # Check if reflexive is TRUE or FALSE
+  if (!is.logical(reflexive) || length(reflexive) != 1) {
+    stop("Reflexive must be a single logical value (TRUE or FALSE).")
+  }
+  
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings must be of the same length.")
+  }
+  
+  # Get the current basin code
+  current_basin <- pfaf_code_i
+  
+  # Initialize a vector to store basins that are downstream of the current basin
+  downstream_basins <- vector("character")
+  
+  # Create a logical vector for the downstream checks
+  downstream_checks <- sapply(pfaf_codes_vector, function(x) {
+    if (reflexive == FALSE && x == current_basin) {
+      return(FALSE)
+    }
+    return(pfaf_downstream(x, current_basin, HydroBASINS = HydroBASINS))
+  })
+  
+  # Get the downstream basins
+  downstream_basins <- pfaf_codes_vector[downstream_checks]
+  
+  # Finally, return the desired list.
+  return(downstream_basins)
+}
+
+
+pfaf_upstream_all <- function(pfaf_code_i, pfaf_codes_vector, HydroBASINS = TRUE, reflexive = TRUE) {
+  # This function takes as input a vector containing a number of river
+  # basin codes. It then uses the pfaf_upstream() function to compare
+  # all of them against each other and outputs a list containing a 
+  # vector of upstream basins for each of the basins contained in the
+  # input vector.
+  
+  # Before we start, check that there are no letters in the strings.
+  if (grepl("[^0-9]", pfaf_code_i)) {
+    stop("Input code can only contain numbers.")
+  }
+  
+  # Check whether they are strings
+  if (!is.character(pfaf_code_i)) {
+    stop("Input code must be a character string.")
+  }
+  
+  # Check if reflexive is TRUE or FALSE
+  if (!is.logical(reflexive) || length(reflexive) != 1) {
+    stop("Reflexive must be a single logical value (TRUE or FALSE).")
+  }
+  
+  # Check for duplicates
+  if (length(unique(pfaf_codes_vector)) != length(pfaf_codes_vector)) {
+    stop("Input vector must not contain duplicate elements.")
+  }
+  
+  # Check if all elements are strings
+  if (!all(sapply(pfaf_codes_vector, is.character))) {
+    stop("All elements of the vector must be strings.")
+  }
+  
+  # Check if all elements are numeric strings
+  if (!all(sapply(pfaf_codes_vector, function(x) grepl("^[0-9]+$", x)))) {
+    stop("All elements must contain only numeric characters.")
+  }
+  
+  # Check if all elements are of the same length
+  if (length(unique(nchar(pfaf_codes_vector))) != 1) {
+    stop("All strings must be of the same length.")
+  }
+  
+  # Get the current basin code
+  current_basin <- pfaf_code_i
+  
+  # Initialize a vector to store basins that are upstream of the current basin
+  upstream_basins <- vector("character")
+  
+  # Create a logical vector for the upstream checks
+  upstream_checks <- sapply(pfaf_codes_vector, function(x) {
+    if (reflexive == FALSE && x == current_basin) {
+      return(FALSE)
+    }
+    return(pfaf_upstream(x, current_basin, HydroBASINS = HydroBASINS))
+  })
+  
+  # Get the upstream basins
+  upstream_basins <- pfaf_codes_vector[upstream_checks]
+  
+  # Finally, return the desired list.
+  return(upstream_basins)
+}
+
+
