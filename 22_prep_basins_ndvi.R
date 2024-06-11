@@ -43,4 +43,4 @@ mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
 
 basin_evi <- left_join(mean_evi_basins_clean, mean_cropland_evi_basins_clean)
 
-write_csv(basin_evi, "data/basin_evi.csv")
+write_csv(basin_evi, "data_local/basin_evi.csv")
