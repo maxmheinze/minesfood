@@ -2,7 +2,6 @@
 
 rm(list = ls())
 
-source("code/20_basins.R")
 
 # Load packages
 pacman::p_load(
@@ -20,12 +19,12 @@ pacman::p_load(
   fixest
 )
 
+downstream_upstream_distance <- read_csv("~/minesfood/data/downstream_upstream_distance.csv")
+
 # reading in basin data
 basin_evi <- read_csv("data_local/basin_evi.csv")
 
-relevant_basins <- read_sf("data/relevant_basins.shp")
 
-basin_evi_rel <- left_join(basin_evi, relevant_basins)
-
+downstream_upstream_distance_evi <- left_join(downstream_upstream_distance, basin_evi)
 
 
