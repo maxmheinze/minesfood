@@ -1,8 +1,10 @@
 
-library("sf")
-library("dplyr")
-library("tmap")
-library("countrycode")
+library(sf)
+library(dplyr)
+library(tmap)
+library(tidyverse)
+library(countrycode)
+library(geosphere)
 
 # Mining polygons
 mines <- st_read("/data/jde/mines/global_mining_polygons_v2.gpkg")
@@ -72,4 +74,129 @@ relevant_basins <- s %>%
 write_sf(relevant_basins, "~/minesfood/data/relevant_basins.gpkg")
 
 
+
+<<<<<<< HEAD
+=======
+# creating distances dataframe
+downstream_ids_with_name <- downstream_ids
+names(downstream_ids_with_name) <- treated_id
+
+
+upstream_ids_with_name <- upstream_ids
+names(upstream_ids_with_name) <- treated_id
+
+
+str(upstream_ids_with_name)
+str(downstream_ids_with_name)
+
+
+
+# Convert your sf dataset to a data frame for easier handling
+relevant_basins <- read_sf("~/minesfood/data/relevant_basins.shp")
+
+relevant_basins_centroid <- st_centroid(relevant_basins)
+
+basins_df <- relevant_basins_centroid
+
+# Function to calculate the distance between two points
+calculate_distance <- function(id1, id2, basins_df) {
+  basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
+  basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
+  
+  if (nrow(basin1) == 0 || nrow(basin2) == 0) {
+    return(NA)  # If either basin is not found, return NA
+  }
+  
+  # Extract coordinates
+  coords1 <- st_coordinates(st_centroid(basin1))
+  coords2 <- st_coordinates(st_centroid(basin2))
+  
+  # Calculate the distance
+  dist <- distHaversine(coords1, coords2)
+  return(dist)
+}
+
+# Initialize an empty list to store the results
+distances_list <- list()
+
+# Loop through each basin and calculate distances to its downstream basins
+for (basin_id in names(downstream_ids_with_name)) {
+  downstream_ids <- downstream_ids_with_name[[basin_id]]
+  
+  if (!is.null(downstream_ids)) {
+    for (downstream_id in downstream_ids) {
+      distance <- calculate_distance(as.numeric(basin_id), as.numeric(downstream_id), basins_df)
+      distances_list[[length(distances_list) + 1]] <- data.frame(
+        basin_id = basin_id,
+        downstream_id = downstream_id,
+        distance = distance
+      )
+    }
+  }
+}
+
+downstream_distances_df <- bind_rows(distances_list)
+
+
+
+
+
+
+# Function to calculate the distance between two points
+calculate_distance <- function(id1, id2, basins_df) {
+  basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
+  basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
+  
+  if (nrow(basin1) == 0 || nrow(basin2) == 0) {
+    return(NA)  # If either basin is not found, return NA
+  }
+  
+  # Extract coordinates
+  coords1 <- st_coordinates(st_centroid(basin1))
+  coords2 <- st_coordinates(st_centroid(basin2))
+  
+  # Calculate the distance
+  dist <- distHaversine(coords1, coords2)
+  return(dist)
+}
+
+# Initialize an empty list to store the results
+upstream_distances_list <- list()
+
+# Loop through each basin and calculate distances to its upstream basins
+for (basin_id in names(upstream_ids_with_name)) {
+  upstream_ids <- upstream_ids_with_name[[basin_id]]
+  
+  if (!is.null(upstream_ids)) {
+    for (upstream_id in upstream_ids) {
+      distance <- calculate_distance(as.numeric(basin_id), as.numeric(upstream_id), basins_df)
+      upstream_distances_list[[length(upstream_distances_list) + 1]] <- data.frame(
+        basin_id = basin_id,
+        upstream_id = upstream_id,
+        distance = distance
+      )
+    }
+  }
+}
+
+# Combine the list into a data frame
+upstream_distances_df <- bind_rows(upstream_distances_list)
+
+
+
+
+
+downstream_distances_df <- downstream_distances_df %>%
+  mutate(downstream = 1) %>%
+  rename(HYBAS_ID = downstream_id)  %>%
+  rename(mine_basin = basin_id)
+
+upstream_distances_df <- upstream_distances_df %>%
+  mutate(downstream = 0) %>%
+  rename(HYBAS_ID = upstream_id) %>%
+  rename(mine_basin = basin_id)
+
+downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
+
+write.csv(downstream_upstream_distance, "/data/downstream_upstream_distance.csv", row.names = FALSE)
 

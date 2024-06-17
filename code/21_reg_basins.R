@@ -2,6 +2,8 @@
 
 rm(list = ls())
 
+source("code/20_basins.R")
+
 # Load packages
 pacman::p_load(
   tidyverse,
@@ -24,7 +26,6 @@ basin_evi <- read_csv("data_local/basin_evi.csv")
 relevant_basins <- read_sf("data/relevant_basins.shp")
 
 basin_evi_rel <- left_join(basin_evi, relevant_basins)
-
 
 
 
