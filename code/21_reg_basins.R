@@ -19,8 +19,12 @@ pacman::p_load(
 )
 
 # reading in basin data
-basin_evi <- read_csv("/data/jde/basins_evi/basin_evi.csv")
+basin_evi <- read_csv("data_local/basin_evi.csv")
 
-sample_basins <- read_sf("~/minesfood/data/sample_basins_tza.shp")
+relevant_basins <- read_sf("data/relevant_basins.shp")
 
-left_join(basin_evi, sample_basins)
+basin_evi_rel <- left_join(basin_evi, relevant_basins)
+
+
+
+
