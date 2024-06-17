@@ -75,8 +75,6 @@ write_sf(relevant_basins, "~/minesfood/data/relevant_basins.gpkg")
 
 
 
-<<<<<<< HEAD
-=======
 # creating distances dataframe
 downstream_ids_with_name <- downstream_ids
 names(downstream_ids_with_name) <- treated_id
@@ -117,7 +115,7 @@ calculate_distance <- function(id1, id2, basins_df) {
 }
 
 # Initialize an empty list to store the results
-distances_list <- list()
+downstream_distances_list <- list()
 
 # Loop through each basin and calculate distances to its downstream basins
 for (basin_id in names(downstream_ids_with_name)) {
@@ -126,7 +124,7 @@ for (basin_id in names(downstream_ids_with_name)) {
   if (!is.null(downstream_ids)) {
     for (downstream_id in downstream_ids) {
       distance <- calculate_distance(as.numeric(basin_id), as.numeric(downstream_id), basins_df)
-      distances_list[[length(distances_list) + 1]] <- data.frame(
+      downstream_distances_list[[length(downstream_distances_list) + 1]] <- data.frame(
         basin_id = basin_id,
         downstream_id = downstream_id,
         distance = distance
@@ -135,7 +133,7 @@ for (basin_id in names(downstream_ids_with_name)) {
   }
 }
 
-downstream_distances_df <- bind_rows(distances_list)
+downstream_distances_df <- bind_rows(downstream_distances_list)
 
 
 
