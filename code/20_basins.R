@@ -198,5 +198,5 @@ upstream_distances_df <- upstream_distances_df %>%
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-write.csv(downstream_upstream_distance, "/data/downstream_upstream_distance.csv", row.names = FALSE)
+write.csv(downstream_upstream_distance, "~/minesfood/data/downstream_upstream_distance.csv", row.names = FALSE)
 
