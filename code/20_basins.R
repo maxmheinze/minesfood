@@ -89,7 +89,6 @@ str(downstream_ids_with_name)
 
 
 
-# Convert your sf dataset to a data frame for easier handling
 relevant_basins <- read_sf("~/minesfood/data/relevant_basins.shp")
 
 relevant_basins_centroid <- st_centroid(relevant_basins)
@@ -137,27 +136,6 @@ downstream_distances_df <- bind_rows(downstream_distances_list)
 
 
 
-
-
-
-# Function to calculate the distance between two points
-calculate_distance <- function(id1, id2, basins_df) {
-  basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
-  basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
-  
-  if (nrow(basin1) == 0 || nrow(basin2) == 0) {
-    return(NA)  # If either basin is not found, return NA
-  }
-  
-  # Extract coordinates
-  coords1 <- st_coordinates(st_centroid(basin1))
-  coords2 <- st_coordinates(st_centroid(basin2))
-  
-  # Calculate the distance
-  dist <- distHaversine(coords1, coords2)
-  return(dist)
-}
-
 # Initialize an empty list to store the results
 upstream_distances_list <- list()
 
@@ -178,11 +156,14 @@ for (basin_id in names(upstream_ids_with_name)) {
 }
 
 # Combine the list into a data frame
-upstream_distances_df <- bind_rows(upstream_distances_list)
+upstream_distances_df <- bind_rows(upstream_distances_list) %>%
+  distinct()
 
+# THERE ARE DUPLICATES, THIS IS ONLY A QUICK FIX, WE NEED TO FIND OUT 
+# WHERE THE DUPLICATES ARE COMING FROM!!!!
 
-
-
+# ALSO THERE IS A LARGE ISSUE WITH THE UPSTREAM FUNCTION, BASINS WHICH ARE
+# NOT UPSTREAM ARE LABELED AS UPSTREAM
 
 downstream_distances_df <- downstream_distances_df %>%
   mutate(downstream = 1) %>%
@@ -196,9 +177,35 @@ upstream_distances_df <- upstream_distances_df %>%
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-downstream_upstream_distance <- downstream_upstream_distance %>% 
-  distinct(HYBAS_ID, mine_basin, distance, downstream)
+# This is just raw testing stuff no time to tidy
+# downstream_upstream_distance %>%
+#   unite(testcol, "HYBAS_ID", "mine_basin") %>%
+#   pluck("testcol") %>%
+#   unique() %>%
+#   length()
+# 
+# downstream_upstream_distance %>%
+#   group_by(HYBAS_ID, mine_basin) %>%
+#   mutate(groupn = n()) %>%
+#   ungroup() %>%
+#   dplyr::filter(groupn == 2) %>%
+#   arrange(mine_basin, HYBAS_ID)
+# 
+# upstream_ids_with_name$`1120011142`
+# 
+# s %>%
+#   dplyr::filter(HYBAS_ID == 1120011141)
+
+# THIS IS ONLY A DIRTY FIX!!! THIS N E E D S TO BE CHANGED!!!
+downstream_upstream_distance_DIRTYFIX <- downstream_upstream_distance %>%
+  group_by(HYBAS_ID, mine_basin) %>%
+  arrange(desc(downstream)) %>%
+  slice_head(n = 1)
 
 
-write.csv(downstream_upstream_distance, "~/minesfood/data/downstream_upstream_distance.csv", row.names = FALSE)
+# downstream_upstream_distance <- downstream_upstream_distance %>% 
+#   distinct(HYBAS_ID, mine_basin, distance, downstream)
+
+
+write.csv(downstream_upstream_distance_DIRTYFIX, "~/minesfood/data/downstream_upstream_distance_DIRTYFIX.csv", row.names = FALSE)
 
