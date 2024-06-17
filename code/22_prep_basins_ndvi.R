@@ -17,9 +17,9 @@ mean_evi_basins <- st_read("data_local/mean_evi_basins.csv")
 
 mean_evi_basins_clean <- mean_evi_basins %>%
   mutate(year = year(image_date), 
-         PFAF_ID = as.numeric(PFAF_ID)) %>%
-  arrange(PFAF_ID, year) %>%
-  group_by(PFAF_ID, year) %>%
+         HYBAS_ID = as.numeric(HYBAS_ID)) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
   filter(mean_EVI == max(mean_EVI)) %>%
   rename(max_EVI = mean_EVI, 
          date_all_land = image_date) %>%
@@ -31,8 +31,8 @@ mean_cropland_evi_basins <- read_csv("data_local/mean_cropland_evi_basins.csv")
 
 mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
-  arrange(PFAF_ID, year) %>%
-  group_by(PFAF_ID, year) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
   filter(mean_EVI == max(mean_EVI)) %>%
   rename(max_cropland_EVI = mean_EVI, 
          date_cropland = image_date) %>%
