@@ -91,6 +91,9 @@ relevant_basins <- s %>%
 
 write_sf(relevant_basins, "~/minesfood/data/relevant_basins.gpkg")
 
+# Necessary for Earth Engine
+write_sf(relevant_basins, "~/minesfood/data/relevant_basins.shp")
+
 
 
 # Calculating Distances ---------------------------------------------------
