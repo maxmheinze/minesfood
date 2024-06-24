@@ -1,15 +1,19 @@
 
-library(sf)
-library(dplyr)
-library(tmap)
-library(tidyverse)
-library(countrycode)
-library(geosphere)
+# Load Packages -----------------------------------------------------------
 
-# Mining polygons
+pacman::p_load(
+  sf,
+  dplyr,
+  tmap,
+  tidyverse,
+  countrycode,
+  geosphere
+)
+
+
+# Load and Prepare Mine Data ----------------------------------------------
+
 mines <- st_read("/data/jde/mines/global_mining_polygons_v2.gpkg")
-# Subset to Tanzania and use centroids for faster processing
-#m <- mines |> filter(ISO3_CODE == "TZA") |> st_centroid()
 
 africa_codes <- codelist %>%
   filter(continent == "Africa") %>%
@@ -17,18 +21,27 @@ africa_codes <- codelist %>%
 
 m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
 
+
+
+# Load and Prepare HydroBASINS Data ---------------------------------------
+
 # https://data.hydrosheds.org/file/hydrobasins/standard/hybas_af_lev01-12_v1c.zip
 lvl <- "12"
 s <- st_read(paste0("/data/jde/hybas_lakes/hybas_lake_af_lev", lvl, "_v1c.shp"))
 s <- st_make_valid(s)
 s <- dplyr::filter(s, LAKE == 0)
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
-# s |> select(NEXT_DOWN) |> plot()
 
 int <- st_intersects(s, m)
+
 # Get the IDs of the basins that contain mines
 treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
 
+
+
+# Get Downstream/Upstream Basins ------------------------------------------
+
+# Function that determines up- and downstream basins from NEXT_DOWN field
 stream <- \(id, n = 1L, max = 11L, down = TRUE) {
   if(n >= max) return()
   if(down) {
@@ -37,13 +50,18 @@ stream <- \(id, n = 1L, max = 11L, down = TRUE) {
     id_next <- d[["HYBAS_ID"]][d[["NEXT_DOWN"]] %in% id]
   }
   if(all(id_next == 0) || length(id_next) == 0) return()
-  return(c(id_next, Recall(id_next, n = n + 1L)))
+  return(c(id_next, Recall(id_next, n = n + 1L, max = max, down = down)))
 }
-downstream_ids <- lapply(treated_id, stream, down = TRUE)
 
+# Get basins downstream and upstream of mines
+downstream_ids <- lapply(treated_id, stream, down = TRUE)
 upstream_ids <- lapply(treated_id, stream, down = FALSE)
+
 # Todo:
 #   We should probably at least track the order of a basin
+
+
+# Prepare and Export Dataframe --------------------------------------------
 
 s <- s |> mutate(
   status = ifelse(HYBAS_ID %in% treated_id, "mine",
@@ -75,21 +93,15 @@ write_sf(relevant_basins, "~/minesfood/data/relevant_basins.gpkg")
 
 
 
-# creating distances dataframe
+# Calculating Distances ---------------------------------------------------
+
+# relevant_basins <- read_sf("~/minesfood/data/relevant_basins.gpkg")
+
 downstream_ids_with_name <- downstream_ids
 names(downstream_ids_with_name) <- treated_id
 
-
 upstream_ids_with_name <- upstream_ids
 names(upstream_ids_with_name) <- treated_id
-
-
-str(upstream_ids_with_name)
-str(downstream_ids_with_name)
-
-
-
-relevant_basins <- read_sf("~/minesfood/data/relevant_basins.shp")
 
 relevant_basins_centroid <- st_centroid(relevant_basins)
 
@@ -113,6 +125,9 @@ calculate_distance <- function(id1, id2, basins_df) {
   return(dist)
 }
 
+
+# Downstream Distances ----------------------------------------------------
+
 # Initialize an empty list to store the results
 downstream_distances_list <- list()
 
@@ -135,6 +150,7 @@ for (basin_id in names(downstream_ids_with_name)) {
 downstream_distances_df <- bind_rows(downstream_distances_list)
 
 
+# Upstream Distances ------------------------------------------------------
 
 # Initialize an empty list to store the results
 upstream_distances_list <- list()
@@ -156,14 +172,11 @@ for (basin_id in names(upstream_ids_with_name)) {
 }
 
 # Combine the list into a data frame
-upstream_distances_df <- bind_rows(upstream_distances_list) %>%
-  distinct()
+upstream_distances_df <- bind_rows(upstream_distances_list)
 
-# THERE ARE DUPLICATES, THIS IS ONLY A QUICK FIX, WE NEED TO FIND OUT 
-# WHERE THE DUPLICATES ARE COMING FROM!!!!
 
-# ALSO THERE IS A LARGE ISSUE WITH THE UPSTREAM FUNCTION, BASINS WHICH ARE
-# NOT UPSTREAM ARE LABELED AS UPSTREAM
+
+# Merge Upstream Distances/Downstream Distances DFs -----------------------
 
 downstream_distances_df <- downstream_distances_df %>%
   mutate(downstream = 1) %>%
@@ -177,35 +190,5 @@ upstream_distances_df <- upstream_distances_df %>%
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-# This is just raw testing stuff no time to tidy
-# downstream_upstream_distance %>%
-#   unite(testcol, "HYBAS_ID", "mine_basin") %>%
-#   pluck("testcol") %>%
-#   unique() %>%
-#   length()
-# 
-# downstream_upstream_distance %>%
-#   group_by(HYBAS_ID, mine_basin) %>%
-#   mutate(groupn = n()) %>%
-#   ungroup() %>%
-#   dplyr::filter(groupn == 2) %>%
-#   arrange(mine_basin, HYBAS_ID)
-# 
-# upstream_ids_with_name$`1120011142`
-# 
-# s %>%
-#   dplyr::filter(HYBAS_ID == 1120011141)
-
-# THIS IS ONLY A DIRTY FIX!!! THIS N E E D S TO BE CHANGED!!!
-downstream_upstream_distance_DIRTYFIX <- downstream_upstream_distance %>%
-  group_by(HYBAS_ID, mine_basin) %>%
-  arrange(desc(downstream)) %>%
-  slice_head(n = 1)
-
-
-# downstream_upstream_distance <- downstream_upstream_distance %>% 
-#   distinct(HYBAS_ID, mine_basin, distance, downstream)
-
-
-write.csv(downstream_upstream_distance_DIRTYFIX, "~/minesfood/data/downstream_upstream_distance_DIRTYFIX.csv", row.names = FALSE)
+write.csv(downstream_upstream_distance, "~/minesfood/data/downstream_upstream_distance.csv", row.names = FALSE)
 
