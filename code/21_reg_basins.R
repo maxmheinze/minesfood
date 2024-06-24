@@ -1,9 +1,8 @@
-# This code implements the basin RDD design regression
+
+# Header ------------------------------------------------------------------
 
 rm(list = ls())
 
-
-# Load packages
 pacman::p_load(
   tidyverse,
   rhdx,
@@ -21,14 +20,17 @@ pacman::p_load(
   rdrobust
 )
 
-# reading in downstream upstream data
-downstream_upstream_distance_DIRTYFIX <- read_csv("minesfood/data/downstream_upstream_distance_DIRTYFIX.csv")
 
-# reading in EVI data
+# Read in Data ------------------------------------------------------------
+
+downstream_upstream_distance <- read_csv("minesfood/data/downstream_upstream_distance.csv")
+
 basin_evi <- read_csv("/data/jde/basins_evi/basin_evi.csv")
 
 
-downstream_upstream_distance_evi <- left_join(downstream_upstream_distance_DIRTYFIX, basin_evi)
+# Prepare Data for Regression ---------------------------------------------
+
+downstream_upstream_distance_evi <- left_join(downstream_upstream_distance, basin_evi)
 
 dup <- downstream_upstream_distance_evi %>%
   mutate(downstream = ifelse(distance == 0, 1, downstream)) %>%
@@ -37,7 +39,9 @@ dup <- downstream_upstream_distance_evi %>%
   slice_head(n = 1) %>%
   ungroup()
 
-# Regression 
+
+# Regression --------------------------------------------------------------
+
 mod1 = feols((max_cropland_EVI) ~ distance + I(distance^2) + downstream | year + as.factor(mine_basin), data = dup)
 
 mod2 = feols((max_EVI) ~ distance + I(distance^2) + downstream | year +  as.factor(mine_basin), data = dup)
@@ -49,7 +53,9 @@ mod4 = feols((max_EVI) ~ ( distance + I(distance^2))*downstream | year +  as.fac
 etable(mod1, mod2, mod3, mod4, tex = TRUE)
 
 
-# rdrobust spatial discontinuity 
+
+# rdrobust Spatial Discontinuity  -----------------------------------------
+
 dup_01 <- dup %>%
   mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
   mutate(distance = distance/1000) 
