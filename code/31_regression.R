@@ -40,7 +40,7 @@ dup <- downstream_upstream_distance_evi %>%
   ungroup()
 
 
-# Regression --------------------------------------------------------------
+# Regressidownstream# Regression --------------------------------------------------------------
 
 mod1 = feols((max_cropland_EVI) ~ distance + I(distance^2) + downstream | year + as.factor(mine_basin), data = dup)
 
@@ -50,7 +50,7 @@ mod3 = feols((max_cropland_EVI) ~ ( distance + I(distance^2))*downstream | year 
 
 mod4 = feols((max_EVI) ~ ( distance + I(distance^2))*downstream | year +  as.factor(mine_basin), data = dup)
 
-etable(mod1, mod2, mod3, mod4, tex = TRUE)
+etable(mod1, mod2, mod3, mod4)
 
 
 
@@ -64,7 +64,7 @@ fit = rdrobust(y = dup_01$max_EVI, x = dup_01$distance, c = 0, h=1,all=TRUE)
 
 Lee2008_rdd_Z <- rdd_data(y = dup_01$max_EVI, x = dup_01$distance,  cutpoint = 0)
 
-summary(fit)
+summary(Lee2008_rdd_Z)
 
 rdplot(dup_01$max_EVI, dup_01$distance, 
        x.lim = c(-50,50),
@@ -73,7 +73,7 @@ rdplot(dup_01$max_EVI, dup_01$distance,
        y.lab="max_EVI", p = 2)
 
 rdplot(dup_01$max_cropland_EVI, dup_01$distance, 
-       x.lim = c(-25,25),
+       x.lim = c(-50,50),
        y.lim = c(0.02,0.96),
        x.lab="Distance",
        y.lab="max_cropland_EVI", p = 1)
