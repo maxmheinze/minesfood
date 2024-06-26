@@ -193,5 +193,13 @@ upstream_distances_df <- upstream_distances_df %>%
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
+downstream_upstream_distance <- downstream_upstream_distance %>%
+  group_by(mine_basin) %>%
+  summarize(mine_basin = first(mine_basin),
+            HYBAS_ID = first(mine_basin),
+            distance = 0,
+            downstream = 1) %>%
+  rbind(downstream_upstream_distance,.) 
+
 write.csv(downstream_upstream_distance, "~/minesfood/data/downstream_upstream_distance.csv", row.names = FALSE)
 
