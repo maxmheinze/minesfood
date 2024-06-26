@@ -11,7 +11,7 @@ pacman::p_load(
 
 # Mining Polygons ---------------------------------------------------------
 
-mean_evi_basins <- st_read("data_local/mean_evi_basins.csv")
+mean_evi_basins <- read_csv("/data/jde/basins_evi/mean_evi_basins.csv")
 
 # downloading and cleaning the total EVI 
 
@@ -27,7 +27,7 @@ mean_evi_basins_clean <- mean_evi_basins %>%
 
 # downloading and cleaning the cropland EVI 
 
-mean_cropland_evi_basins <- read_csv("data_local/mean_cropland_evi_basins.csv")
+mean_cropland_evi_basins <- read_csv("/data/jde/basins_evi/mean_cropland_evi_basins.csv")
 
 mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
@@ -43,4 +43,4 @@ mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
 
 basin_evi <- left_join(mean_evi_basins_clean, mean_cropland_evi_basins_clean)
 
-write_csv(basin_evi, "data_local/basin_evi.csv")
+write_csv(basin_evi, "/data/jde/basins_evi/basin_evi.csv")

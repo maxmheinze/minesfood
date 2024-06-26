@@ -73,7 +73,7 @@ rdplot(dup_01$max_EVI, dup_01$distance,
        y.lab="max_EVI", p = 2)
 
 rdplot(dup_01$max_cropland_EVI, dup_01$distance, 
-       x.lim = c(-50,50),
+       x.lim = c(-30,30),
        y.lim = c(0.02,0.96),
        x.lab="Distance",
        y.lab="max_cropland_EVI", p = 1)
