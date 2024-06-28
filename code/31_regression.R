@@ -77,10 +77,10 @@ dup_02 <- dup %>%
 fit = rdrobust(y = dup_01$max_EVI, x = dup_01$distance, c = 0, h=1,all=TRUE)
 
 rdplot(dup_01$max_EVI, dup_01$distance, 
-       x.lim = c(-200,200),
+       x.lim = c(-50,50),
        #y.lim = c(0.1400,0.9933),
        x.lab="Distance",
-       y.lab="max_EVI", p = 2)
+       y.lab="max_EVI", p = 1)
 
 rdplot(dup_01$max_cropland_EVI, dup_01$distance, 
        x.lim = c(-100,100),
