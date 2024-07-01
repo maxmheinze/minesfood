@@ -111,14 +111,14 @@ buffer_distances <- c(10000)
 # Create buffers for each distance and store them in a list
 buffers <- lapply(buffer_distances, function(dist) st_buffer(cluster, dist = dist))
 
-buffers %<>% lapply(st_simplify(dTolerance = 10))
+buffers <- lapply(buffers, function(dist) st_simplify(dist, dTolerance = 10))
 
 # Check if polygons are within each buffer for industrial mines
 polygons_within_buffers <- lapply(buffers, function(buffer) st_intersects(buffer, industrial_mine, sparse = FALSE))
 
 # Create new columns indicating if a cluster has polygons within each buffer distance for industrial mines
 for (i in seq_along(buffer_distances)) {
-  cluster_sf_2[[paste0("industrial_mine_", buffer_distances[i] / 1000, "km")]] <- apply(polygons_within_buffers[[i]], 1, any) * 1
+  cluster[[paste0("industrial_mine_", buffer_distances[i] / 1000, "km")]] <- apply(polygons_within_buffers[[i]], 1, any) * 1
 }
 
 st_intersection_faster <- function(x,y,...){
