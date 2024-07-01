@@ -23,7 +23,7 @@ pacman::p_load(
 
 # Read in Data ------------------------------------------------------------
 
-downstream_upstream_distance <- read_csv("minesfood/data/downstream_upstream_distance.csv")
+downstream_upstream_distance <- read_csv("/data/jde/processed/downstream_upstream_distance.csv")
 
 basin_evi <- read_csv("/data/jde/basins_evi/basin_evi.csv")
 
@@ -76,15 +76,20 @@ dup_02 <- dup %>%
 
 fit = rdrobust(y = dup_01$max_EVI, x = dup_01$distance, c = 0, h=1,all=TRUE)
 
-rdplot(dup_01$max_EVI, dup_01$distance, 
+dup_02 <- dup_01 %>%
+  filter(year == 2021)
+
+rdplot(dup_02$max_EVI, dup_02$distance, 
        x.lim = c(-50,50),
        #y.lim = c(0.1400,0.9933),
        x.lab="Distance",
-       y.lab="max_EVI", p = 1)
+       y.lab="max_EVI", p = 2)
+
+
 
 rdplot(dup_01$max_cropland_EVI, dup_01$distance, 
-       x.lim = c(-100,100),
-       y.lim = c(0.02,0.96),
+       x.lim = c(-50,50),
+       #y.lim = c(0.02,0.96),
        x.lab="Distance",
        y.lab="max_cropland_EVI", p = 3)
 
