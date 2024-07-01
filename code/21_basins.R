@@ -89,10 +89,10 @@ upstream_ids_vector <- unlist(upstream_ids)
 relevant_basins <- s %>%
   filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
 
-write_sf(relevant_basins, "~/minesfood/data/relevant_basins.gpkg")
+write_sf(relevant_basins, "/data/jde/processed/relevant_basins.gpkg")
 
 # Necessary for Earth Engine
-write_sf(relevant_basins, "~/minesfood/data/relevant_basins.shp")
+write_sf(relevant_basins, "/data/jde/processed/relevant_basins.shp")
 
 
 
@@ -201,5 +201,5 @@ downstream_upstream_distance <- downstream_upstream_distance %>%
             downstream = 1) %>%
   rbind(downstream_upstream_distance,.) 
 
-write.csv(downstream_upstream_distance, "~/minesfood/data/downstream_upstream_distance.csv", row.names = FALSE)
+write.csv(downstream_upstream_distance, "/data/jde/processed/downstream_upstream_distance.csv", row.names = FALSE)
 
