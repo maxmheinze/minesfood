@@ -42,34 +42,56 @@ treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
 # Get Downstream/Upstream Basins ------------------------------------------
 
 # Function that determines up- and downstream basins from NEXT_DOWN field
+
 stream <- \(id, n = 1L, max = 11L, down = TRUE) {
-  if(n >= max) return()
-  if(down) {
+ if(n >= max) return()
+ if(down) {
+   id_next <- d[["NEXT_DOWN"]][d[["HYBAS_ID"]] == id]
+ } else { # Upstream
+   id_next <- d[["HYBAS_ID"]][d[["NEXT_DOWN"]] %in% id]
+ }
+ if(all(id_next == 0) || length(id_next) == 0) return()
+ return(c(id_next, Recall(id_next, n = n + 1L, max = max, down = down)))
+}
+
+
+stream_ordered <- function(id, n = 1L, max = 11L, down = TRUE) {
+  if (n >= max) return(NULL)
+  if (down) {
     id_next <- d[["NEXT_DOWN"]][d[["HYBAS_ID"]] == id]
-  } else { # Upstream
+  } else {
     id_next <- d[["HYBAS_ID"]][d[["NEXT_DOWN"]] %in% id]
   }
-  if(all(id_next == 0) || length(id_next) == 0) return()
-  return(c(id_next, Recall(id_next, n = n + 1L, max = max, down = down)))
+  if (all(id_next == 0) || length(id_next) == 0) return()
+  
+  results <- cbind(id_next, n)
+  recursive_results <- Recall(id_next, n = n + 1L, max = max, down = down)
+  if (!is.null(recursive_results)) {
+    results <- rbind(results, recursive_results)
+  }
+  return(results)
 }
+
 
 # Get basins downstream and upstream of mines
 downstream_ids <- lapply(treated_id, stream, down = TRUE)
 upstream_ids <- lapply(treated_id, stream, down = FALSE)
 
-# Todo:
-#   We should probably at least track the order of a basin
+# Tracking orders of basins
+downstream_ids_ordered <- lapply(treated_id, stream_ordered, down = TRUE)
+upstream_ids_ordered <- lapply(treated_id, stream_ordered, down = FALSE)
 
 
-# Prepare and Export Dataframe --------------------------------------------
 
-s <- s |> mutate(
+# Relevant Basins Shapefile -----------------------------------------------
+
+su <- s |> mutate(
   status = ifelse(HYBAS_ID %in% treated_id, "mine",
     ifelse(HYBAS_ID %in% unlist(downstream_ids), "downstream",
       ifelse(HYBAS_ID %in% unlist(upstream_ids), "upstream",
         NA_character_)))
   )
-s |> pull(status) |> table()
+su |> pull(status) |> table()
 
 # Plot areas
 # t <- st_crop(s, st_bbox(s |> filter(!is.na(status)))) |>
@@ -86,7 +108,7 @@ downstream_ids_vector <- unlist(downstream_ids)
 upstream_ids_vector <- unlist(upstream_ids)
 
 # extracting treated and untreated polygons 
-relevant_basins <- s %>%
+relevant_basins <- su %>%
   filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
 
 write_sf(relevant_basins, "/data/jde/processed/relevant_basins.gpkg")
@@ -202,4 +224,62 @@ downstream_upstream_distance <- downstream_upstream_distance %>%
   rbind(downstream_upstream_distance,.) 
 
 write.csv(downstream_upstream_distance, "/data/jde/processed/downstream_upstream_distance.csv", row.names = FALSE)
+
+
+# Lookup DF with Order ----------------------------------------------------
+
+downstream_df_ordered <- do.call("rbind", downstream_ids_ordered) %>%
+  data.frame() %>%
+  mutate(id = rep(treated_id, lengths(downstream_ids_ordered)/2),
+         status = "downstream") %>%
+  relocate(id_next, id, status, n) %>%
+  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+
+updstream_df_ordered <- do.call("rbind", upstream_ids_ordered) %>%
+  data.frame() %>%
+  mutate(id = rep(treated_id, lengths(upstream_ids_ordered)/2),
+         status = "upstream") %>%
+  relocate(id_next, id, status, n) %>%
+  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+
+mine_df_ordered <- data.frame(treated_id, treated_id) %>%
+  mutate(status = "mine",
+         order = 0) %>%
+  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+
+basins_ordered <- rbind(downstream_df_ordered, updstream_df_ordered, mine_df_ordered)
+
+
+# Relevant Basins Shapefile with Order ------------------------------------
+
+# If a basin is down- or upstream of multiple mines, it is considered to
+# be only down- or upstream of the closest mine.
+
+basins_ordered_unique <- basins_ordered %>%
+  group_by(basin) %>%
+  arrange(order, .by_group = T) %>%
+  slice_head(n = 1)
+
+so <- s %>%
+  left_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin")) %>%
+  dplyr::filter(!is.na(status)) %>%
+  dplyr::select(HYBAS_ID, mine_basin, status, order)
+
+
+# For some reason, I cannot write this without getting errors,
+# and I cannot currently resolve this --Max 20240701
+
+# write_sf(so, "./data/relevant_basins_ordered.gpkg")
+# write_sf(so, "/data/jde/processed/relevant_basins_ordered.shp")
+
+
+# Add Order to Downstream/Upstream Distance DF ----------------------------
+
+downstream_upstream_distance_ordered <- downstream_upstream_distance %>%
+  mutate(mine_basin = as.double(mine_basin)) %>%
+  full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) %>%
+  drop_na(status) %>%
+  mutate_at(vars(downstream, distance), ~replace_na(., 0)) 
+
+write.csv(downstream_upstream_distance_ordered, "/data/jde/processed/downstream_upstream_distance_ordered.csv", row.names = FALSE)
 
