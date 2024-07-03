@@ -50,23 +50,32 @@ saveRDS(slope_df, file = "/data/jde/processed/slope.RDS")
 rm(slope); gc()
 
 
-# Soil Quality (need to check unit, is it a factor?)
+# Soil Quality (on a scale from 0-118)
+# taking once the value with the highest weight, once the weighted average
 soilq <- terra::rast("/data/redd/grid_pnas/soilgrid.tif")
 
-soilq_df <- terra::extract(x = soilq, y = basins, 
+soilq_prim_df <- terra::extract(x = soilq, y = basins, 
                                 weights = TRUE, exact = TRUE) |> 
-  rename(soilq = soilgrid) |> 
+  rename(soilq_prim = soilgrid) |> 
   group_by(ID) |> mutate(weight = weight / sum(weight)) |> 
   left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |> 
   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID) |> 
-  group_by(HYBAS_ID, soilq) |> 
+  group_by(HYBAS_ID, soilq_prim) |> 
   summarise(weight = sum(weight, na.rm = T)) |> 
-  filter(!is.na(soilq)) |> 
+  filter(!is.na(soilq_prim)) |> 
   group_by(HYBAS_ID) |> 
   slice_max(weight, n = 1) |> 
   dplyr::select(-weight)
+saveRDS(soilq_prim_df, file = "/data/jde/processed/soilq_primary.RDS")
 
-saveRDS(soilq_df, file = "/data/jde/processed/soilq.RDS")
+soilq_avg_df <- terra::extract(x = soilq, y = basins, 
+                                weights = TRUE, exact = TRUE) |> 
+  rename(soilq_avg = soilgrid) |> 
+  group_by(ID) |> transmute(weighted = soilq_avg * weight / sum(weight)) |>  
+  summarise(soilq_avg = sum(weighted, na.rm = T)) |> 
+  left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |> 
+  relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
+saveRDS(soilq_avg_df, file = "/data/jde/processed/soilq_average.RDS")
 
 rm(soilq); gc()
 
@@ -93,6 +102,22 @@ ecoregions_df <- terra::extract(x = ecoregions, y = basins,
 saveRDS(ecoregions_df, file = "/data/jde/processed/ecoregion.RDS")
 
 rm(ecoregions, ecoregions_concordance); gc()
+
+#####
+# Merging time-invariant variables in one dataframe
+
+elevation_df <- readRDS("/data/jde/processed/elevation.RDS")
+slope_df <- readRDS("/data/jde/processed/slope.RDS")
+soilq_prim_df <- readRDS("/data/jde/processed/soilq_primary.RDS")
+soilq_avg_df <- readRDS("/data/jde/processed/soilq_average.RDS")
+ecoregions_df <- readRDS("/data/jde/processed/ecoregion.RDS")
+
+geo_data_df <- left_join(ecoregions_df, elevation_df, by = "HYBAS_ID") |> 
+  left_join(slope_df, by = "HYBAS_ID") |> 
+  left_join(soilq_prim_df, by = "HYBAS_ID") |> 
+  left_join(soilq_avg_df, by = "HYBAS_ID")
+
+saveRDS(geo_data_df, file = "/data/jde/processed/geo_data_agg.RDS")
 
 
 #####
@@ -300,4 +325,32 @@ frs_df <- terra::extract(frs_data[[pos]], basins, weights = T, exact = T) |>
 cat("Calculation finished after", format(Sys.time() - start), "\n")
 
 saveRDS(frs_df, file = "/data/jde/processed/cru_frs.RDS")
+
+
+#####
+# Aggregating monthly frequency of time-varying climate variables and merging 
+tmp_df <- readRDS("/data/jde/processed/cru_tmp.RDS")
+tmx_df <- readRDS("/data/jde/processed/cru_tmx.RDS")
+tmn_df <- readRDS("/data/jde/processed/cru_tmn.RDS")
+pre_df <- readRDS("/data/jde/processed/cru_pre.RDS")
+cld_df <- readRDS("/data/jde/processed/cru_cld.RDS")
+wet_df <- readRDS("/data/jde/processed/cru_wet.RDS")
+frs_df <- readRDS("/data/jde/processed/cru_frs.RDS")
+
+met_data_df <- left_join(tmp_df, tmx_df, by = c("HYBAS_ID", "year", "month")) |> 
+  left_join(tmn_df, by = c("HYBAS_ID", "year", "month")) |>
+  left_join(pre_df, by = c("HYBAS_ID", "year", "month")) |>
+  left_join(cld_df, by = c("HYBAS_ID", "year", "month")) |>
+  left_join(wet_df, by = c("HYBAS_ID", "year", "month")) |>
+  left_join(frs_df, by = c("HYBAS_ID", "year", "month")) |> 
+  group_by(HYBAS_ID, year) |> 
+  summarise(tmp_mean = mean(tmp_mean, na.rm = T), 
+            tmp_max = max(tmp_max, na.rm = T), 
+            tmp_min = min(tmp_min, na.rm = T), 
+            precipitation = sum(precipitation, na.rm = T), 
+            cloud_cover = mean(cloud_cover, na.rm = T), 
+            wet_days = sum(wet_days, na.rm = T), 
+            frs_days = sum(frs_days, na.rm = T))
+
+saveRDS(met_data_df, file = "/data/jde/processed/met_data_agg.RDS")
 
