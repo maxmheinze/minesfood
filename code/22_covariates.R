@@ -20,6 +20,10 @@ basins <- read_sf("/data/jde/processed/relevant_basins.gpkg")
 #####
 # Time-invariant stuff
 
+# Dams
+dams <- sf::st_read(dsn = "https://data.apps.fao.org/map/gsrv/gsrv1/geonetwork/ows?service=wfs&version=2.0.0", 
+                    layer = "dams_africa_38077")
+
 # Elevation
 elevation <- terra::rast("/data/redd/grid_pnas/elevation.tif")
 
