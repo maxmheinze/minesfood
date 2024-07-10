@@ -20,10 +20,10 @@ mean_evi_basins_clean <- mean_evi_basins %>%
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  filter(mean_EVI == max(mean_EVI, na.rm = T)) %>%
+  slice_max(mean_EVI, n = 1, na_rm = TRUE) %>% 
   rename(max_EVI = mean_EVI, 
          date_all_land = image_date) %>%
-  select(!c(basin_id))
+  select(-basin_id)
 
 mean_evi_basins_clean |> group_by(HYBAS_ID) |> 
   count() |> filter(n < 24)
@@ -37,10 +37,10 @@ mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  filter(mean_EVI == max(mean_EVI, na.rm = T)) %>%
+  slice_max(mean_EVI, n = 1, na_rm = TRUE) %>% 
   rename(max_cropland_EVI = mean_EVI, 
          date_cropland = image_date) %>%
-  select(!c(basin_id))
+  select(-basin_id)
 
 
 # joining the data --------------------------------------------------------
