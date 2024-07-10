@@ -20,10 +20,14 @@ mean_evi_basins_clean <- mean_evi_basins %>%
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  filter(mean_EVI == max(mean_EVI)) %>%
+  filter(mean_EVI == max(mean_EVI, na.rm = T)) %>%
   rename(max_EVI = mean_EVI, 
          date_all_land = image_date) %>%
   select(!c(basin_id))
+
+mean_evi_basins_clean |> group_by(HYBAS_ID) |> 
+  count() |> filter(n < 24)
+# 8 basins miss a few years of EVI observations
 
 # downloading and cleaning the cropland EVI 
 
@@ -33,7 +37,7 @@ mean_cropland_evi_basins_clean <- mean_cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  filter(mean_EVI == max(mean_EVI)) %>%
+  filter(mean_EVI == max(mean_EVI, na.rm = T)) %>%
   rename(max_cropland_EVI = mean_EVI, 
          date_cropland = image_date) %>%
   select(!c(basin_id))

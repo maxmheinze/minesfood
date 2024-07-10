@@ -29,6 +29,7 @@ m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
 lvl <- "12"
 s <- st_read(paste0("/data/jde/hybas_lakes/hybas_lake_af_lev", lvl, "_v1c.shp"))
 s <- st_make_valid(s)
+lake_id <- s |> st_drop_geometry() |> filter(LAKE != 0) |> pull(HYBAS_ID)
 s <- dplyr::filter(s, LAKE == 0)
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
 
@@ -79,16 +80,23 @@ upstream_ids <- lapply(treated_id, stream, down = FALSE)
 
 # Tracking orders of basins
 downstream_ids_ordered <- lapply(treated_id, stream_ordered, down = TRUE)
+downstream_ids_ordered <- lapply(downstream_ids_ordered, 
+                                 function(x) x[which(!x[,1] %in% lake_id), ])
 upstream_ids_ordered <- lapply(treated_id, stream_ordered, down = FALSE)
 
 
 
 # Relevant Basins Shapefile -----------------------------------------------
 
+# Extracting the treated and untreated basins to prepare in GEE
+downstream_ids_vector <- unlist(downstream_ids)
+downstream_ids_vector <- downstream_ids_vector[which(!downstream_ids_vector %in% lake_id)]
+upstream_ids_vector <- unlist(upstream_ids)
+
 su <- s |> mutate(
   status = ifelse(HYBAS_ID %in% treated_id, "mine",
-    ifelse(HYBAS_ID %in% unlist(downstream_ids), "downstream",
-      ifelse(HYBAS_ID %in% unlist(upstream_ids), "upstream",
+    ifelse(HYBAS_ID %in% downstream_ids_vector, "downstream",
+      ifelse(HYBAS_ID %in% upstream_ids_vector, "upstream",
         NA_character_)))
   )
 su |> pull(status) |> table()
@@ -103,13 +111,9 @@ su |> pull(status) |> table()
 # tmap_save(t, paste0("basins_mines-l", lvl, ".png"))
 
 
-# Extracting the treated and untreated basins to prepare in GEE
-downstream_ids_vector <- unlist(downstream_ids)
-upstream_ids_vector <- unlist(upstream_ids)
-
 # extracting treated and untreated polygons 
 relevant_basins <- su %>%
-  filter(HYBAS_ID %in% c(treated_id, upstream_ids_vector, downstream_ids_vector))
+  filter(!is.na(status))
 
 write_sf(relevant_basins, "/data/jde/processed/relevant_basins.gpkg")
 
@@ -124,6 +128,7 @@ write_sf(relevant_basins, "/data/jde/processed/relevant_basins.shp")
 
 downstream_ids_with_name <- downstream_ids
 names(downstream_ids_with_name) <- treated_id
+downstream_ids_with_name <- lapply(downstream_ids_with_name, function(x) x[which(!x %in% lake_id)])
 
 upstream_ids_with_name <- upstream_ids
 names(upstream_ids_with_name) <- treated_id
@@ -235,7 +240,7 @@ downstream_df_ordered <- do.call("rbind", downstream_ids_ordered) %>%
   relocate(id_next, id, status, n) %>%
   `colnames<-`(c("basin", "mine_basin", "status", "order"))
 
-updstream_df_ordered <- do.call("rbind", upstream_ids_ordered) %>%
+upstream_df_ordered <- do.call("rbind", upstream_ids_ordered) %>%
   data.frame() %>%
   mutate(id = rep(treated_id, lengths(upstream_ids_ordered)/2),
          status = "upstream") %>%
@@ -247,7 +252,7 @@ mine_df_ordered <- data.frame(treated_id, treated_id) %>%
          order = 0) %>%
   `colnames<-`(c("basin", "mine_basin", "status", "order"))
 
-basins_ordered <- rbind(downstream_df_ordered, updstream_df_ordered, mine_df_ordered)
+basins_ordered <- rbind(downstream_df_ordered, upstream_df_ordered, mine_df_ordered)
 
 
 # Relevant Basins Shapefile with Order ------------------------------------
@@ -266,20 +271,19 @@ so <- s %>%
   dplyr::select(HYBAS_ID, mine_basin, status, order)
 
 
-# For some reason, I cannot write this without getting errors,
-# and I cannot currently resolve this --Max 20240701
+write_sf(so, "/data/jde/processed/relevant_basins_ordered.gpkg")
 
-# write_sf(so, "./data/relevant_basins_ordered.gpkg")
-# write_sf(so, "/data/jde/processed/relevant_basins_ordered.shp")
+write_sf(so, "/data/jde/processed/relevant_basins_ordered.shp")
 
 
 # Add Order to Downstream/Upstream Distance DF ----------------------------
 
 downstream_upstream_distance_ordered <- downstream_upstream_distance %>%
-  mutate(mine_basin = as.double(mine_basin)) %>%
+  mutate(mine_basin = as.double(mine_basin), HYBAS_ID = as.double(HYBAS_ID)) %>%
   full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) %>%
   drop_na(status) %>%
   mutate_at(vars(downstream, distance), ~replace_na(., 0)) 
 
-write.csv(downstream_upstream_distance_ordered, "/data/jde/processed/downstream_upstream_distance_ordered.csv", row.names = FALSE)
+write.csv(downstream_upstream_distance_ordered, 
+          "/data/jde/processed/downstream_upstream_distance_ordered.csv", row.names = FALSE)
 

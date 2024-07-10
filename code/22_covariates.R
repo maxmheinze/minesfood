@@ -14,7 +14,7 @@ pacman::p_load(
 )
 
 # basins to get data for
-basins <- read_sf("/data/jde/processed/relevant_basins.gpkg")
+basins <- read_sf("/data/jde/processed/relevant_basins_ordered.gpkg")
 
 
 #####
