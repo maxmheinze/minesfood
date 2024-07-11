@@ -15,8 +15,8 @@ pacman::p_load(
 
 mines <- st_read("/data/jde/mines/global_mining_polygons_v2.gpkg")
 
-africa_codes <- codelist %>%
-  filter(continent == "Africa") %>%
+africa_codes <- codelist |>
+  filter(continent == "Africa") |>
   pluck("iso3c")
 
 m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
@@ -34,6 +34,30 @@ s <- dplyr::filter(s, LAKE == 0)
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
 
 int <- st_intersects(s, m)
+
+mine_ids <- int[lengths(int) > 0]
+names(mine_ids) <- s[["HYBAS_ID"]][lengths(int) > 0]
+basin_mines <- data.frame("mine_basin" = rep(names(mine_ids), lengths(mine_ids)), 
+                          "mine_id" = mine_ids |> map_dfr(as_tibble) |> pull(value))
+basin_mines <- basin_mines |> 
+  left_join(m |> st_drop_geometry() |> 
+              transmute(mine_id = seq_len(nrow(m)), 
+                        iso3c = ISO3_CODE, 
+                        mine_area_km2 = AREA), 
+            by = "mine_id")
+# assign country by larger area of mine
+basin_mines_iso <- basin_mines |> 
+  group_by(mine_basin, iso3c) |> 
+  summarise(mine_area_km2 = sum(mine_area_km2)) |> 
+  group_by(mine_basin) |> 
+  slice_max(mine_area_km2, n = 1) |> 
+  select(-mine_area_km2)
+basin_mines <- basin_mines |> 
+  group_by(mine_basin) |> 
+  summarise(mine_area_km2 = sum(mine_area_km2)) |> 
+  left_join(basin_mines_iso) |> 
+  mutate(mine_basin = as.double(mine_basin)) |> 
+  relocate(iso3c, .after = mine_basin)
 
 # Get the IDs of the basins that contain mines
 treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
@@ -112,8 +136,11 @@ su |> pull(status) |> table()
 
 
 # extracting treated and untreated polygons 
-relevant_basins <- su %>%
+relevant_basins <- su |>
   filter(!is.na(status))
+relevant_basins$basin_area_km2 <- units::drop_units(st_area(relevant_basins) / 10^6)
+basin_area <- data.frame(HYBAS_ID = relevant_basins$HYBAS_ID, 
+                         basin_area_km2 = units::drop_units(st_area(relevant_basins) / 10^6))
 
 write_sf(relevant_basins, "/data/jde/processed/relevant_basins.gpkg")
 
@@ -208,48 +235,53 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 
 # Merge Upstream Distances/Downstream Distances DFs -----------------------
 
-downstream_distances_df <- downstream_distances_df %>%
-  mutate(downstream = 1) %>%
-  rename(HYBAS_ID = downstream_id)  %>%
+downstream_distances_df <- downstream_distances_df |>
+  mutate(downstream = 1) |>
+  rename(HYBAS_ID = downstream_id)  |>
   rename(mine_basin = basin_id)
 
-upstream_distances_df <- upstream_distances_df %>%
-  mutate(downstream = 0) %>%
-  rename(HYBAS_ID = upstream_id) %>%
+upstream_distances_df <- upstream_distances_df |>
+  mutate(downstream = 0) |>
+  rename(HYBAS_ID = upstream_id) |>
   rename(mine_basin = basin_id)
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-downstream_upstream_distance <- downstream_upstream_distance %>%
-  group_by(mine_basin) %>%
+downstream_upstream_distance <- downstream_upstream_distance |>
+  group_by(mine_basin) |>
   summarize(mine_basin = first(mine_basin),
             HYBAS_ID = first(mine_basin),
             distance = 0,
-            downstream = 1) %>%
+            downstream = 1) |>
   rbind(downstream_upstream_distance,.) 
+
+downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_area) |> 
+  left_join(basin_mines) |> 
+  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
+  relocate(iso3c, .after = HYBAS_ID)
 
 write.csv(downstream_upstream_distance, "/data/jde/processed/downstream_upstream_distance.csv", row.names = FALSE)
 
 
 # Lookup DF with Order ----------------------------------------------------
 
-downstream_df_ordered <- do.call("rbind", downstream_ids_ordered) %>%
-  data.frame() %>%
+downstream_df_ordered <- do.call("rbind", downstream_ids_ordered) |>
+  data.frame() |>
   mutate(id = rep(treated_id, lengths(downstream_ids_ordered)/2),
-         status = "downstream") %>%
-  relocate(id_next, id, status, n) %>%
+         status = "downstream") |>
+  relocate(id_next, id, status, n) |>
   `colnames<-`(c("basin", "mine_basin", "status", "order"))
 
-upstream_df_ordered <- do.call("rbind", upstream_ids_ordered) %>%
-  data.frame() %>%
+upstream_df_ordered <- do.call("rbind", upstream_ids_ordered) |>
+  data.frame() |>
   mutate(id = rep(treated_id, lengths(upstream_ids_ordered)/2),
-         status = "upstream") %>%
-  relocate(id_next, id, status, n) %>%
+         status = "upstream") |>
+  relocate(id_next, id, status, n) |>
   `colnames<-`(c("basin", "mine_basin", "status", "order"))
 
-mine_df_ordered <- data.frame(treated_id, treated_id) %>%
+mine_df_ordered <- data.frame(treated_id, treated_id) |>
   mutate(status = "mine",
-         order = 0) %>%
+         order = 0) |>
   `colnames<-`(c("basin", "mine_basin", "status", "order"))
 
 basins_ordered <- rbind(downstream_df_ordered, upstream_df_ordered, mine_df_ordered)
@@ -260,16 +292,19 @@ basins_ordered <- rbind(downstream_df_ordered, upstream_df_ordered, mine_df_orde
 # If a basin is down- or upstream of multiple mines, it is considered to
 # be only down- or upstream of the closest mine.
 
-basins_ordered_unique <- basins_ordered %>%
-  group_by(basin) %>%
-  arrange(order, .by_group = T) %>%
+basins_ordered_unique <- basins_ordered |>
+  group_by(basin) |>
+  arrange(order, .by_group = T) |>
   slice_head(n = 1)
 
-so <- s %>%
-  left_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin")) %>%
-  dplyr::filter(!is.na(status)) %>%
-  dplyr::select(HYBAS_ID, mine_basin, status, order)
-
+so <- s |>
+  left_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin")) |>
+  dplyr::filter(!is.na(status)) |>
+  dplyr::select(HYBAS_ID, mine_basin, status, order) |> 
+  left_join(basin_area) |> 
+  left_join(basin_mines) |> 
+  relocate(iso3c, .after = mine_basin) |> 
+  relocate(geom, .after = mine_area_km2)
 
 write_sf(so, "/data/jde/processed/relevant_basins_ordered.gpkg")
 
@@ -278,11 +313,15 @@ write_sf(so, "/data/jde/processed/relevant_basins_ordered.shp")
 
 # Add Order to Downstream/Upstream Distance DF ----------------------------
 
-downstream_upstream_distance_ordered <- downstream_upstream_distance %>%
-  mutate(mine_basin = as.double(mine_basin), HYBAS_ID = as.double(HYBAS_ID)) %>%
-  full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) %>%
-  drop_na(status) %>%
-  mutate_at(vars(downstream, distance), ~replace_na(., 0)) 
+downstream_upstream_distance_ordered <- downstream_upstream_distance |>
+  mutate(mine_basin = as.double(mine_basin), HYBAS_ID = as.double(HYBAS_ID)) |>
+  full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) |>
+  drop_na(status) |>
+  mutate_at(vars(downstream, distance), ~replace_na(., 0)) |> 
+  left_join(basin_area) |> 
+  left_join(basin_mines) |> 
+  mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |> 
+  relocate(iso3c, .after = HYBAS_ID)
 
 write.csv(downstream_upstream_distance_ordered, 
           "/data/jde/processed/downstream_upstream_distance_ordered.csv", row.names = FALSE)
