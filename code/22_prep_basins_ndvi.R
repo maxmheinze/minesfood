@@ -10,7 +10,8 @@ pacman::p_load(
 
 
 # Mining Polygons ---------------------------------------------------------
-evi_basins <- read_csv("/data/jde/basins_evi/mean_evi_basins.csv")
+evi_basins_1 <- read_csv("/data/jde/basins_evi/mean_evi_basins.csv")
+evi_basins_2 <- read_csv("/data/jde/basins_evi/01_evi_basin.csv")
 
 # downloading and cleaning the total EVI 
 max_evi_basins <- evi_basins %>%
