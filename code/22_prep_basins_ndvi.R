@@ -10,38 +10,39 @@ pacman::p_load(
 
 
 # Mining Polygons ---------------------------------------------------------
-evi_basins_1 <- read_csv("/data/jde/basins_evi/mean_evi_basins.csv")
-evi_basins_2 <- read_csv("/data/jde/basins_evi/01_evi_basin.csv")
+#evi_basins_1 <- read_csv("/data/jde/basins_evi/mean_evi_basins.csv")
+evi_basins_2 <- read_csv("/data/jde/basins_evi/01_evi_basin.csv") 
 
 # downloading and cleaning the total EVI 
-max_evi_basins <- evi_basins %>%
-  mutate(year = year(image_date), 
+max_evi_basins <- evi_basins_2 %>%
+  dplyr::select(HYBAS_ID, date, meanEVI) %>%
+  mutate(year = year(date), 
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  slice_max(mean_EVI, n = 1, na_rm = TRUE) %>%
+  slice_max(meanEVI, n = 1, na_rm = TRUE) %>%
   slice_head(n = 1) |> 
-  rename(max_EVI = mean_EVI, 
-         max_EVI_date = image_date) %>%
-  select(-basin_id)
+  rename(max_EVI = meanEVI, 
+         max_EVI_date = date)
 
-min_evi_basins <- evi_basins %>%
-  mutate(year = year(image_date), 
+min_evi_basins <- evi_basins_2 %>%
+  dplyr::select(HYBAS_ID, date, meanEVI) %>%
+  mutate(year = year(date), 
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  slice_min(mean_EVI, n = 1, na_rm = TRUE) %>% 
+  slice_min(meanEVI, n = 1, na_rm = TRUE) %>% 
   slice_head(n = 1) |> 
-  rename(min_EVI = mean_EVI, 
-         min_EVI_date = image_date) %>%
-  select(-basin_id)
+  rename(min_EVI = meanEVI, 
+         min_EVI_date = date)
 
-mean_evi_basins <- evi_basins %>%
-  mutate(year = year(image_date), 
+mean_evi_basins <- evi_basins_2 %>%
+  dplyr::select(HYBAS_ID, date, meanEVI) %>%
+  mutate(year = year(date), 
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
-  summarise(mean_EVI = mean(mean_EVI, na.rm = T))
+  summarise(mean_EVI = mean(meanEVI, na.rm = T))
 
 max_evi_basins |> group_by(HYBAS_ID) |> 
   count() |> filter(n < 24)
