@@ -91,7 +91,7 @@ max_cropland_evi_basins_2 <- cropland_evi_basins_2 %>%
   dplyr::select(-`system:index`)
 
 # checking whether the two datasets have the same EVI values 
-view(left_join(max_evi_basins, max_cropland_evi_basins_2, by = c("HYBAS_ID", "year")))
+view(left_join(max_cropland_evi_basins_1, max_cropland_evi_basins_2, by = c("HYBAS_ID", "year")))
 
 min_cropland_evi_basins <- cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
@@ -110,6 +110,9 @@ mean_cropland_evi_basins <- cropland_evi_basins %>%
   summarise(mean_cropland_EVI = mean(mean_EVI, na.rm = T))
 
 
+
+
+## UPDATE
 # joining the data --------------------------------------------------------
 
 basin_evi <- left_join(max_evi_basins, min_evi_basins) |> 
