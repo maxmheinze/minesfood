@@ -19,7 +19,7 @@ library("dplyr")
 library("readr")
 library("fixest")
 library("pdftools")
-sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
+sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 ```
