@@ -39,25 +39,25 @@ pullcountries <-  wfp_countries$hdx_code
 # Extract dataset for all of the countries in the vector
 
 for (ctry in pullcountries) {
-  
+
   # Read in the dataset
-  
+
   countrydata <- pull_dataset(paste0("wfp-food-prices-for-", ctry)) %>%
     get_resource(1) %>%
     read_resource()
-  
+
   # Add the ISO code from the lookup table
-  
+
   countrydata %<>%
     mutate(country = ctry) %>%
     left_join(wfp_countries, by = join_by(country == hdx_code)) %>%
     dplyr::select(-country) %>%
     relocate(countryiso3, .before = admin1)
-  
+
   # Assign to an object with the HDX country name as name
-  
+
   assign(ctry, countrydata)
-  
+
 }
 
 # Remove everything that's not a country-level food prices df
@@ -70,8 +70,4 @@ foodprices <- do.call("rbind", mget(ls()))
 
 # Save it
 
-write_csv(foodprices, "./data_local/foodprices.csv")
-
-
-
-
+write_csv(foodprices, "./data/foodprices.csv")
