@@ -4,6 +4,8 @@ pacman::p_load(
   tidyverse,
   magrittr
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
+
 
 basins <- st_read("data/relevant_basins.gpkg")
 

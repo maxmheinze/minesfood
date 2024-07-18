@@ -10,6 +10,7 @@ pacman::p_load(
   readr,
   fixest
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Read in Data ------------------------------------------------------------

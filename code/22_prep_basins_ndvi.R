@@ -7,6 +7,7 @@ pacman::p_load(
   tidyverse,
   magrittr,
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Mining Polygons ---------------------------------------------------------

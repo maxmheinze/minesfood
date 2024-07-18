@@ -9,6 +9,7 @@ pacman::p_load(
   countrycode,
   geosphere
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Load and Prepare Mine Data ----------------------------------------------

@@ -13,6 +13,8 @@ pacman::p_load(
   terra,
   ncdf4
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
+
 
 # basins to get data for
 basins <- read_sf(p("processed/relevant_basins.gpkg"))

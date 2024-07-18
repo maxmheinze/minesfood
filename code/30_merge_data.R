@@ -8,6 +8,7 @@ pacman::p_load(
   readxl,
   readr
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Read in Data ------------------------------------------------------------
@@ -65,3 +66,4 @@ basins_unbalanced <- df_reg |> group_by(HYBAS_ID) |> count() |> filter(n < 23) |
 df_reg <- df_reg |> filter(!HYBAS_ID %in% basins_unbalanced)
 
 saveRDS(df_reg, file = p("processed/df_reg.RDS"))
+saveRDS(df_reg, file = "data/df_reg.RDS")

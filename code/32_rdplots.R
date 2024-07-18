@@ -18,6 +18,7 @@ pacman::p_load(
   fixest,
   rdrobust
 )
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Read in Data ------------------------------------------------------------
