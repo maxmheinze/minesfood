@@ -11,7 +11,7 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # Mining Polygons ---------------------------------------------------------
-evi_basins_1 <- read_csv(p("basins_evi/02_mean_africover_cropland_evi_basins.csv"))
+evi_basins_1 <- read_csv(p("basins_evi/02_mean_africover_cropland_evi_basin.csv"))
 
 # preparing the EVI dataset
 max_evi_basins_1 <- evi_basins_1 %>%
