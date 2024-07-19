@@ -85,7 +85,7 @@ min_cropland_evi_basins <- cropland_evi_basins %>%
   slice_head(n = 1) |>
   rename(min_cropland_EVI = mean_EVI,
          min_cropland_EVI_date = image_date) %>%
-  select(-basin_id)
+  dplyr::select(-basin_id)
 
 mean_cropland_evi_basins <- cropland_evi_basins %>%
   mutate(year = year(image_date)) %>%
@@ -99,7 +99,7 @@ mean_cropland_evi_basins <- cropland_evi_basins %>%
 
 basin_evi <- left_join(max_evi_basins, min_evi_basins) |>
   left_join(mean_evi_basins) |>
-  left_join(max_cropland_evi_basins) |>
+  left_join(max_cropland_evi_basins_1) |>
   left_join(min_cropland_evi_basins) |>
   left_join(mean_cropland_evi_basins) |>
   relocate(year, .after = HYBAS_ID)
