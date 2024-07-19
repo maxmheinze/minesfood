@@ -12,21 +12,8 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 # Mining Polygons ---------------------------------------------------------
 evi_basins_1 <- read_csv(p("basins_evi/mean_evi_basins.csv"))
-evi_basins_2 <- read_csv(p("basins_evi/01_evi_basin.csv"))
 
-# downloading and cleaning the new EVI dataset
-max_evi_basins <- evi_basins_2 %>%
-  dplyr::select(HYBAS_ID, date, meanEVI) %>%
-  mutate(year = year(date),
-         HYBAS_ID = as.numeric(HYBAS_ID)) %>%
-  arrange(HYBAS_ID, year) %>%
-  group_by(HYBAS_ID, year) %>%
-  slice_max(meanEVI, n = 1, na_rm = TRUE) %>%
-  slice_head(n = 1) |>
-  rename(max_EVI = meanEVI,
-         max_EVI_date = date)
-
-# preparing the old EVI dataset
+# preparing the EVI dataset
 max_evi_basins_1 <- evi_basins_1 %>%
   dplyr::select(HYBAS_ID, image_date, mean_EVI) %>%
   mutate(year = year(image_date),
@@ -37,9 +24,6 @@ max_evi_basins_1 <- evi_basins_1 %>%
   slice_head(n = 1) |>
   rename(max_EVI = mean_EVI,
          max_EVI_date = image_date)
-
-# checking whether the two datasets have the same EVI values
-view(left_join(max_evi_basins, max_evi_basins_1, by = c("HYBAS_ID", "year")))
 
 min_evi_basins <- evi_basins_2 %>%
   dplyr::select(HYBAS_ID, date, meanEVI) %>%
