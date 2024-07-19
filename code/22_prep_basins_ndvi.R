@@ -5,8 +5,7 @@
 pacman::p_load(
   sf,
   tidyverse,
-  magrittr,
-  pander
+  magrittr
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
