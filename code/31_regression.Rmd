@@ -50,6 +50,12 @@ mod2_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                   data = df_reg,
                   cluster = "HYBAS_ID")
 
+#mod2_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
+#                    ((distance) + I(distance^2)) * downstream |
+#                    year +  as.factor(mine_basin),
+#                  data = df_reg,
+#                  cluster = "HYBAS_ID")
+
 # mod3_full = feols((max_EVI) ~
 #                     (distance) + downstream  |
 #                     year +  as.factor(mine_basin),
@@ -354,5 +360,17 @@ Compared to the sample mean, the presence of a mine upstream reduces the overall
 
 ## Heterogeneity
 
+```{r}
+# Heterogeneity by biome
+mod_hetero = feols(c(max_EVI, max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
+                     (distance + I(distance^2)) * downstream  +
+                     elevation + slope + soilq_avg +
+                     tmp_max + precipitation | 
+                     year +  as.factor(mine_basin),
+                   data = df_reg,
+                   split = "biome_name",
+                   cluster = "HYBAS_ID")
+etable(mod_hetero)
+```
 
 
