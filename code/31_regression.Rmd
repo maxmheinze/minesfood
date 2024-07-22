@@ -44,7 +44,7 @@ This specification includes:
 #                   data = df_reg,
 #                   cluster = "HYBAS_ID")
 
-mod2_full = feols((max_cropland_EVI) ~
+mod2_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                     (distance) * downstream |
                     year +  as.factor(mine_basin),
                   data = df_reg,
@@ -71,7 +71,7 @@ mod4_full = feols((max_EVI) ~
 #                   data = df_reg,
 #                   cluster = "HYBAS_ID")
 
-mod6_full = feols((max_cropland_EVI) ~
+mod6_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                     (distance) * downstream +
                     elevation + slope + soilq_avg +
                     tmp_max + precipitation |
@@ -98,8 +98,8 @@ mod8_full = feols((max_EVI) ~
 etable(mod2_full, mod6_full, mod4_full, mod8_full)
 
 evi_cropland_avg <- df_reg |>
-  filter(!is.na(max_cropland_EVI)) |>
-  pull(max_cropland_EVI) |> mean()
+  filter(!is.na(max_cropland_EVI_africover)) |>
+  pull(max_cropland_EVI_africover) |> mean()
 evi_avg <- df_reg |>
   filter(!is.na(max_EVI)) |>
   pull(max_EVI) |> mean()
@@ -127,7 +127,7 @@ df_reg_restr <- df_reg |> filter(order <= 5, year > 2015)
 #                    data = df_reg_restr,
 #                    cluster = "HYBAS_ID")
 
-mod2_restr = feols((max_cropland_EVI) ~ (distance) * downstream |
+mod2_restr = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~ (distance) * downstream |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr,
                    cluster = "HYBAS_ID")
@@ -151,7 +151,7 @@ mod4_restr = feols((max_EVI) ~ (distance) * downstream |
 #                    data = df_reg_restr,
 #                    cluster = "HYBAS_ID")
 
-mod6_restr = feols((max_cropland_EVI) ~
+mod6_restr = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
                      distance * downstream +
                      elevation + slope + soilq_avg +
                      tmp_max + precipitation |
@@ -178,8 +178,8 @@ mod8_restr = feols((max_EVI) ~
 etable(mod2_restr, mod6_restr, mod4_restr, mod8_restr)
 
 evi_cropland_avg <- df_reg_restr |>
-  filter(!is.na(max_cropland_EVI)) |>
-  pull(max_cropland_EVI) |> mean()
+  filter(!is.na(max_cropland_EVI_africover)) |>
+  pull(max_cropland_EVI_africover) |> mean()
 evi_avg <- df_reg_restr |>
   filter(!is.na(max_EVI)) |>
   pull(max_EVI) |> mean()
@@ -208,7 +208,7 @@ df_reg_large_mines <- df_reg |> filter(mine_basin %in% basins_large_mines)
 #              data = df_reg_large_mines,
 #              cluster = "HYBAS_ID")
 
-mod2_large = feols((max_cropland_EVI) ~ (distance) * downstream |
+mod2_large = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~ (distance) * downstream |
                year +  as.factor(mine_basin),
              data = df_reg_large_mines,
              cluster = "HYBAS_ID")
@@ -232,7 +232,7 @@ mod4_large = feols((max_EVI) ~ (distance) * downstream |
 #              data = df_reg_large_mines,
 #              cluster = "HYBAS_ID")
 
-mod6_large = feols((max_cropland_EVI) ~
+mod6_large = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
                distance * downstream +
                elevation + slope + soilq_avg +
                tmp_max + precipitation |
@@ -259,8 +259,8 @@ mod8_large = feols((max_EVI) ~
 etable(mod2_large, mod6_large, mod4_large, mod8_large)
 
 evi_cropland_avg <- df_reg_large_mines |>
-  filter(!is.na(max_cropland_EVI)) |>
-  pull(max_cropland_EVI) |> mean()
+  filter(!is.na(max_cropland_EVI_africover)) |>
+  pull(max_cropland_EVI_africover) |> mean()
 evi_avg <- df_reg_large_mines |>
   filter(!is.na(max_EVI)) |>
   pull(max_EVI) |> mean()
@@ -287,7 +287,7 @@ df_reg_restr_large <- df_reg_large_mines |> filter(order <= 5, year > 2015)
 #                    data = df_reg_restr_large,
 #                    cluster = "HYBAS_ID")
 
-mod2_restr_large = feols((max_cropland_EVI) ~ (distance) * downstream |
+mod2_restr_large = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~ (distance) * downstream |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr_large,
                    cluster = "HYBAS_ID")
@@ -311,7 +311,7 @@ mod4_restr_large = feols((max_EVI) ~ (distance) * downstream |
 #                    data = df_reg_restr_large,
 #                    cluster = "HYBAS_ID")
 
-mod6_restr_large = feols((max_cropland_EVI) ~
+mod6_restr_large = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                      distance * downstream +
                      elevation + slope + soilq_avg +
                      tmp_max + precipitation |
@@ -338,8 +338,8 @@ mod8_restr_large = feols((max_EVI) ~
 etable(mod2_restr_large, mod6_restr_large, mod4_restr_large, mod8_restr_large)
 
 evi_cropland_avg <- df_reg_restr_large |>
-  filter(!is.na(max_cropland_EVI)) |>
-  pull(max_cropland_EVI) |> mean()
+  filter(!is.na(max_cropland_EVI_africover)) |>
+  pull(max_cropland_EVI_africover) |> mean()
 evi_avg <- df_reg_restr_large |>
   filter(!is.na(max_EVI)) |>
   pull(max_EVI) |> mean()
