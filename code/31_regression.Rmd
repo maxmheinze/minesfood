@@ -19,6 +19,7 @@ library("dplyr")
 library("readr")
 library("fixest")
 library("pdftools")
+library("rdrobust")
 sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 
 df_reg <- readRDS(p("processed/df_reg.RDS"))
@@ -360,7 +361,7 @@ Compared to the sample mean, the presence of a mine upstream reduces the overall
 
 ## Heterogeneity
 
-```{r}
+```{r reg_heterogeneity, warning=FALSE, message=FALSE}
 # Heterogeneity by biome
 mod_hetero = feols(c(max_EVI, max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                      (distance + I(distance^2)) * downstream  +
@@ -373,4 +374,73 @@ mod_hetero = feols(c(max_EVI, max_cropland_EVI_africover, max_cropland_EVI_ESA) 
 etable(mod_hetero)
 ```
 
+# RD Plot with Sample Restrictions
+```{r rdplot}
+# outcome
+basin_evi <- read_csv(p("basins_evi/basin_evi.csv"))
+
+# treatment
+dup <- read_csv(p("processed/downstream_upstream_distance_ordered.csv"))
+
+# geographical controls
+geo_controls <- readRDS(p("processed/geo_data_agg.RDS"))
+
+# meteorological controls
+met_controls <- readRDS(p("processed/met_data_agg.RDS"))
+
+# Prepare Data for Regression ---------------------------------------------
+df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |>
+  left_join(geo_controls, by = "HYBAS_ID") |>
+  left_join(met_controls, by = c("HYBAS_ID", "year")) |>
+  mutate(t.trend = year - 2000)
+
+# what's done here is that we exclude basins where some of the time-invariant stuff
+# is missing and that we assign a downstream basin to be unique for a mine? Meaning
+# that a basin can only be downstream to one mine but not more? we only lose ~50
+# observations with that, would have expected more given that mines are clustered
+
+# Do we properly account for the possibility that a basin that is downstream to a
+# mine should not be upstream to another?
+df_reg <- df_reg %>%
+  filter(!is.na(eco_id)) |>
+  mutate(downstream = ifelse(distance == 0, 1, downstream),
+         distance = distance) %>%
+  group_by(HYBAS_ID, year) %>%
+  arrange(distance) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+# rdrobust Spatial Discontinuity  -----------------------------------------
+
+basins_large_mines <- df_reg |> filter(mine_area_km2 > 1) |> pull(mine_basin) |> unique()
+df_reg_large_mines <- df_reg |> filter(mine_basin %in% basins_large_mines)
+
+
+dup_01 <- df_reg_large_mines %>%
+  mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
+  mutate(distance = distance/10^3)
+
+dup_02 <- dup_01 %>%
+  filter(year == 2021)
+
+rdplot(dup_02$max_EVI, dup_02$distance,
+       #x.lim = c(-25,25),
+       y.lim = c(0.1400,0.9933),
+       x.lab="Distance",
+       y.lab="max_EVI", p = 3)
+
+rdplot(dup_01$max_cropland_EVI_africover, dup_01$distance,
+       x.lim = c(-25,25),
+       y.lim = c(0.02,0.96),
+       x.lab="Distance",
+       y.lab="max_cropland_EVI_africover", p = 1)
+
+rdplot(dup_01$max_cropland_EVI_ESA, dup_01$distance,
+       #x.lim = c(-25,25),
+       y.lim = c(0.02,0.96),
+       x.lab="Distance",
+       y.lab="max_cropland_EVI_ESA", p = 2)
+
+
+```
 

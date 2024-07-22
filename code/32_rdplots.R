@@ -83,15 +83,22 @@ dup_02 <- dup_01 %>%
   filter(year == 2021)
 
 rdplot(dup_02$max_EVI, dup_02$distance,
-       x.lim = c(-50,50),
-       #y.lim = c(0.1400,0.9933),
+       x.lim = c(-25,25),
+       y.lim = c(0.1400,0.9933),
        x.lab="Distance",
        y.lab="max_EVI", p = 3)
 
-
-
-rdplot(dup_01$max_cropland_EVI, dup_01$distance,
-       x.lim = c(-50,50),
-       #y.lim = c(0.02,0.96),
+rdplot(dup_01$max_cropland_EVI_africover, dup_01$distance,
+       x.lim = c(-25,25),
+       y.lim = c(0.02,0.96),
        x.lab="Distance",
-       y.lab="max_cropland_EVI", p = 3)
+       y.lab="max_cropland_EVI_africover", p = 2)
+
+rdplot(dup_01$max_cropland_EVI_ESA, dup_01$distance,
+       x.lim = c(-25,25),
+       y.lim = c(0.02,0.96),
+       x.lab="Distance",
+       y.lab="max_cropland_EVI_ESA", p = 2)
+
+
+
