@@ -66,7 +66,7 @@ mod4_full = feols((max_EVI) ~
 # with covariates, linear distance
 # mod5_full = feols((max_cropland_EVI) ~
 #                     (distance) + downstream +
-#                     elevation + slope + soilq_avg +
+#                     elevation + slope + soilgrid_grouped +
 #                     tmp_max + precipitation |
 #                     year + as.factor(mine_basin),
 #                   data = df_reg,
@@ -74,7 +74,7 @@ mod4_full = feols((max_EVI) ~
 
 mod6_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                     (distance) * downstream +
-                    elevation + slope + soilq_avg +
+                    elevation + slope + soilgrid_grouped +
                     tmp_max + precipitation |
                     year +  as.factor(mine_basin),
                   data = df_reg,
@@ -82,7 +82,7 @@ mod6_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
 
 # mod7_full = feols((max_EVI) ~
 #                     (distance) + downstream +
-#                     elevation + slope + soilq_avg +
+#                     elevation + slope + soilgrid_grouped +
 #                     tmp_max + precipitation |
 #                     year +  as.factor(mine_basin),
 #                   data = df_reg,
@@ -90,7 +90,7 @@ mod6_full = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
 
 mod8_full = feols((max_EVI) ~
                     distance * downstream +
-                    elevation + slope + soilq_avg +
+                    elevation + slope + soilgrid_grouped +
                     tmp_max + precipitation |
                     year +  as.factor(mine_basin),
                   data = df_reg,
@@ -149,7 +149,7 @@ mod4_restr = feols((max_EVI) ~ (distance) * downstream |
 # with covariates, linear distance
 # mod5_restr = feols((max_cropland_EVI) ~
 #                      distance + downstream +
-#                      elevation + slope + soilq_avg +
+#                      elevation + slope + soilgrid_grouped +
 #                      tmp_max + precipitation |
 #                      year + as.factor(mine_basin),
 #                    data = df_reg_restr,
@@ -157,7 +157,7 @@ mod4_restr = feols((max_EVI) ~ (distance) * downstream |
 
 mod6_restr = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
                      distance * downstream +
-                     elevation + slope + soilq_avg +
+                     elevation + slope + soilgrid_grouped +
                      tmp_max + precipitation |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr,
@@ -165,7 +165,7 @@ mod6_restr = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
 
 # mod7_restr = feols((max_EVI) ~
 #                      distance + downstream +
-#                      elevation + slope + soilq_avg +
+#                      elevation + slope + soilgrid_grouped +
 #                      tmp_max + precipitation |
 #                      year +  as.factor(mine_basin),
 #                    data = df_reg_restr,
@@ -173,7 +173,7 @@ mod6_restr = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
 
 mod8_restr = feols((max_EVI) ~
                      distance * downstream +
-                     elevation + slope + soilq_avg +
+                     elevation + slope + soilgrid_grouped +
                      tmp_max + precipitation |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr,
@@ -233,7 +233,7 @@ mod4_large = feols((max_EVI) ~ (distance) * downstream |
 # with covariates, linear distance
 # mod5_large = feols((max_cropland_EVI) ~
 #                distance + downstream +
-#                elevation + slope + soilq_avg +
+#                elevation + slope + soilgrid_grouped +
 #                tmp_max + precipitation |
 #                year + as.factor(mine_basin),
 #              data = df_reg_large_mines,
@@ -241,7 +241,7 @@ mod4_large = feols((max_EVI) ~ (distance) * downstream |
 
 mod6_large = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
                distance * downstream +
-               elevation + slope + soilq_avg +
+               elevation + slope + soilgrid_grouped +
                tmp_max + precipitation |
                year +  as.factor(mine_basin),
              data = df_reg_large_mines,
@@ -249,7 +249,7 @@ mod6_large = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
 
 # mod7_large = feols((max_EVI) ~
 #                distance + downstream +
-#                elevation + slope + soilq_avg +
+#                elevation + slope + soilgrid_grouped +
 #                tmp_max + precipitation |
 #                year +  as.factor(mine_basin),
 #              data = df_reg_large_mines,
@@ -257,7 +257,7 @@ mod6_large = feols(c(max_cropland_EVI_africover, mean_cropland_EVI_ESA) ~
 
 mod8_large = feols((max_EVI) ~
                distance * downstream +
-               elevation + slope + soilq_avg +
+               elevation + slope + soilgrid_grouped +
                tmp_max + precipitation |
                year +  as.factor(mine_basin),
              data = df_reg_large_mines,
@@ -315,7 +315,7 @@ mod4_restr_large = feols((max_EVI) ~ (distance) * downstream |
 # with covariates, linear distance
 # mod5_restr_large = feols((max_cropland_EVI) ~
 #                      distance + downstream +
-#                      elevation + slope + soilq_avg +
+#                      elevation + slope + soilgrid_grouped +
 #                      tmp_max + precipitation |
 #                      year + as.factor(mine_basin),
 #                    data = df_reg_restr_large,
@@ -323,7 +323,7 @@ mod4_restr_large = feols((max_EVI) ~ (distance) * downstream |
 
 mod6_restr_large = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                      distance * downstream +
-                     elevation + slope + soilq_avg +
+                     elevation + slope + soilgrid_grouped +
                      tmp_max + precipitation |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr_large,
@@ -331,7 +331,7 @@ mod6_restr_large = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
 
 # mod7_restr_large = feols((max_EVI) ~
 #                      distance + downstream +
-#                      elevation + slope + soilq_avg +
+#                      elevation + slope + soilgrid_grouped +
 #                      tmp_max + precipitation |
 #                      year +  as.factor(mine_basin),
 #                    data = df_reg_restr_large,
@@ -339,7 +339,7 @@ mod6_restr_large = feols(c(max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
 
 mod8_restr_large = feols((max_EVI) ~
                      distance * downstream +
-                     elevation + slope + soilq_avg +
+                     elevation + slope + soilgrid_grouped +
                      tmp_max + precipitation |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr_large,
@@ -447,7 +447,7 @@ coefplot(list(mod1_order, mod2_order, mod3_order, mod4_order, mod5_order,
 # Heterogeneity by biome
 mod_hetero = feols(c(max_EVI, max_cropland_EVI_africover, max_cropland_EVI_ESA) ~
                      (distance + I(distance^2)) * downstream  +
-                     elevation + slope + soilq_avg +
+                     elevation + slope + soilgrid_grouped +
                      tmp_max + precipitation | 
                      year +  as.factor(mine_basin),
                    data = df_reg,

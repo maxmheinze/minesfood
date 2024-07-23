@@ -63,36 +63,45 @@ saveRDS(slope_df, file = p("processed/slope.RDS"))
 rm(slope); gc()
 
 
-# Soil Quality (on a scale from 0-118)
-# taking once the value with the highest weight, once the weighted average
-soilq <- terra::rast(p("grid_pnas/soilgrid.tif", pre = DATA_ALT))
+# SoilGrid (types 0-118)
+# taking the value with the highest weight
+soilgrid <- terra::rast(p("grid_pnas/soilgrid.tif", pre = DATA_ALT))
 
-soilq_prim_df <- terra::extract(x = soilq, y = basins,
+soil_prim_df <- terra::extract(x = soilgrid, y = basins,
                                 weights = TRUE, exact = TRUE) |>
   filter(!is.na(soilgrid)) |>
-  rename(soilq_prim = soilgrid) |>
+  rename(soil_prim = soilgrid) |>
   group_by(ID) |> mutate(weight = weight / sum(weight)) |>
   left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID) |>
-  group_by(HYBAS_ID, soilq_prim) |>
+  group_by(HYBAS_ID, soil_prim) |>
   summarise(weight = sum(weight, na.rm = T)) |>
-  filter(!is.na(soilq_prim)) |>
+  filter(!is.na(soil_prim)) |>
   group_by(HYBAS_ID) |>
   slice_max(weight, n = 1) |>
   dplyr::select(-weight)
-saveRDS(soilq_prim_df, file = p("processed/soilq_primary.RDS"))
 
-soilq_avg_df <- terra::extract(x = soilq, y = basins,
-                                weights = TRUE, exact = TRUE) |>
-  filter(!is.na(soilgrid)) |>
-  rename(soilq_avg = soilgrid) |>
-  group_by(ID) |> transmute(weighted = soilq_avg * weight / sum(weight)) |>
-  summarise(soilq_avg = sum(weighted, na.rm = T)) |>
-  left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
-  relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
-saveRDS(soilq_avg_df, file = p("processed/soilq_average.RDS"))
+saveRDS(soil_prim_df, file = p("processed/soil_primary.RDS"))
 
-rm(soilq); gc()
+# soil_prim_df <- readRDS(p("processed/soil_primary.RDS"))
+groups <- read.csv("inst/soilgrid_grouped.csv")
+soil_prim_df$soilgrid_grouped <- droplevels(as.factor(
+  groups[match(soil_prim_df$soil_prim, groups$Number), "WRB_group"]))
+
+saveRDS(soil_prim_df, file = p("processed/soil_primary-grouped.RDS"))
+
+# soilq_avg_df <- terra::extract(x = soilgrid, y = basins,
+#                                 weights = TRUE, exact = TRUE) |>
+#   filter(!is.na(soilgrid)) |>
+#   rename(soilq_avg = soilgrid) |>
+#   group_by(ID) |> transmute(weighted = soilq_avg * weight / sum(weight)) |>
+#   summarise(soilq_avg = sum(weighted, na.rm = T)) |>
+#   left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
+#   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
+# saveRDS(soilq_avg_df, file = p("processed/soilq_average.RDS"))
+
+
+rm(soilgrid); gc()
 
 
 # Biome (assigning eco-region with highest weight per basin)
@@ -142,16 +151,16 @@ rm(accessibility_to_cities_2015); gc()
 
 elevation_df <- readRDS(p("processed/elevation.RDS"))
 slope_df <- readRDS(p("processed/slope.RDS"))
-soilq_prim_df <- readRDS(p("processed/soilq_primary.RDS"))
-soilq_avg_df <- readRDS(p("processed/soilq_average.RDS"))
+soil_prim_df <- readRDS(p("processed/soil_primary-grouped.RDS"))
+# soilq_avg_df <- readRDS(p("processed/soilq_average.RDS"))
 ecoregions_df <- readRDS(p("processed/ecoregion.RDS"))
 accessibility_to_cities_2015_df <- readRDS(p("processed/accessibility_to_cities_2015.RDS"))
 
 geo_data_df <- left_join(ecoregions_df, elevation_df, by = "HYBAS_ID") |>
   left_join(slope_df, by = "HYBAS_ID") |>
-  left_join(soilq_prim_df, by = "HYBAS_ID") |>
-  left_join(soilq_avg_df, by = "HYBAS_ID") |> 
   left_join(accessibility_to_cities_2015_df, by = "HYBAS_ID")
+  left_join(soil_prim_df, by = "HYBAS_ID") # |>
+  # left_join(soilq_avg_df, by = "HYBAS_ID")
 
 saveRDS(geo_data_df, file = p("processed/geo_data_agg.RDS"))
 
@@ -166,7 +175,8 @@ saveRDS(geo_data_df, file = p("processed/geo_data_agg.RDS"))
 dates <- paste0(rep(2001:2023, each = 12), "-", stringr::str_pad(1:12, 2, pad = "0"))
 
 # Temperature (mean)
-tmp_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.tmp.dat.nc", pre = "/data/AP_FP/"), subds = "tmp") 
+tmp_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.tmp.dat.nc", pre = "/data/AP_FP/"), 
+                        subds = "tmp") 
 pos <- which(substr(time(tmp_data), 1, 7) %in% dates)
 
 start <- Sys.time()
@@ -194,7 +204,7 @@ saveRDS(tmp_df, file = p("processed/cru_tmp.RDS"))
 
 
 # Temperature (max)
-tmx_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.tmx.dat.nc"),
+tmx_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.tmx.dat.nc", pre = "/data/AP_FP/"),
   subds = "tmx")
 pos <- which(substr(time(tmx_data), 1, 7) %in% dates)
 
@@ -223,7 +233,7 @@ saveRDS(tmx_df, file = p("processed/cru_tmx.RDS"))
 
 
 # Temperature (min)
-tmn_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.tmn.dat.nc"),
+tmn_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.tmn.dat.nc", pre = "/data/AP_FP/"),
   subds = "tmn")
 pos <- which(substr(time(tmn_data), 1, 7) %in% dates)
 
@@ -252,7 +262,7 @@ saveRDS(tmn_df, file = p("processed/cru_tmn.RDS"))
 
 
 # Precipitation
-pre_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.pre.dat.nc"),
+pre_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.pre.dat.nc", pre = "/data/AP_FP/"),
   subds = "pre")
 pos <- which(substr(time(pre_data), 1, 7) %in% dates)
 
@@ -281,7 +291,7 @@ saveRDS(pre_df, file = p("processed/cru_pre.RDS"))
 
 
 # Cloud cover
-cld_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.cld.dat.nc"),
+cld_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.cld.dat.nc", pre = "/data/AP_FP/"),
   subds = "cld")
 pos <- which(substr(time(cld_data), 1, 7) %in% dates)
 
@@ -310,7 +320,7 @@ saveRDS(cld_df, file = p("processed/cru_cld.RDS"))
 
 
 # WET (Rainy Days)
-wet_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.wet.dat.nc"),
+wet_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.wet.dat.nc", pre = "/data/AP_FP/"),
   subds = "wet")
 pos <- which(substr(time(wet_data), 1, 7) %in% dates)
 
@@ -339,7 +349,7 @@ saveRDS(wet_df, file = p("processed/cru_wet.RDS"))
 
 
 # FRS (Frost Days)
-frs_data <- terra::rast(p("climate/CRU_unzipped/cru_ts4.08.1901.2023.frs.dat.nc"),
+frs_data <- terra::rast(p("CRU_unzipped/cru_ts4.08.1901.2023.frs.dat.nc", pre = "/data/AP_FP/"),
   subds = "frs")
 pos <- which(substr(time(frs_data), 1, 7) %in% dates)
 
