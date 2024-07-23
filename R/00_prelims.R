@@ -3,7 +3,7 @@ message("Setting shared paths.")
 
 # Paths to the data (shared between users on the Server)
 DATA <- "/data/jde/" # Main
-DATA_ALT <- "/data/redd" # Alternative, reused from another project
+DATA_ALT <- "/data/redd/" # Alternative, reused from another project
 
 p <- \(path, ..., pre = DATA) { # More concise paths
   paste0(pre, path, ...)
