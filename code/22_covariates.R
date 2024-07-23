@@ -22,14 +22,13 @@ basins <- read_sf(p("processed/relevant_basins_ordered.gpkg"))
 #####
 # Time-invariant stuff
 
-# Dams
+# Dams (on hold for now)
 
 # dl not working atm
 # dams <- sf::st_read(
 #   dsn = "https://data.apps.fao.org/map/gsrv/gsrv1/geonetwork/ows?service=wfs&version=2.0.0",
 #     layer = "dams_africa_38077")
-
-dams <- read_xlsx(p("dams/Africa-dams_eng.xlsx"), sheet = "Dams", skip = 1)
+# dams <- read_xlsx(p("dams/Africa-dams_eng.xlsx"), sheet = "Dams", skip = 1)
 
 # Elevation
 elevation <- terra::rast(p("grid_pnas/elevation.tif", pre = DATA_ALT))
@@ -100,7 +99,6 @@ saveRDS(soil_prim_df, file = p("processed/soil_primary-grouped.RDS"))
 #   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
 # saveRDS(soilq_avg_df, file = p("processed/soilq_average.RDS"))
 
-
 rm(soilgrid); gc()
 
 
@@ -158,8 +156,8 @@ accessibility_to_cities_2015_df <- readRDS(p("processed/accessibility_to_cities_
 
 geo_data_df <- left_join(ecoregions_df, elevation_df, by = "HYBAS_ID") |>
   left_join(slope_df, by = "HYBAS_ID") |>
-  left_join(accessibility_to_cities_2015_df, by = "HYBAS_ID")
-  left_join(soil_prim_df, by = "HYBAS_ID") # |>
+  left_join(soil_prim_df, by = "HYBAS_ID") |>
+  left_join(accessibility_to_cities_2015_df, by = "HYBAS_ID") # |> 
   # left_join(soilq_avg_df, by = "HYBAS_ID")
 
 saveRDS(geo_data_df, file = p("processed/geo_data_agg.RDS"))

@@ -56,8 +56,10 @@ basin_mines <- basin_mines |>
   group_by(mine_basin) |>
   summarise(mine_area_km2 = sum(mine_area_km2)) |>
   left_join(basin_mines_iso) |>
+  left_join(s |> st_drop_geometry() |> 
+              transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |> 
   mutate(mine_basin = as.double(mine_basin)) |>
-  relocate(iso3c, .after = mine_basin)
+  relocate(iso3c:mine_basin_pfaf_id, .after = mine_basin)
 
 # Get the IDs of the basins that contain mines
 treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
@@ -254,6 +256,7 @@ downstream_upstream_distance <- downstream_upstream_distance |>
 
 downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_area) |>
   left_join(basin_mines) |>
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
   relocate(iso3c, .after = HYBAS_ID)
 
@@ -301,6 +304,7 @@ so <- s |>
   dplyr::select(HYBAS_ID, mine_basin, status, order) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   relocate(iso3c, .after = mine_basin) |>
   relocate(geom, .after = mine_area_km2)
 
@@ -317,6 +321,7 @@ downstream_upstream_distance_ordered <- downstream_upstream_distance |>
   mutate_at(vars(downstream, distance), ~replace_na(., 0)) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |>
   relocate(iso3c, .after = HYBAS_ID)
 
