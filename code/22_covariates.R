@@ -61,32 +61,40 @@ saveRDS(slope_df, file = p("processed/slope.RDS"))
 rm(slope); gc()
 
 
-# Soil Quality (on a scale from 0-118)
-# taking once the value with the highest weight, once the weighted average
+# SoilGrid (types 0-118)
+# taking the value with the highest weight
 soilq <- terra::rast(p("grid_pnas/soilgrid.tif", pre = DATA_ALT))
 
-soilq_prim_df <- terra::extract(x = soilq, y = basins,
+soil_prim_df <- terra::extract(x = soilq, y = basins,
                                 weights = TRUE, exact = TRUE) |>
-  rename(soilq_prim = soilgrid) |>
+  rename(soil_prim = soilgrid) |>
   group_by(ID) |> mutate(weight = weight / sum(weight)) |>
   left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID) |>
-  group_by(HYBAS_ID, soilq_prim) |>
+  group_by(HYBAS_ID, soil_prim) |>
   summarise(weight = sum(weight, na.rm = T)) |>
-  filter(!is.na(soilq_prim)) |>
+  filter(!is.na(soil_prim)) |>
   group_by(HYBAS_ID) |>
   slice_max(weight, n = 1) |>
   dplyr::select(-weight)
-saveRDS(soilq_prim_df, file = p("processed/soilq_primary.RDS"))
 
-soilq_avg_df <- terra::extract(x = soilq, y = basins,
-                                weights = TRUE, exact = TRUE) |>
-  rename(soilq_avg = soilgrid) |>
-  group_by(ID) |> transmute(weighted = soilq_avg * weight / sum(weight)) |>
-  summarise(soilq_avg = sum(weighted, na.rm = T)) |>
-  left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
-  relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
-saveRDS(soilq_avg_df, file = p("processed/soilq_average.RDS"))
+saveRDS(soil_prim_df, file = p("processed/soil_primary.RDS"))
+
+# soil_prim_df <- readRDS(p("processed/soil_primary.RDS"))
+groups <- read.csv("inst/soilgrid_grouped.csv")
+soil_prim_df$soilgrid_grouped <- droplevels(as.factor(
+  groups[match(soil_prim_df$soil_prim, groups$Number), "WRB_group"]))
+
+saveRDS(soil_prim_df, file = p("processed/soil_primary-grouped.RDS"))
+
+# soilq_avg_df <- terra::extract(x = soilq, y = basins,
+#                                 weights = TRUE, exact = TRUE) |>
+#   rename(soilq_avg = soilgrid) |>
+#   group_by(ID) |> transmute(weighted = soilq_avg * weight / sum(weight)) |>
+#   summarise(soilq_avg = sum(weighted, na.rm = T)) |>
+#   left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |>
+#   relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID)
+# saveRDS(soilq_avg_df, file = p("processed/soilq_average.RDS"))
 
 rm(soilq); gc()
 
@@ -120,14 +128,14 @@ rm(ecoregions, ecoregions_concordance); gc()
 
 elevation_df <- readRDS(p("processed/elevation.RDS"))
 slope_df <- readRDS(p("processed/slope.RDS"))
-soilq_prim_df <- readRDS(p("processed/soilq_primary.RDS"))
-soilq_avg_df <- readRDS(p("processed/soilq_average.RDS"))
+soil_prim_df <- readRDS(p("processed/soil_primary-grouped.RDS"))
+# soilq_avg_df <- readRDS(p("processed/soilq_average.RDS"))
 ecoregions_df <- readRDS(p("processed/ecoregion.RDS"))
 
 geo_data_df <- left_join(ecoregions_df, elevation_df, by = "HYBAS_ID") |>
   left_join(slope_df, by = "HYBAS_ID") |>
-  left_join(soilq_prim_df, by = "HYBAS_ID") |>
-  left_join(soilq_avg_df, by = "HYBAS_ID")
+  left_join(soil_prim_df, by = "HYBAS_ID") # |>
+  # left_join(soilq_avg_df, by = "HYBAS_ID")
 
 saveRDS(geo_data_df, file = p("processed/geo_data_agg.RDS"))
 
