@@ -1,4 +1,3 @@
-
 # Load Packages -----------------------------------------------------------
 
 pacman::p_load(
@@ -246,19 +245,22 @@ upstream_distances_df <- upstream_distances_df |>
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-downstream_upstream_distance <- downstream_upstream_distance |>
+mine_downstream_upstream_distance <- downstream_upstream_distance |>
   group_by(mine_basin) |>
   summarize(mine_basin = first(mine_basin),
             HYBAS_ID = first(mine_basin),
             distance = 0,
-            downstream = 1) |>
-  rbind(downstream_upstream_distance,.)
+            downstream = 1)
+  
+downstream_upstream_distance <- rbind(downstream_upstream_distance, mine_downstream_upstream_distance)
 
-downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_area) |>
-  left_join(basin_mines) |>
-  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
-  relocate(iso3c, .after = HYBAS_ID)
+downstream_upstream_distance <- left_join(downstream_upstream_distance, 
+                                          basin_area |> mutate(HYBAS_ID = as.character(HYBAS_ID))) |>
+  left_join(basin_mines |> mutate(mine_basin = as.character(mine_basin))) |>
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID = as.character(HYBAS_ID), basin_pfaf_id = PFAF_ID)) |> 
+  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
+  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
+            iso3c, downstream, distance, basin_area_km2, mine_area_km2)
 
 write.csv(downstream_upstream_distance,
   p("processed/downstream_upstream_distance.csv"), row.names = FALSE)
@@ -306,7 +308,7 @@ so <- s |>
   left_join(basin_mines) |>
   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   relocate(iso3c, .after = mine_basin) |>
-  relocate(geom, .after = mine_area_km2)
+  relocate(geometry, .after = mine_area_km2)
 
 write_sf(so, p("processed/relevant_basins_ordered.gpkg"))
 write_sf(so, p("processed/relevant_basins_ordered.shp"))
@@ -322,8 +324,9 @@ downstream_upstream_distance_ordered <- downstream_upstream_distance |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |>
-  relocate(iso3c, .after = HYBAS_ID)
+  mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |> 
+  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
+            iso3c, downstream, status, order, distance, basin_area_km2, mine_area_km2)
 
 write.csv(downstream_upstream_distance_ordered,
   p("processed/downstream_upstream_distance_ordered.csv"), row.names = FALSE)
