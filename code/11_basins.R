@@ -57,7 +57,8 @@ basin_mines <- basin_mines |>
   left_join(basin_mines_iso) |>
   left_join(s |> st_drop_geometry() |> 
               transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_basin = as.double(mine_basin)) |>
+  mutate(mine_basin = as.double(mine_basin), 
+         iso3c = replace(iso3c, iso3c == "ESH", "MAR")) |>
   relocate(iso3c:mine_basin_pfaf_id, .after = mine_basin)
 
 # Get the IDs of the basins that contain mines
@@ -235,13 +236,11 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 
 downstream_distances_df <- downstream_distances_df |>
   mutate(downstream = 1) |>
-  rename(HYBAS_ID = downstream_id)  |>
-  rename(mine_basin = basin_id)
+  rename(HYBAS_ID = downstream_id, mine_basin = basin_id)
 
 upstream_distances_df <- upstream_distances_df |>
   mutate(downstream = 0) |>
-  rename(HYBAS_ID = upstream_id) |>
-  rename(mine_basin = basin_id)
+  rename(HYBAS_ID = upstream_id, mine_basin = basin_id)
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
@@ -317,7 +316,8 @@ write_sf(so, p("processed/relevant_basins_ordered.shp"))
 # Add Order to Downstream/Upstream Distance DF ----------------------------
 
 downstream_upstream_distance_ordered <- downstream_upstream_distance |>
-  mutate(mine_basin = as.double(mine_basin), HYBAS_ID = as.double(HYBAS_ID)) |>
+  transmute(HYBAS_ID = as.double(HYBAS_ID), mine_basin = as.double(mine_basin), 
+            downstream, distance) |>
   full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) |>
   drop_na(status) |>
   mutate_at(vars(downstream, distance), ~replace_na(., 0)) |>
