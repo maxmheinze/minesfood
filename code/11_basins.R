@@ -86,14 +86,17 @@ stream_ordered <- function(id, n = 1L, max = 11L, down = TRUE) {
     id_next <- d[["HYBAS_ID"]][d[["NEXT_DOWN"]] %in% id]
   }
   if (all(id_next == 0) || length(id_next) == 0) return()
-
   results <- cbind(id_next, n)
+  id_next <- unique(id_next)
   recursive_results <- Recall(id_next, n = n + 1L, max = max, down = down)
   if (!is.null(recursive_results)) {
     results <- rbind(results, recursive_results)
   }
   return(results)
 }
+
+
+
 
 
 # Get basins downstream and upstream of mines
@@ -146,116 +149,227 @@ write_sf(relevant_basins, p("processed/relevant_basins.gpkg"))
 write_sf(relevant_basins, p("processed/relevant_basins.shp"))
 
 
-# Calculating Distances ---------------------------------------------------
 
-# relevant_basins <- read_sf("~/minesfood/data/relevant_basins.gpkg")
+# Calculating Elaborated Distances ----------------------------------------
 
-downstream_ids_with_name <- downstream_ids
-names(downstream_ids_with_name) <- treated_id
-downstream_ids_with_name <- lapply(downstream_ids_with_name, function(x)
-  x[which(!x %in% lake_id)])
+basin_centroids <- relevant_basins %>%
+  st_centroid %>%
+  dplyr::select(HYBAS_ID, NEXT_DOWN)
 
-upstream_ids_with_name <- upstream_ids
-names(upstream_ids_with_name) <- treated_id
+basin_distances <- basin_centroids %>%
+  st_drop_geometry() %>%
+  left_join(basin_centroids, by = join_by("NEXT_DOWN" == "HYBAS_ID")) %>%
+  dplyr::select(-NEXT_DOWN.y) %>%
+  mutate(geometry.x = basin_centroids$geometry) %>%
+  rename(geometry.y = geometry) %>%
+  relocate(geometry.y, .after = geometry.x) %>%
+  mutate(distance = as.numeric(st_distance(st_sfc(geometry.x), st_sfc(geometry.y), by_element = TRUE))/1000) %>%
+  dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
-relevant_basins_centroid <- st_centroid(relevant_basins)
 
-basins_df <- relevant_basins_centroid
+# Elaborated Downstream Distances -----------------------------------------
 
-# Function to calculate the distance between two points
-calculate_distance <- function(id1, id2, basins_df) {
-  basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
-  basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
-
-  if (nrow(basin1) == 0 || nrow(basin2) == 0) {
-    return(NA)  # If either basin is not found, return NA
-  }
-
-  # Extract coordinates
-  coords1 <- st_coordinates(st_centroid(basin1))
-  coords2 <- st_coordinates(st_centroid(basin2))
-
-  # Calculate the distance
-  dist <- distHaversine(coords1, coords2)
-  return(dist)
+for (i in seq_along(downstream_ids_ordered)) {
+  downstream_ids_ordered[[i]] <- rbind(c(treated_id[i], 0), downstream_ids_ordered[[i]])
 }
 
+get_distance <- function(id1, id2, distances_df) {
+  if (is.na(id1) | is.na(id2) | id1 == id2) return(0)
+  row <- distances_df[distances_df$HYBAS_ID == id2 & distances_df$NEXT_DOWN == id1, ]
+  if (nrow(row) == 0) return(NA)
+  return(row$distance)
+}
 
-# Downstream Distances ----------------------------------------------------
-
-# Initialize an empty list to store the results
-downstream_distances_list <- list()
-
-# Loop through each basin and calculate distances to its downstream basins
-for (basin_id in names(downstream_ids_with_name)) {
-  downstream_ids <- downstream_ids_with_name[[basin_id]]
-
-  if (!is.null(downstream_ids)) {
-    for (downstream_id in downstream_ids) {
-      distance <- calculate_distance(as.numeric(basin_id), as.numeric(downstream_id), basins_df)
-      downstream_distances_list[[length(downstream_distances_list) + 1]] <- data.frame(
-        basin_id = basin_id,
-        downstream_id = downstream_id,
-        distance = distance
-      )
+for (i in seq_along(downstream_ids_ordered)) {
+  current_list <- downstream_ids_ordered[[i]]
+  distances <- c(0)
+  if (nrow(current_list) > 1) {  
+    for (j in 2:nrow(current_list)) {
+      id_prev <- current_list[j-1, 1]
+      id_curr <- current_list[j, 1]
+      distances <- c(distances, get_distance(id_curr, id_prev, basin_distances))
     }
   }
+ 
+  distances <- cumsum(distances)
+  downstream_ids_ordered[[i]] <- cbind(current_list, distances)
 }
+
+for(i in seq_along(downstream_ids_ordered)) {
+  downstream_ids_ordered[[i]] <- data.frame(downstream_ids_ordered[[i]])
+  downstream_ids_ordered[[i]] <- cbind(downstream_ids_ordered[[i]], treated_id[i])
+  colnames(downstream_ids_ordered[[i]]) <- c("basin_id", "dist_n", "dist_km", "mine_basin")
+}
+
+downstream_distances_list <- downstream_ids_ordered
 
 downstream_distances_df <- bind_rows(downstream_distances_list)
 
 
-# Upstream Distances ------------------------------------------------------
+# Elaborated Upstream Distances -------------------------------------------
 
-# Initialize an empty list to store the results
-upstream_distances_list <- list()
-
-# Loop through each basin and calculate distances to its upstream basins
-for (basin_id in names(upstream_ids_with_name)) {
-  upstream_ids <- upstream_ids_with_name[[basin_id]]
-
-  if (!is.null(upstream_ids)) {
-    for (upstream_id in upstream_ids) {
-      distance <- calculate_distance(as.numeric(basin_id), as.numeric(upstream_id), basins_df)
-      upstream_distances_list[[length(upstream_distances_list) + 1]] <- data.frame(
-        basin_id = basin_id,
-        upstream_id = upstream_id,
-        distance = distance
-      )
-    }
-  }
+for (i in seq_along(upstream_ids_ordered)) {
+  upstream_ids_ordered[[i]] <- rbind(c(treated_id[i], 0), upstream_ids_ordered[[i]])
+  colnames(upstream_ids_ordered[[i]]) <- c("id_next", "n")
+  upstream_ids_ordered[[i]] <- dplyr::left_join(data.frame(upstream_ids_ordered[[i]]), data.frame(basin_distances[,1:2]), by = join_by("id_next" == "HYBAS_ID"))
+  upstream_ids_ordered[[i]][1,3] <- NA
 }
 
-# Combine the list into a data frame
+get_distance_upstream <- function(id1, id2, distances_df) {
+  if (is.na(id1) | is.na(id2)) return(0)
+  row <- distances_df[distances_df$HYBAS_ID == id1 & distances_df$NEXT_DOWN == id2, ]
+  if (nrow(row) == 0) return(NA)
+  return(row$distance)
+}
+
+for (i in seq_along(upstream_ids_ordered)) {
+  current_list <- upstream_ids_ordered[[i]]
+  
+  distances <- numeric(nrow(current_list))
+  distances[1] <- 0  
+  
+  if (nrow(current_list) > 1) {
+    for (j in 2:nrow(current_list)) {
+      id1 <- current_list[j, 1] 
+      id2 <- current_list[j, 3]  
+      distances[j] <- get_distance_upstream(id1, id2, basin_distances)
+    }
+  }
+  
+ accumulated_distances <- numeric(nrow(current_list))
+ for (j in 1:nrow(current_list)) {
+   current_distance <- distances[j]
+   id2 <- current_list[j, 3]
+   while (!is.na(id2) && id2 != current_list[1, 1]) {  # Traverse upstream until the first row
+     idx <- which(current_list[, 1] == id2)
+     if (length(idx) == 0) break
+     current_distance <- current_distance + distances[idx]
+     id2 <- current_list[idx, 3]
+   }
+   accumulated_distances[j] <- current_distance
+ }
+  
+  upstream_ids_ordered[[i]] <- cbind(current_list, distances, accumulated_distances)
+}
+
+upstream_ids_ordered_1 <- upstream_ids_ordered
+upstream_ids_ordered <- upstream_ids_ordered_1
+
+for(i in seq_along(upstream_ids_ordered)) {
+  upstream_ids_ordered[[i]] <- data.frame(upstream_ids_ordered[[i]][,c(1,2,5)])
+  upstream_ids_ordered[[i]] <- cbind(upstream_ids_ordered[[i]], treated_id[i])
+  colnames(upstream_ids_ordered[[i]]) <- c("basin_id", "dist_n", "dist_km", "mine_basin")
+}
+
+upstream_distances_list <- upstream_ids_ordered
+
 upstream_distances_df <- bind_rows(upstream_distances_list)
+
+
+# Calculating Distances (Legacy)  -----------------------------------------
+
+# relevant_basins <- read_sf("~/minesfood/data/relevant_basins.gpkg")
+
+# downstream_ids_with_name <- downstream_ids
+# names(downstream_ids_with_name) <- treated_id
+# downstream_ids_with_name <- lapply(downstream_ids_with_name, function(x)
+#   x[which(!x %in% lake_id)])
+# 
+# upstream_ids_with_name <- upstream_ids
+# names(upstream_ids_with_name) <- treated_id
+# 
+# relevant_basins_centroid <- st_centroid(relevant_basins)
+# 
+# basins_df <- relevant_basins_centroid
+# 
+# # Function to calculate the distance between two points
+# calculate_distance <- function(id1, id2, basins_df) {
+#   basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
+#   basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
+# 
+#   if (nrow(basin1) == 0 || nrow(basin2) == 0) {
+#     return(NA)  # If either basin is not found, return NA
+#   }
+# 
+#   # Extract coordinates
+#   coords1 <- st_coordinates(st_centroid(basin1))
+#   coords2 <- st_coordinates(st_centroid(basin2))
+# 
+#   # Calculate the distance
+#   dist <- distHaversine(coords1, coords2)
+#   return(dist)
+# }
+
+
+# Downstream Distances (Legacy) -------------------------------------------
+
+# # Initialize an empty list to store the results
+# downstream_distances_list <- list()
+# 
+# # Loop through each basin and calculate distances to its downstream basins
+# for (basin_id in names(downstream_ids_with_name)) {
+#   downstream_ids <- downstream_ids_with_name[[basin_id]]
+# 
+#   if (!is.null(downstream_ids)) {
+#     for (downstream_id in downstream_ids) {
+#       distance <- calculate_distance(as.numeric(basin_id), as.numeric(downstream_id), basins_df)
+#       downstream_distances_list[[length(downstream_distances_list) + 1]] <- data.frame(
+#         basin_id = as.double(basin_id),
+#         downstream_id = downstream_id,
+#         distance = distance
+#       )
+#     }
+#   }
+# }
+# 
+# downstream_distances_df <- bind_rows(downstream_distances_list)
+
+
+# Upstream Distances (Legacy) ---------------------------------------------
+
+# # Initialize an empty list to store the results
+# upstream_distances_list <- list()
+# 
+# # Loop through each basin and calculate distances to its upstream basins
+# for (basin_id in names(upstream_ids_with_name)) {
+#   upstream_ids <- upstream_ids_with_name[[basin_id]]
+# 
+#   if (!is.null(upstream_ids)) {
+#     for (upstream_id in upstream_ids) {
+#       distance <- calculate_distance(as.numeric(basin_id), as.numeric(upstream_id), basins_df)
+#       upstream_distances_list[[length(upstream_distances_list) + 1]] <- data.frame(
+#         basin_id = as.double(basin_id),
+#         upstream_id = upstream_id,
+#         distance = distance
+#       )
+#     }
+#   }
+# }
+# 
+# # Combine the list into a data frame
+# upstream_distances_df <- bind_rows(upstream_distances_list)
 
 
 # Merge Upstream Distances/Downstream Distances DFs -----------------------
 
 downstream_distances_df <- downstream_distances_df |>
   mutate(downstream = 1) |>
-  rename(HYBAS_ID = downstream_id)  |>
-  rename(mine_basin = basin_id)
+  rename(HYBAS_ID = basin_id)
 
 upstream_distances_df <- upstream_distances_df |>
   mutate(downstream = 0) |>
-  rename(HYBAS_ID = upstream_id) |>
-  rename(mine_basin = basin_id)
+  rename(HYBAS_ID = basin_id)
 
 downstream_upstream_distance <- rbind(downstream_distances_df, upstream_distances_df)
 
-downstream_upstream_distance <- downstream_upstream_distance |>
-  group_by(mine_basin) |>
-  summarize(mine_basin = first(mine_basin),
-            HYBAS_ID = first(mine_basin),
-            distance = 0,
-            downstream = 1) |>
-  rbind(downstream_upstream_distance,.)
+downstream_upstream_distance <- downstream_upstream_distance %>%
+  dplyr::filter(!(HYBAS_ID == mine_basin & downstream == 0)) %>%
+  rename(order = dist_n, distance = dist_km)
 
 downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_area) |>
   left_join(basin_mines) |>
   mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
-  relocate(iso3c, .after = HYBAS_ID)
+  relocate(iso3c, .after = HYBAS_ID) 
 
 write.csv(downstream_upstream_distance,
   p("processed/downstream_upstream_distance.csv"), row.names = FALSE)
@@ -263,24 +377,21 @@ write.csv(downstream_upstream_distance,
 
 # Lookup DF with Order ----------------------------------------------------
 
-downstream_df_ordered <- do.call("rbind", downstream_ids_ordered) |>
-  data.frame() |>
-  mutate(id = rep(treated_id, lengths(downstream_ids_ordered)/2),
-         status = "downstream") |>
-  relocate(id_next, id, status, n) |>
-  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+downstream_df_ordered <- downstream_distances_df %>%
+  mutate(status = "downstream") %>%
+  dplyr::select(-dist_km, -downstream) %>%
+  `colnames<-`(c("basin", "order", "mine_basin", "status"))
 
-upstream_df_ordered <- do.call("rbind", upstream_ids_ordered) |>
-  data.frame() |>
-  mutate(id = rep(treated_id, lengths(upstream_ids_ordered)/2),
-         status = "upstream") |>
-  relocate(id_next, id, status, n) |>
-  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+upstream_df_ordered <- upstream_distances_df %>%
+  mutate(status = "upstream") %>%
+  dplyr::select(-dist_km, -downstream) %>%
+  `colnames<-`(c("basin", "order", "mine_basin", "status"))
 
 mine_df_ordered <- data.frame(treated_id, treated_id) |>
   mutate(status = "mine",
          order = 0) |>
-  `colnames<-`(c("basin", "mine_basin", "status", "order"))
+  `colnames<-`(c("basin", "mine_basin", "status", "order")) %>%
+  dplyr::relocate(basin, order, mine_basin, status)
 
 basins_ordered <- rbind(downstream_df_ordered, upstream_df_ordered, mine_df_ordered)
 
@@ -301,8 +412,7 @@ so <- s |>
   dplyr::select(HYBAS_ID, mine_basin, status, order) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
-  relocate(iso3c, .after = mine_basin) |>
-  relocate(geom, .after = mine_area_km2)
+  relocate(iso3c, .after = mine_basin)
 
 write_sf(so, p("processed/relevant_basins_ordered.gpkg"))
 write_sf(so, p("processed/relevant_basins_ordered.shp"))
@@ -310,15 +420,20 @@ write_sf(so, p("processed/relevant_basins_ordered.shp"))
 
 # Add Order to Downstream/Upstream Distance DF ----------------------------
 
+# This is legacy code that is redundant (I think) but I'm not sure whether
+# we use this some time later so I just ensured consistency and left it
+# in --Max
+
 downstream_upstream_distance_ordered <- downstream_upstream_distance |>
-  mutate(mine_basin = as.double(mine_basin), HYBAS_ID = as.double(HYBAS_ID)) |>
   full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) |>
   drop_na(status) |>
   mutate_at(vars(downstream, distance), ~replace_na(., 0)) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
   mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |>
-  relocate(iso3c, .after = HYBAS_ID)
+  relocate(iso3c, .after = HYBAS_ID) |>
+  rename(order = order.x) |>
+  dplyr::select(-order.y)
 
 write.csv(downstream_upstream_distance_ordered,
   p("processed/downstream_upstream_distance_ordered.csv"), row.names = FALSE)
