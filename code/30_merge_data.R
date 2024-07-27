@@ -28,6 +28,9 @@ geo_controls <- readRDS(p("processed/geo_data_agg.RDS"))
 # meteorological controls
 met_controls <- readRDS(p("processed/met_data_agg.RDS"))
 
+# population 
+pop <- read_csv(p("processed/basin_pop.csv"))
+
 
 # Prepare Data for Regression ---------------------------------------------
 
@@ -35,6 +38,7 @@ df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |> relocate(year, .after = 
   left_join(regions_usda, by = "iso3c") |> relocate(region, .after = iso3c) |> 
   left_join(geo_controls, by = "HYBAS_ID") |>
   left_join(met_controls, by = c("HYBAS_ID", "year")) |>
+  left_join(pop, by = c("HYBAS_ID", "year")) |> 
   mutate(t.trend = year - 2000)
 
 # what's done here is that we assign a downstream basin to be unique for a mine? 
