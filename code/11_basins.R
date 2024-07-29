@@ -97,10 +97,6 @@ stream_ordered <- function(id, n = 1L, max = 11L, down = TRUE) {
   return(results)
 }
 
-
-
-
-
 # Get basins downstream and upstream of mines
 downstream_ids <- lapply(treated_id, stream, down = TRUE)
 upstream_ids <- lapply(treated_id, stream, down = FALSE)
@@ -165,7 +161,9 @@ basin_distances <- basin_centroids %>%
   mutate(geometry.x = basin_centroids$geometry) %>%
   rename(geometry.y = geometry) %>%
   relocate(geometry.y, .after = geometry.x) %>%
-  mutate(distance = as.numeric(st_distance(st_sfc(geometry.x), st_sfc(geometry.y), by_element = TRUE))/1000) %>%
+  mutate(distance = as.numeric(st_distance(st_sfc(geometry.x), # distance in km
+                                           st_sfc(geometry.y), 
+                                           by_element = TRUE)) / 10^3) %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
 
@@ -439,7 +437,7 @@ downstream_upstream_distance_ordered <- downstream_upstream_distance |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_area_km2 = replace(mine_area_km2, status != "mine", 0)) |> 
+  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
   transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
             iso3c, downstream, status, order, distance, basin_area_km2, mine_area_km2)
 

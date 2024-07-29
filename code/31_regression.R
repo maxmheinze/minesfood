@@ -6,6 +6,7 @@ rm(list = ls())
 pacman::p_load(
   dplyr,
   rddtools,
+  rdrobust,
   countrycode,
   readr,
   fixest
@@ -39,7 +40,7 @@ mod2_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                           as.factor(order) + downstream +
 #                           elevation + slope + soilgrid_grouped +
 #                           tmp_max + precipitation +
-#                           accessibility_to_cities_2015 | # + population
+#                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg,
 #                         cluster = "HYBAS_ID")
@@ -48,7 +49,7 @@ mod4_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           as.factor(order) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg,
                         cluster = "HYBAS_ID")
@@ -115,7 +116,7 @@ mod2_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                            as.factor(order) + downstream +
 #                            elevation + slope + soilgrid_grouped +
 #                            tmp_max + precipitation +
-#                            accessibility_to_cities_2015 | # + population
+#                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
 #                          cluster = "HYBAS_ID")
@@ -124,7 +125,7 @@ mod4_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
@@ -191,7 +192,7 @@ mod2_dist_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                          (distance) + downstream +
 #                          elevation + slope + soilgrid_grouped +
 #                          tmp_max + precipitation +
-#                          accessibility_to_cities_2015 | # + population
+#                          accessibility_to_cities_2015 + pop_2015 |
 #                          year + as.factor(mine_basin),
 #                        data = df_reg,
 #                        cluster = "HYBAS_ID")
@@ -200,7 +201,7 @@ mod4_dist_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                          (distance) * downstream +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
-                         accessibility_to_cities_2015 | # + population
+                         accessibility_to_cities_2015 + pop_2015 |
                          year +  as.factor(mine_basin),
                        data = df_reg,
                        cluster = "HYBAS_ID")
@@ -267,7 +268,7 @@ mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                           (distance) + downstream +
 #                           elevation + slope + soilgrid_grouped +
 #                           tmp_max + precipitation +
-#                           accessibility_to_cities_2015 | # + population
+#                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
 #                         cluster = "HYBAS_ID")
@@ -276,7 +277,7 @@ mod4_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -358,7 +359,7 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
@@ -405,7 +406,7 @@ mod4_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -435,7 +436,7 @@ mod1_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -445,7 +446,7 @@ mod2_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(iso3c),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -455,7 +456,7 @@ mod3_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(region),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -465,7 +466,7 @@ mod4_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl4),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -475,7 +476,7 @@ mod5_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl6),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -485,7 +486,7 @@ mod6_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl8),
                       data = df_reg_restr,
                       cluster = "HYBAS_ID")
@@ -520,7 +521,7 @@ mod1_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_basin),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -530,7 +531,7 @@ mod2_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(iso3c),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -540,7 +541,7 @@ mod3_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(region),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -550,7 +551,7 @@ mod4_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl4),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -560,7 +561,7 @@ mod5_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl6),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -570,7 +571,7 @@ mod6_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl8),
                      data = df_reg_restr,
                      cluster = "HYBAS_ID")
@@ -600,7 +601,7 @@ mod_order_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population 
+                           accessibility_to_cities_2015 + pop_2015 | 
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          split = "biome_name",
@@ -621,7 +622,7 @@ mod_dist_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            (distance) * downstream  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation  +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          split = "biome_name",
@@ -648,7 +649,7 @@ mod_order_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                  as.factor(order) * downstream  +
                                  elevation + slope + soilgrid_grouped +
                                  tmp_max + precipitation +
-                                 accessibility_to_cities_2015 | # + population 
+                                 accessibility_to_cities_2015 + pop_2015 | 
                                  year +  as.factor(mine_basin),
                                data = df_reg_restr,
                                split = "iso3c",
@@ -669,7 +670,7 @@ mod_dist_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                 (distance) * downstream  +
                                 elevation + slope + soilgrid_grouped +
                                 tmp_max + precipitation  +
-                                accessibility_to_cities_2015 | # + population
+                                accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr,
                               split = "iso3c",
@@ -696,7 +697,7 @@ mod_order_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                    as.factor(order) * downstream  +
                                    elevation + slope + soilgrid_grouped +
                                    tmp_max + precipitation +
-                                   accessibility_to_cities_2015 | # + population 
+                                   accessibility_to_cities_2015 + pop_2015 | 
                                    year +  as.factor(mine_basin),
                                  data = df_reg_restr,
                                  split = "region",
@@ -717,7 +718,7 @@ mod_dist_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                   (distance) * downstream  +
                                   elevation + slope + soilgrid_grouped +
                                   tmp_max + precipitation  +
-                                  accessibility_to_cities_2015 | # + population
+                                  accessibility_to_cities_2015 + pop_2015 |
                                   year +  as.factor(mine_basin),
                                 data = df_reg_restr,
                                 split = "region",

@@ -122,6 +122,11 @@ ecoregions_df <- terra::extract(x = ecoregions, y = basins,
   dplyr::select(-ecoregion_weight) |>
   left_join(ecoregions_concordance, by = "eco_id")
 
+ecoregions_df <- ecoregions_df |> 
+  mutate(biome_group = "Forests", 
+         biome_group = replace(biome_group, biome_num %in% c(7, 9, 10), "Grasslands"), 
+         biome_group = replace(biome_group, biome_num %in% 13, "Deserts"))
+
 saveRDS(ecoregions_df, file = p("processed/ecoregion.RDS"))
 
 rm(ecoregions, ecoregions_concordance); gc()

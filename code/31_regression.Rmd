@@ -23,20 +23,164 @@ library("rdrobust")
 sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 ```
 
+```{r restrictions, include=FALSE}
+restr_year <- 2016:2023
+restr_area_mined <- 0
+restr_order <- 10
 
-## Main Models: Order
+df_reg <- readRDS(p("processed/df_reg.RDS"))
+mine_size_restr <- df_reg |> filter(mine_area_km2 > 0) |> pull(mine_basin) |> unique()
+df_reg_restr <- df_reg |> filter(order <= restr_order, 
+                                 year %in% restr_year, 
+                                 mine_basin %in% mine_size_restr)
+```
+
+
+## Main Models: No interaction
 
 ### Full sample
 
 This specification includes:
 
-* all years from **2001 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg$year)` to `r max(df_reg$year)`**
+* basin systems with area mined of at least **0 square km**
+* up/downstream basins up to **`r max(df_reg$order)`** basins "away"
+
+```{r reg_main_noint_full, warning=FALSE, message=FALSE}
+# no covariates
+# mod1_noint_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+#                           downstream |
+#                           year +  as.factor(mine_basin),
+#                         data = df_reg,
+#                         cluster = "HYBAS_ID")
+
+mod2_noint_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+                          downstream |
+                          year +  as.factor(mine_basin),
+                        data = df_reg,
+                        cluster = "HYBAS_ID")
+
+# with covariates
+# mod3_noint_full = feols(c(max_c_EVI_af, max_c_EVI_ESA) ~
+#                           downstream +
+#                           elevation + slope + soilgrid_grouped +
+#                           tmp_max + precipitation +
+#                           accessibility_to_cities_2015 + pop_2015 |
+#                           year + as.factor(mine_basin),
+#                         data = df_reg,
+#                         cluster = "HYBAS_ID")
+
+mod4_noint_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+                          downstream +
+                          elevation + slope + soilgrid_grouped +
+                          tmp_max + precipitation +
+                          accessibility_to_cities_2015 + pop_2015 |
+                          year +  as.factor(mine_basin),
+                        data = df_reg,
+                        cluster = "HYBAS_ID")
+
+etable(mod2_noint_full[1], mod4_noint_full[1], 
+       mod2_noint_full[2], mod4_noint_full[2], 
+       mod2_noint_full[3], mod4_noint_full[3], 
+       drop = "soilgrid|order")
+
+evi_cropland_africover_avg <- df_reg |>
+  filter(!is.na(max_c_EVI_af)) |>
+  pull(max_c_EVI_af) |> mean()
+evi_cropland_ESA_avg <- df_reg |>
+  filter(!is.na(max_c_EVI_ESA)) |>
+  pull(max_c_EVI_ESA) |> mean()
+evi_avg <- df_reg |>
+  filter(!is.na(max_EVI)) |>
+  pull(max_EVI) |> mean()
+```
+
+Compared to the sample mean, the presence of a mine upstream changes
+
+* the overall EVI by **`r round(coef(mod2_noint_full[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_full[[1]])["downstream"], 3)`* (`r round(coef(mod4_noint_full[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_full[[1]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_noint_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_full[[2]])["downstream"], 3)`* (`r round(coef(mod4_noint_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_full[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_noint_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_full[[3]])["downstream"], 3)`* (`r round(coef(mod4_noint_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_full[[3]])["downstream"], 3)`*)
+
+on average **without** (with) controls.
+
+
+### Restricted sample
+
+This specification includes:
+
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
+
+```{r reg_main_noint_restr, warning=FALSE, message=FALSE}
+# no covariates
+# mod1_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+#                            downstream |
+#                            year +  as.factor(mine_basin),
+#                          data = df_reg_restr,
+#                          cluster = "HYBAS_ID")
+
+mod2_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+                           downstream |
+                           year +  as.factor(mine_basin),
+                         data = df_reg_restr,
+                         cluster = "HYBAS_ID")
+
+# with covariates
+# mod3_noint_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA) ~
+#                            downstream +
+#                            elevation + slope + soilgrid_grouped +
+#                            tmp_max + precipitation +
+#                            accessibility_to_cities_2015 + pop_2015 |
+#                            year + as.factor(mine_basin),
+#                          data = df_reg_restr,
+#                          cluster = "HYBAS_ID")
+
+mod4_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+                           downstream +
+                           elevation + slope + soilgrid_grouped +
+                           tmp_max + precipitation +
+                           accessibility_to_cities_2015 + pop_2015 |
+                           year +  as.factor(mine_basin),
+                         data = df_reg_restr,
+                         cluster = "HYBAS_ID")
+
+etable(mod2_noint_restr[1], mod4_noint_restr[1],
+       mod2_noint_restr[2], mod4_noint_restr[2],
+       mod2_noint_restr[3], mod4_noint_restr[3],
+       drop = "soilgrid|order")
+
+evi_cropland_africover_avg <- df_reg_restr |>
+  filter(!is.na(max_c_EVI_af)) |>
+  pull(max_c_EVI_af) |> mean()
+evi_cropland_ESA_avg <- df_reg_restr |>
+  filter(!is.na(max_c_EVI_ESA)) |>
+  pull(max_c_EVI_ESA) |> mean()
+evi_avg <- df_reg_restr |>
+  filter(!is.na(max_EVI)) |>
+  pull(max_EVI) |> mean()
+```
+
+Compared to the sample mean, the presence of a mine upstream changes
+
+* the overall EVI by **`r round(coef(mod2_noint_restr[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_restr[[1]])["downstream"], 3)`* (`r round(coef(mod4_noint_restr[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_restr[[1]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_noint_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_noint_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_restr[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_noint_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_noint_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_noint_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_noint_restr[[3]])["downstream"], 3)`*)
+
+on average **without** (with) controls.
+
+
+## Main Models: Order interaction
+
+### Full sample
+
+This specification includes:
+
+* years from **`r min(df_reg$year)` to `r max(df_reg$year)`**
+* basin systems with area mined of at least **0 square km**
+* up/downstream basins up to **`r max(df_reg$order)`** basins "away"
 
 ```{r reg_main_order_full, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-
 # no covariates, order interaction
 # mod1_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                           as.factor(order) + downstream |
@@ -55,7 +199,7 @@ mod2_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                           as.factor(order) + downstream +
 #                           elevation + slope + soilgrid_grouped +
 #                           tmp_max + precipitation +
-#                           accessibility_to_cities_2015 | # + population
+#                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg,
 #                         cluster = "HYBAS_ID")
@@ -64,7 +208,7 @@ mod4_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           as.factor(order) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg,
                         cluster = "HYBAS_ID")
@@ -88,25 +232,21 @@ evi_avg <- df_reg |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_order_full[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_full[[1]])["downstream"], 3)`* (`r round(coef(mod4_order_full[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_full[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_full[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_full[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_full[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_full[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_full[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_full[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_full[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_full[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_full[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_full[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_full[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_full[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
-### Sample with time restrictions
+### Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
-
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_main_order_restr, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
 # no covariates, order interaction
 # mod1_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                            as.factor(order) + downstream |
@@ -125,7 +265,7 @@ mod2_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                            as.factor(order) + downstream +
 #                            elevation + slope + soilgrid_grouped +
 #                            tmp_max + precipitation +
-#                            accessibility_to_cities_2015 | # + population
+#                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
 #                          cluster = "HYBAS_ID")
@@ -134,7 +274,7 @@ mod4_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
@@ -158,27 +298,23 @@ evi_avg <- df_reg_restr |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_order_restr[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_restr[[1]])["downstream"], 3)`* (`r round(coef(mod4_order_restr[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_restr[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_restr[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_restr[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_restr[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_restr[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_restr[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_restr[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_restr[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_restr[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
-
-## Main Models: Distance
+## Main Models: Distance interaction
 
 ### Full sample
 
 This specification includes:
 
-* all years from **2001 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
-
+* years from **`r min(df_reg$year)` to `r max(df_reg$year)`**
+* basin systems with area mined of at least **0 square km**
+* up/downstream basins up to **`r max(df_reg$order)`** basins "away"
 
 ```{r reg_main_dist_full, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-
 # no covariates, linear distance
 # mod1_dist_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                          (distance) + downstream |
@@ -197,7 +333,7 @@ mod2_dist_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                          (distance) + downstream +
 #                          elevation + slope + soilgrid_grouped +
 #                          tmp_max + precipitation +
-#                          accessibility_to_cities_2015 | # + population
+#                          accessibility_to_cities_2015 + pop_2015 |
 #                          year + as.factor(mine_basin),
 #                        data = df_reg,
 #                        cluster = "HYBAS_ID")
@@ -206,7 +342,7 @@ mod4_dist_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                          (distance) * downstream +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
-                         accessibility_to_cities_2015 | # + population
+                         accessibility_to_cities_2015 + pop_2015 |
                          year +  as.factor(mine_basin),
                        data = df_reg,
                        cluster = "HYBAS_ID")
@@ -230,25 +366,25 @@ evi_avg <- df_reg |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_dist_full[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_full[[1]])["downstream"], 3)`* (`r round(coef(mod4_dist_full[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_full[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_full[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_full[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_full[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_full[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_full[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_full[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_full[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_full[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_full[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_full[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_full[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_full[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_full[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_full[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
-
-### Sample with time/distance restrictions
+### Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 
 ```{r reg_main_dist_restr, warning=FALSE, message=FALSE}
 df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
+mine_size_restr <- df_reg |> filter(mine_area_km2 > 0) |> pull(mine_basin) |> unique()
+df_reg_restr <- df_reg |> filter(order <= 10, year > 2015, mine_basin %in% mine_size_restr)
 
 # no covariates, linear distance
 # mod1_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
@@ -268,7 +404,7 @@ mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
 #                           (distance) + downstream +
 #                           elevation + slope + soilgrid_grouped +
 #                           tmp_max + precipitation +
-#                           accessibility_to_cities_2015 | # + population
+#                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
 #                         cluster = "HYBAS_ID")
@@ -277,7 +413,7 @@ mod4_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -301,27 +437,23 @@ evi_avg <- df_reg_restr |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_dist_restr[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[1]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_restr[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_restr[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
-
 ## Robustness: Controls sequentially added
 
-### Order with restricted sample
+### Order interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_order_rob_addcontr, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
 # no covariates
 mod1_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream |
@@ -351,7 +483,7 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
@@ -364,18 +496,15 @@ etable(mod1_order_contr[1], mod2_order_contr[1], mod3_order_contr[1], mod4_order
 
 
 
-### Distance with restricted sample
+### Distance interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_dist_rob_addcontr, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
 # no covariates
 mod1_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           (distance) * downstream |
@@ -405,7 +534,7 @@ mod4_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -419,18 +548,15 @@ etable(mod1_dist_contr[1], mod2_dist_contr[1], mod3_dist_contr[1], mod4_dist_con
 
 ## Robustness: Mean EVI instead of Max EVI
 
-### Order with restricted sample
+### Order interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_order_rob_meanEVI, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
 # no covariates, order interaction
 # mod1_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                            as.factor(order) + downstream |
@@ -449,7 +575,7 @@ mod2_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                            as.factor(order) + downstream +
 #                            elevation + slope + soilgrid_grouped +
 #                            tmp_max + precipitation +
-#                            accessibility_to_cities_2015 | # + population
+#                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
 #                          cluster = "HYBAS_ID")
@@ -458,7 +584,7 @@ mod4_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                            as.factor(order) * downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
@@ -482,25 +608,22 @@ evi_avg <- df_reg_restr |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_order_meanEVI[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[1]])["downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_meanEVI[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_meanEVI[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_meanEVI[[2]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[2]])["downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[2]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_meanEVI[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[3]])["downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
-### Distance with restricted sample
+### Distance interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 
 ```{r reg_dist_rob_meanEVI, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
 # no covariates, linear distance
 # mod1_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                           (distance) + downstream |
@@ -519,7 +642,7 @@ mod2_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                           (distance) + downstream +
 #                           elevation + slope + soilgrid_grouped +
 #                           tmp_max + precipitation +
-#                           accessibility_to_cities_2015 | # + population
+#                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
 #                         cluster = "HYBAS_ID")
@@ -528,7 +651,7 @@ mod4_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
-                          accessibility_to_cities_2015 | # + population
+                          accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -552,25 +675,24 @@ evi_avg <- df_reg_restr |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_dist_restr[[1]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[1]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[1]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[1]])["downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_restr[[2]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[2]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[2]])["downstream"], 3)`*)
-* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_restr[[3]])["downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[3]])["downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[3]])["downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_dist_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[2]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[2]])["downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[2]])["downstream"], 3)`*)
+* the croplands EVI (based on ESA mask) by **`r round(coef(mod2_dist_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_dist_restr[[3]])["downstream"], 3)`* (`r round(coef(mod4_dist_restr[[3]])["downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_dist_restr[[3]])["downstream"], 3)`*)
 
 on average **without** (with) controls.
 
 
 ## Robustness: Varying FEs
 
-### Order with restricted sample
+### Order interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_order_rob_fe, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015) |> 
+df_reg_restr_fe <- df_reg_restr |> filter(order <= 10, year > 2015, mine_basin %in% mine_size_restr) |> 
   mutate(mine_pfaf_lvl4 = substr(mine_basin_pfaf_id, 1, 4),
          mine_pfaf_lvl6 = substr(mine_basin_pfaf_id, 1, 6),
          mine_pfaf_lvl8 = substr(mine_basin_pfaf_id, 1, 8))
@@ -580,9 +702,9 @@ mod1_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 # country FEs
@@ -590,9 +712,9 @@ mod2_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(iso3c),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 # USDA region FEs
@@ -600,9 +722,9 @@ mod3_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(region),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 # Basin level 4
@@ -610,9 +732,9 @@ mod4_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl4),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 # Basin level 6
@@ -620,9 +742,9 @@ mod5_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl6),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 # Basin level 8
@@ -630,9 +752,9 @@ mod6_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         as.factor(order) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
-                        accessibility_to_cities_2015 | # + population
+                        accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl8),
-                      data = df_reg_restr,
+                      data = df_reg_restr_fe,
                       cluster = "HYBAS_ID")
 
 etable(mod1_order_fe[[1]], mod2_order_fe[[1]], mod3_order_fe[[1]], 
@@ -650,17 +772,16 @@ etable(mod1_order_fe[[3]], mod2_order_fe[[3]], mod3_order_fe[[3]],
 
 
 
-### Distance with restricted sample
+### Distance interaction: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 ```{r reg_dist_rob_fe, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015) |> 
+df_reg_restr_fe <- df_reg_restr |> filter(order <= 10, year > 2015, mine_basin %in% mine_size_restr) |> 
   mutate(mine_pfaf_lvl4 = substr(mine_basin_pfaf_id, 1, 4),
          mine_pfaf_lvl6 = substr(mine_basin_pfaf_id, 1, 6),
          mine_pfaf_lvl8 = substr(mine_basin_pfaf_id, 1, 8))
@@ -670,9 +791,9 @@ mod1_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_basin),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 # country FEs
@@ -680,9 +801,9 @@ mod2_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(iso3c),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 # USDA region FEs
@@ -690,9 +811,9 @@ mod3_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(region),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 # Basin level 4
@@ -700,9 +821,9 @@ mod4_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl4),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 # Basin level 6
@@ -710,9 +831,9 @@ mod5_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl6),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 # Basin level 8
@@ -720,9 +841,9 @@ mod6_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                        (distance) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
-                       accessibility_to_cities_2015 | # + population
+                       accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl8),
-                     data = df_reg_restr,
+                     data = df_reg_restr_fe,
                      cluster = "HYBAS_ID")
 
 etable(mod1_dist_fe[[1]], mod2_dist_fe[[1]], mod3_dist_fe[[1]], 
@@ -743,20 +864,23 @@ etable(mod1_dist_fe[[3]], mod2_dist_fe[[3]], mod3_dist_fe[[3]],
 
 ### By biome
 
-```{r reg_heterogeneity_biome, warning=FALSE, message=FALSE, include=TRUE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
+#### Order interaction: Restricted sample
 
-#####
-# Order with restricted sample
+This specification includes:
+
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
+
+```{r reg_order_heterogeneity_biome, warning=FALSE, message=FALSE, include=TRUE}
 mod_order_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            as.factor(order) * downstream  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
-                           accessibility_to_cities_2015 | # + population 
+                           accessibility_to_cities_2015 + pop_2015 | 
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         split = "biome_name",
+                         split = "biome_group",
                          cluster = "HYBAS_ID")
 pos_EVI <- which(grepl("max_EVI", names(mod_order_hetero_biome)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_order_hetero_biome)))
@@ -767,17 +891,25 @@ etable(mod_order_hetero_biome[pos_africover],
        drop = "soilgrid|order")
 etable(mod_order_hetero_biome[pos_ESA], 
        drop = "soilgrid|order")
+```
 
-#####
-# Distance with restricted sample
+#### Distance interaction: Restricted sample
+
+This specification includes:
+
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
+
+```{r reg_dist_heterogeneity_biome, warning=FALSE, message=FALSE, include=TRUE}
 mod_dist_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            (distance) * downstream  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation  +
-                           accessibility_to_cities_2015 | # + population
+                           accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         split = "biome_name",
+                         split = "biome_group",
                          cluster = "HYBAS_ID")
 pos_EVI <- which(grepl("max_EVI", names(mod_dist_hetero_biome)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_dist_hetero_biome)))
@@ -790,68 +922,73 @@ etable(mod_dist_hetero_biome[pos_ESA],
        drop = "soilgrid|order")
 ```
 
-### By country
 
-```{r reg_heterogeneity_country, warning=FALSE, message=FALSE, include=TRUE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
 
-#####
-# Order with restricted sample
-mod_order_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
-                                 as.factor(order) * downstream  +
-                                 elevation + slope + soilgrid_grouped +
-                                 tmp_max + precipitation +
-                                 accessibility_to_cities_2015 | # + population 
-                                 year +  as.factor(mine_basin),
-                               data = df_reg_restr,
-                               split = "iso3c",
-                               cluster = "HYBAS_ID")
-pos_EVI <- which(grepl("max_EVI", names(mod_order_hetero_country)))
-pos_africover <- which(grepl("max_c_EVI_af", names(mod_order_hetero_country)))
-pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_order_hetero_country)))
-etable(mod_order_hetero_country[pos_EVI], 
-       drop = "soilgrid|order")
-etable(mod_order_hetero_country[pos_africover], 
-       drop = "soilgrid|order")
-etable(mod_order_hetero_country[pos_ESA], 
-       drop = "soilgrid|order")
+<!-- ### By country -->
 
-#####
-# Distance with restricted sample
-mod_dist_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
-                                (distance) * downstream  +
-                                elevation + slope + soilgrid_grouped +
-                                tmp_max + precipitation  +
-                                accessibility_to_cities_2015 | # + population
-                                year +  as.factor(mine_basin),
-                              data = df_reg_restr,
-                              split = "iso3c",
-                              cluster = "HYBAS_ID")
-pos_EVI <- which(grepl("max_EVI", names(mod_dist_hetero_country)))
-pos_africover <- which(grepl("max_c_EVI_af", names(mod_dist_hetero_country)))
-pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_dist_hetero_country)))
-etable(mod_dist_hetero_country[pos_EVI], 
-       drop = "soilgrid|order")
-etable(mod_dist_hetero_country[pos_africover], 
-       drop = "soilgrid|order")
-etable(mod_dist_hetero_country[pos_ESA], 
-       drop = "soilgrid|order")
-```
+<!-- ```{r reg_heterogeneity_country, warning=FALSE, message=FALSE, include=FALSE} -->
+<!-- df_reg <- readRDS(p("processed/df_reg.RDS")) -->
+<!-- df_reg_restr <- df_reg |> filter(order <= 10, year > 2015, mine_basin %in% mine_size_restr) -->
+
+<!-- ##### -->
+<!-- # Order with restricted sample -->
+<!-- mod_order_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~ -->
+<!--                                  as.factor(order) * downstream  + -->
+<!--                                  elevation + slope + soilgrid_grouped + -->
+<!--                                  tmp_max + precipitation + -->
+<!--                                  accessibility_to_cities_2015 + pop_2015 |  -->
+<!--                                  year +  as.factor(mine_basin), -->
+<!--                                data = df_reg_restr, -->
+<!--                                split = "iso3c", -->
+<!--                                cluster = "HYBAS_ID") -->
+<!-- pos_EVI <- which(grepl("max_EVI", names(mod_order_hetero_country))) -->
+<!-- pos_africover <- which(grepl("max_c_EVI_af", names(mod_order_hetero_country))) -->
+<!-- pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_order_hetero_country))) -->
+<!-- etable(mod_order_hetero_country[pos_EVI],  -->
+<!--        drop = "soilgrid|order") -->
+<!-- etable(mod_order_hetero_country[pos_africover],  -->
+<!--        drop = "soilgrid|order") -->
+<!-- etable(mod_order_hetero_country[pos_ESA],  -->
+<!--        drop = "soilgrid|order") -->
+
+<!-- ##### -->
+<!-- # Distance with restricted sample -->
+<!-- mod_dist_hetero_country = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~ -->
+<!--                                 (distance) * downstream  + -->
+<!--                                 elevation + slope + soilgrid_grouped + -->
+<!--                                 tmp_max + precipitation  + -->
+<!--                                 accessibility_to_cities_2015 + pop_2015 | -->
+<!--                                 year +  as.factor(mine_basin), -->
+<!--                               data = df_reg_restr, -->
+<!--                               split = "iso3c", -->
+<!--                               cluster = "HYBAS_ID") -->
+<!-- pos_EVI <- which(grepl("max_EVI", names(mod_dist_hetero_country))) -->
+<!-- pos_africover <- which(grepl("max_c_EVI_af", names(mod_dist_hetero_country))) -->
+<!-- pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_dist_hetero_country))) -->
+<!-- etable(mod_dist_hetero_country[pos_EVI],  -->
+<!--        drop = "soilgrid|order") -->
+<!-- etable(mod_dist_hetero_country[pos_africover],  -->
+<!--        drop = "soilgrid|order") -->
+<!-- etable(mod_dist_hetero_country[pos_ESA],  -->
+<!--        drop = "soilgrid|order") -->
+<!-- ``` -->
 
 ### By region
 
-```{r reg_heterogeneity_region, warning=FALSE, message=FALSE, include=TRUE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
+#### Order interaction: Restricted sample
 
-#####
-# Order with restricted sample
+This specification includes:
+
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
+
+```{r reg_order_heterogeneity_region, warning=FALSE, message=FALSE, include=TRUE}
 mod_order_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                    as.factor(order) * downstream  +
                                    elevation + slope + soilgrid_grouped +
                                    tmp_max + precipitation +
-                                   accessibility_to_cities_2015 | # + population 
+                                   accessibility_to_cities_2015 + pop_2015 | 
                                    year +  as.factor(mine_basin),
                                  data = df_reg_restr,
                                  split = "region",
@@ -865,14 +1002,23 @@ etable(mod_order_hetero_region[pos_africover],
        drop = "soilgrid|order")
 etable(mod_order_hetero_region[pos_ESA], 
        drop = "soilgrid|order")
+```
 
-#####
-# Distance with restricted sample
+
+#### Distance interaction: Restricted sample
+
+This specification includes:
+
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
+
+```{r reg_dist_heterogeneity_region, warning=FALSE, message=FALSE, include=TRUE}
 mod_dist_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                                   (distance) * downstream  +
                                   elevation + slope + soilgrid_grouped +
                                   tmp_max + precipitation  +
-                                  accessibility_to_cities_2015 | # + population
+                                  accessibility_to_cities_2015 + pop_2015 |
                                   year +  as.factor(mine_basin),
                                 data = df_reg_restr,
                                 split = "region",
@@ -889,14 +1035,18 @@ etable(mod_dist_hetero_region[pos_ESA],
 ```
 
 
+### By primary crop
+
+
 ## Plots
 
 ### RD Plot
 
 ```{r rdplot, message=FALSE, warning=FALSE}
 df_reg <- readRDS(p("processed/df_reg.RDS"))
+mine_size_restr <- df_reg |> filter(mine_area_km2 > 0) |> pull(mine_basin) |> unique()
 # restricting distance to 50 here, maybe change?
-df_reg_restr <- df_reg |> filter(distance <= 50, year > 2015)
+df_reg_restr <- df_reg |> filter(distance <= 50, year > 2015, mine_basin %in% mine_size_restr)
 
 rd_01 <- df_reg_restr %>%
   mutate(distance = ifelse(downstream == 0, distance * (-1), distance))
@@ -944,20 +1094,16 @@ rdplot(rd_02$max_c_EVI_ESA, rd_02$distance,
 
 
 
-### Effects by ordering of Basins
+### Effects by ordering of Basins: Restricted sample
 
 This specification includes:
 
-* all years from **2016 to 2023**
-* all basin systems, regardless of area mined in the mine basin itself
-* all up/downstream basins up to **10** basins "away"
+* years from **`r min(df_reg_restr$year)` to `r max(df_reg_restr$year)`**
+* basin systems with area mined of at least **`r restr_area_mined` square km**
+* up/downstream basins up to **`r max(df_reg_restr$order)`** basins "away"
 
 
 ```{r plot_reg_order, warning=FALSE, message=FALSE}
-df_reg <- readRDS(p("processed/df_reg.RDS"))
-df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
-
-# no covariates
 mod1_order_plot = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~ 
                           downstream |
                      year +  as.factor(mine_basin),

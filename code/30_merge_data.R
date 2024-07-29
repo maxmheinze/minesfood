@@ -46,8 +46,7 @@ df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |> relocate(year, .after = 
 # lose ~50 observations with that
 df_reg <- df_reg %>%
   filter(!is.na(eco_id), year < 2024) |>
-  mutate(downstream = ifelse(distance == 0, 1, downstream),
-         distance = distance / 10^3) %>%
+  mutate(downstream = ifelse(distance == 0, 1, downstream)) %>%
   group_by(HYBAS_ID, year) %>%
   arrange(distance) %>%
   slice_head(n = 1) %>%
