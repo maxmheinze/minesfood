@@ -16,3 +16,6 @@ output_data <- basins %>%
   dplyr::filter(year == 2023)
 
 st_write(output_data, p("processed/basins_viz_evi.gpkg"))
+
+output_data$max_EVI %>%
+  summary()

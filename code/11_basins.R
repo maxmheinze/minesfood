@@ -1,5 +1,7 @@
 # Load Packages -----------------------------------------------------------
 
+rm(list = ls())
+
 pacman::p_load(
   sf,
   dplyr,
@@ -152,9 +154,11 @@ write_sf(relevant_basins, p("processed/relevant_basins.shp"))
 
 basin_centroids <- relevant_basins %>%
   st_centroid %>%
-  dplyr::select(HYBAS_ID, NEXT_DOWN)
+  dplyr::select(HYBAS_ID, NEXT_DOWN, DIST_SINK) %>%
+  mutate(NEXT_DOWN = ifelse(DIST_SINK == 0, 0, NEXT_DOWN))
 
-basin_distances <- basin_centroids %>%
+# Centroid Distances
+basin_distances_centroids <- basin_centroids %>%
   st_drop_geometry() %>%
   left_join(basin_centroids, by = join_by("NEXT_DOWN" == "HYBAS_ID")) %>%
   dplyr::select(-NEXT_DOWN.y) %>%
@@ -165,6 +169,19 @@ basin_distances <- basin_centroids %>%
                                            st_sfc(geometry.y), 
                                            by_element = TRUE)) / 10^3) %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
+
+# River Flow Distances
+basin_distances_river <- relevant_basins %>%
+  st_drop_geometry() %>%
+  dplyr::select(HYBAS_ID, NEXT_DOWN, NEXT_SINK, DIST_SINK) %>%
+  mutate(NEXT_DOWN = ifelse(DIST_SINK == 0, 0, NEXT_DOWN)) %>%
+  left_join(., ., by = join_by("NEXT_DOWN" == "HYBAS_ID")) %>%
+  mutate(distance = DIST_SINK.x - DIST_SINK.y) %>%
+  dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
+
+# Select Distance Measure to Use
+basin_distances <- basin_distances_river
+# basin_distances <- basin_distances_centroid
 
 
 # Elaborated Downstream Distances -----------------------------------------
