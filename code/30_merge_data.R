@@ -35,11 +35,17 @@ pop <- read_csv(p("processed/basin_pop.csv"))
 # Prepare Data for Regression ---------------------------------------------
 
 df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |> relocate(year, .after = iso3c) |> 
-  left_join(regions_usda, by = "iso3c") |> relocate(region, .after = iso3c) |> 
+  left_join(regions_usda, by = "iso3c") |> 
+  mutate(region_grouped = region, 
+         region_grouped = replace(region_grouped, 
+                                  grepl("North|East", region_grouped), 
+                                  "North & East Africa")) |> 
+  relocate(region, .after = iso3c) |> 
   left_join(geo_controls, by = "HYBAS_ID") |>
   left_join(met_controls, by = c("HYBAS_ID", "year")) |>
   left_join(pop, by = c("HYBAS_ID", "year")) |> 
-  mutate(t.trend = year - 2000)
+  mutate(t.trend = year - 2000, 
+         distance_bin = cut(distance, breaks = c(-Inf, 10, 20, 30, 40, 50, Inf)))
 
 # what's done here is that we assign a downstream basin to be unique for a mine? 
 # Meaning that a basin can only be downstream to one mine but not more? we only 
