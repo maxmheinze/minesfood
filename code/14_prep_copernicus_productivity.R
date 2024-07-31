@@ -45,7 +45,7 @@ date_suffix <- "-12-31_dek_CSSF_hist_v1.nc"
 file_paths <- list()
 
 # Loop through the years and construct file paths
-for (year in 2000:2023) {
+for (year in 2023:2023) {
   # Construct the file path for each year
   file_path <- paste0(base_path, year, "/", crop, "_", year, date_prefix, year, date_suffix)
   
@@ -53,6 +53,8 @@ for (year in 2000:2023) {
   file_paths[[as.character(year)]] <- file_path
 }
 
+file_paths[[as.character(2022)]] <- "/data/jde/copernicus_crop_productivity/2022/Maize_TAGP_C3S-glob-agric_2023_1_2022-12-31_dek_CSSF_hist_v1.nc"
+file_paths[[as.character(2023)]] <- "/data/jde/copernicus_crop_productivity/2023/Maize_TAGP_C3S-glob-agric_2023_1_2023-12-31_dek_CSSF_hist_v1.nc"
 
 # Loop through each year, process the rasters, and store the mean values
 for (year in names(file_paths)) {
@@ -70,4 +72,14 @@ for (year in names(file_paths)) {
   basins[[paste0("year_", year)]] <- mean_values
 }
 
-first(basins["year_2015",])
+basins_cropland_productivity_esa <- basins %>%
+  st_drop_geometry() %>% 
+  as_tibble()  %>%
+  dplyr::select(HYBAS_ID, year_2000:year_2021) %>%
+  rename_with(~ str_replace_all(., "\\[,.*\\]", "")) %>%
+  mutate(across(where(is.list), ~ map(.x, as.numeric) %>% unlist())) %>%
+  mutate(across(where(~ is.matrix(.)), ~ as.vector(.)))
+  
+write_csv(basins_cropland_productivity_esa, "/data/jde/basins_evi/basins_cropland_productivity_esa.csv")
+
+

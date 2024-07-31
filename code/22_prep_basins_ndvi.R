@@ -132,7 +132,25 @@ basin_evi <- left_join(max_evi_basins, min_evi_basins) |>
   relocate(year, .after = HYBAS_ID)
 
 
+
+
+# Adding ESA cropland productivity --------------------------------------------
+
+basins_cropland_productivity_esa <- read_csv(p("basins_evi/basins_cropland_productivity_esa.csv")) %>% pivot_longer()
+
+basins_cropland_productivity_esa_long <- basins_cropland_productivity_esa %>%
+  pivot_longer(
+    cols = starts_with("year_"),  # Selecting columns starting with 'year_'
+    names_to = "year",            # New column for the year
+    values_to = "cropland_yield_kg_ha",          # New column for the values
+    names_prefix = "year_",       # Removing 'year_' prefix
+    names_transform = list(Year = as.integer))%>%
+  mutate(year = as.integer(year))
+
+basin_evi_cropland <- basin_evi %>% 
+  left_join(basins_cropland_productivity_esa_long, by = c("HYBAS_ID", "year")) 
+
 # saving the data -------------------------------------------------------------
 
-write_csv(basin_evi, p("basins_evi/basin_evi.csv"))
+write_csv(basin_evi_cropland, p("basins_evi/basin_evi.csv"))
 
