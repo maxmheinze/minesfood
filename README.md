@@ -2,7 +2,7 @@
 
 The structure of this repository is
 
-- `scripts/` with scripts to run
+- `code/` with scripts to run
 - `R/` with functions to use
 - `inst/` with small reference files
 - `data/` with (intermediate) data outputs
