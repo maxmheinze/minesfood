@@ -102,10 +102,11 @@ rdplot(dup_01$mean_c_EVI_af, dup_01$distance,
 
 
 # implementing doubly robust estimation of threshold 
-evi_af <- dup_01$max_c_EVI_af
-dist <- dup_01$order
+dup_01_rd <- dup_01 %>% na.omit(max_c_EVI_af) 
+evi_af <- dup_01_rd$max_c_EVI_af
+dist <- dup_01_rd$distance
 
-f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01$mine_basin, dup_01$year), p = 2, q= 2, kernel = "tri", weights = NULL, bwselect = "mserd")
+f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01_rd$mine_basin, dup_01_rd$year), kernel = "tri", weights = NULL, bwselect = "mserd")
 
 summary(f, all = TRUE)
 

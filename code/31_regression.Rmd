@@ -507,7 +507,7 @@ This specification includes:
 ```{r reg_dist_rob_addcontr, warning=FALSE, message=FALSE}
 # no covariates
 mod1_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
-                          (distance) * downstream |
+                          (distance + distance^2) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
