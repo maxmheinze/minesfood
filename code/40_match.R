@@ -8,13 +8,13 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 df_reg <- readRDS(p("processed/df_reg.RDS")) |> 
   filter(!is.na(max_cropland_EVI))
 
-match1 <- matchit(downstream ~ elevation + slope + soilq_avg + 
+match1 <- matchit(downstream ~ elevation + slope + soil_prim + 
     tmp_min + tmp_max + precipitation,
   data = df_reg, method = "cem", distance = "glm")
 # plot(match1)
 # summary(match1)
 
-match2 <- matchit(downstream ~ elevation + slope,
+match2 <- matchit(downstream ~ elevation + slope + soilgrid_grouped,
   data = df_reg, method = "cem", distance = "glm")
 # plot(match2)
 # summary(match2)
