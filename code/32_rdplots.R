@@ -60,24 +60,24 @@ df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |>
 df_reg <- df_reg %>%
   filter(!is.na(eco_id)) |>
   mutate(downstream = ifelse(distance == 0, 1, downstream),
-         distance = distance / 10^3) %>%
+         distance = distance) %>%
   group_by(HYBAS_ID, year) %>%
   arrange(distance) %>%
   slice_head(n = 1) %>%
-  ungroup()
+  ungroup() 
 
 # rdrobust Spatial Discontinuity  -----------------------------------------
 
+
 dup_01 <- df_reg %>%
-  mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
-  mutate(distance = distance*1000)
+  mutate(distance = ifelse(downstream == 0, distance*-1, distance))
+
+
 
 dup_02 <- df_reg %>%
   mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
   mutate(distance = distance) %>%
   filter(abs(distance) < 200)
-
-fit = rdrobust(y = dup_01$max_EVI, x = dup_01$distance, c = 0, h=1,all=TRUE)
 
 dup_02 <- dup_01 %>%
   filter(year == 2021)
@@ -100,5 +100,18 @@ rdplot(dup_01$mean_c_EVI_af, dup_01$distance,
        x.lab="Distance",
        y.lab="max_cropland_EVI_ESA", p = 2)
 
+
+# implementing doubly robust estimation of threshold 
+evi_af <- dup_01$max_c_EVI_af
+dist <- dup_01$distance
+
+f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01$mine_basin, dup_01$year))
+summary(f, all = TRUE)
+
+rdplot(evi_af, dist,
+       x.lim = c(-25,25),
+       #y.lim = c(0.2,0.6),
+       x.lab="Distance",
+       y.lab="max_EVI", p = 2)
 
 
