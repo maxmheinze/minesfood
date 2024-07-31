@@ -4,13 +4,13 @@ library(sf)
 library(RColorBrewer)
 
 # Define the years
-years <- 2006:2023
+years <- 2000:2021
 
 # Base path for the directories
 base_path <- "/data/jde/copernicus_crop_productivity"
 
 # Loop over the years from 2006 to 2023
-for (year in 2000:2023) {
+for (year in 2000:2021) {
   # Construct the path for the current year's directory
   year_dir <- file.path(base_path, as.character(year))
   
@@ -45,7 +45,7 @@ date_suffix <- "-12-31_dek_CSSF_hist_v1.nc"
 file_paths <- list()
 
 # Loop through the years and construct file paths
-for (year in 2023:2023) {
+for (year in 2000:2021) {
   # Construct the file path for each year
   file_path <- paste0(base_path, year, "/", crop, "_", year, date_prefix, year, date_suffix)
   
