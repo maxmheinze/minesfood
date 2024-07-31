@@ -9,9 +9,8 @@ years <- 2006:2023
 # Base path for the directories
 base_path <- "/data/jde/copernicus_crop_productivity"
 
-
 # Loop over the years from 2006 to 2023
-for (year in 2006:2023) {
+for (year in 2000:2023) {
   # Construct the path for the current year's directory
   year_dir <- file.path(base_path, as.character(year))
   
@@ -33,27 +32,42 @@ for (year in 2006:2023) {
 # Step 2: Load the Basin Data
 basins <- read_sf(p("processed/relevant_basins.gpkg"))
 
-# Step 3: Load the Crop Productivity Data
-cp_2001 <- rast(p("copernicus_crop_productivity/2001/Maize_TAGP_C3S-glob-agric_2001_1_2001-01-10_dek_CSSF_hist_v1.nc"))
 
-# Step 4: Crop and Mask Raster with Shapefile
-cropped_raster <- crop(cp_2001, basins)
-masked_raster <- mask(cropped_raster, basins)
 
-# Step 5: Extract or Summarize Data
-extracted_values <- extract(masked_raster, basins, weight= TRUE, fun = mean, na.rm = TRUE)
 
-# Step 6: Adding Area Extension back to Basins ID
-# Convert the raster to a data frame for ggplot
-raster_df <- as.data.frame(extracted_values, xy = TRUE)
+# Define the base file path and pattern
+base_path <- "/data/jde/copernicus_crop_productivity/"
+crop <- "Maize_TAGP_C3S-glob-agric"
+date_prefix <- "_1_"
+date_suffix <- "-12-31_dek_CSSF_hist_v1.nc"
 
-# Plot the raster and shapefile using ggplot
-ggplot() +
-  geom_raster(data = raster_df, aes(x = x, y = y, fill = TAGP)) +
-  #geom_sf(data = basins, fill = NA, color = "blue", alpha = 0.1) +
-  scale_fill_viridis_c(name = "Crop Productivity") + # Color scale for productivity
-  theme_minimal() +
-  labs(title = "Crop Productivity and Regions",
-       x = "Longitude",
-       y = "Latitude") +
-  coord_sf()
+# Initialize an empty list to store file paths
+file_paths <- list()
+
+# Loop through the years and construct file paths
+for (year in 2000:2023) {
+  # Construct the file path for each year
+  file_path <- paste0(base_path, year, "/", crop, "_", year, date_prefix, year, date_suffix)
+  
+  # Store the file path in the list
+  file_paths[[as.character(year)]] <- file_path
+}
+
+
+# Loop through each year, process the rasters, and store the mean values
+for (year in names(file_paths)) {
+  # Load the .nc file as a raster
+  Maize_12_31 <- raster(file_paths[[year]])
+  
+  # Crop and mask the raster with the shapefile
+  Maize_12_31_cropped <- crop(Maize_12_31, basins)
+  Maize_12_31_masked <- mask(Maize_12_31_cropped, basins)
+  
+  # Extract mean values for each basin
+  mean_values <- extract(Maize_12_31_masked, basins, fun = mean, na.rm = TRUE, weights = TRUE)
+  
+  # Add the mean values to the basins dataframe with the appropriate year column name
+  basins[[paste0("year_", year)]] <- mean_values
+}
+
+first(basins["year_2015",])
