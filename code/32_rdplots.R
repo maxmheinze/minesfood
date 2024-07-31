@@ -103,9 +103,10 @@ rdplot(dup_01$mean_c_EVI_af, dup_01$distance,
 
 # implementing doubly robust estimation of threshold 
 evi_af <- dup_01$max_c_EVI_af
-dist <- dup_01$distance
+dist <- dup_01$order
 
-f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01$mine_basin, dup_01$year))
+f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01$mine_basin, dup_01$year), p = 2, q= 2, kernel = "tri", weights = NULL, bwselect = "mserd")
+
 summary(f, all = TRUE)
 
 rdplot(evi_af, dist,
@@ -114,4 +115,10 @@ rdplot(evi_af, dist,
        x.lab="Distance",
        y.lab="max_EVI", p = 2)
 
+### rdplot with 95% confidence intervals
+rdplot(evi_af, dist, ci=95, subset = -f$bws[1,1]<= dist & dist <= f$bws[1,2], 
+       binselect="es", kernel="triangular", h=c(f$bws[1,1], f$bws[1,2]), p = 2, 
+       title="RD Plot: Mine Basin Pollution", 
+       y.label="Cropland EVI",
+       x.label="Distance")
 
