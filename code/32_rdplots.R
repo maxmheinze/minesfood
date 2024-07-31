@@ -60,24 +60,24 @@ df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |>
 df_reg <- df_reg %>%
   filter(!is.na(eco_id)) |>
   mutate(downstream = ifelse(distance == 0, 1, downstream),
-         distance = distance / 10^3) %>%
+         distance = distance) %>%
   group_by(HYBAS_ID, year) %>%
   arrange(distance) %>%
   slice_head(n = 1) %>%
-  ungroup()
+  ungroup() 
 
 # rdrobust Spatial Discontinuity  -----------------------------------------
 
+
 dup_01 <- df_reg %>%
-  mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
-  mutate(distance = distance*1000)
+  mutate(distance = ifelse(downstream == 0, distance*-1, distance))
+
+
 
 dup_02 <- df_reg %>%
   mutate(distance = ifelse(downstream == 0, distance*-1, distance)) %>%
   mutate(distance = distance) %>%
   filter(abs(distance) < 200)
-
-fit = rdrobust(y = dup_01$max_EVI, x = dup_01$distance, c = 0, h=1,all=TRUE)
 
 dup_02 <- dup_01 %>%
   filter(year == 2021)
@@ -101,4 +101,25 @@ rdplot(dup_01$mean_c_EVI_af, dup_01$distance,
        y.lab="max_cropland_EVI_ESA", p = 2)
 
 
+# implementing doubly robust estimation of threshold 
+dup_01_rd <- dup_01 %>% na.omit(max_c_EVI_af) 
+evi_af <- dup_01_rd$max_c_EVI_af
+dist <- dup_01_rd$distance
+
+f = rdrobust(y = evi_af, x = dist, c = 0, covs=cbind(dup_01_rd$mine_basin, dup_01_rd$year), kernel = "tri", weights = NULL, bwselect = "mserd")
+
+summary(f, all = TRUE)
+
+rdplot(evi_af, dist,
+       x.lim = c(-25,25),
+       #y.lim = c(0.2,0.6),
+       x.lab="Distance",
+       y.lab="max_EVI", p = 2)
+
+### rdplot with 95% confidence intervals
+rdplot(evi_af, dist, ci=95, subset = -f$bws[1,1]<= dist & dist <= f$bws[1,2], 
+       binselect="es", kernel="triangular", h=c(f$bws[1,1], f$bws[1,2]), p = 2, 
+       title="RD Plot: Mine Basin Pollution", 
+       y.label="Cropland EVI",
+       x.label="Distance")
 
