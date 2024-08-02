@@ -82,11 +82,11 @@ dup_02 <- df_reg %>%
 dup_02 <- dup_01 %>%
   filter(year == 2021)
 
-rdplot(dup_02$mean_c_EVI_af, dup_02$distance,
+rdplot(dup_02$max_c_EVI_af, dup_02$distance,
        x.lim = c(-25,25),
-       y.lim = c(0.1400,0.9933),
+       y.lim = c(0.2,0.7),
        x.lab="Distance",
-       y.lab="max_EVI", p = 3)
+       y.lab="max_EVI", p = 2)
 
 rdplot(dup_01$mean_c_EVI_af,dup_01$distance, 
        x.lim = c(-50,50),
@@ -117,9 +117,11 @@ rdplot(evi_af, dist,
        y.lab="max_EVI", p = 2)
 
 ### rdplot with 95% confidence intervals
-rdplot(evi_af, dist, ci=95, subset = -f$bws[1,1]<= dist & dist <= f$bws[1,2], 
-       binselect="es", kernel="triangular", h=c(f$bws[1,1], f$bws[1,2]), p = 2, 
+rdplot(evi_af, dist, ci=95, subset = -f$bws[1,1]<= dist & dist <= f$bws[1,2], h=c(f$bws[1,1], f$bws[1,2]), 
+       binselect="es", kernel="triangular", p = 2, 
        title="RD Plot: Mine Basin Pollution", 
        y.label="Cropland EVI",
        x.label="Distance")
 
+#subset = -f$bws[1,1]<= dist & dist <= f$bws[1,2], 
+#h=c(f$bws[1,1], f$bws[1,2])
