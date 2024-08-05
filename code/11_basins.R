@@ -41,7 +41,7 @@ mine_ids <- int[lengths(int) > 0]
 names(mine_ids) <- s[["HYBAS_ID"]][lengths(int) > 0]
 basin_mines <- data.frame(
   "mine_basin" = rep(names(mine_ids), lengths(mine_ids)),
-  "mine_id" = mine_ids |> map_dfr(as_tibble) |> pull(value))
+  "mine_id" = mine_ids |> purrr::map_dfr(as_tibble) |> pull(value))
 basin_mines <- basin_mines |>
   left_join(m |> st_drop_geometry() |> transmute(
     mine_id = seq_len(nrow(m)), iso3c = ISO3_CODE, mine_area_km2 = AREA),
