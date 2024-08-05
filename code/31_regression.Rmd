@@ -21,7 +21,7 @@ sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 ```{r restrictions, include=FALSE}
 restr_year <- 2016:2023 # years
 restr_area_mined <- 0 # minimum of mined area in mine basin
-restr_order <- 5 # maximum order of basins to include
+restr_order <- 10 # maximum order of basins to include
 excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have

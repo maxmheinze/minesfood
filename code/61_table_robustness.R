@@ -349,11 +349,13 @@ etable(mod_dist_base[1],
 library(broom)
 library(ggplot2)
 
+p_name <- paste0("plot_robustness_", date) 
+
 names_mods <- c("Baseline", 
                 "At least one basin\n up/downstream", 
                 "Maximum order of 1", 
                 "Excluding mine basin", 
-                "Maximum order of 1 &\nexcluding mine basin", 
+                "Maximum order of 1 &\n at least one up/downstream &\nexcluding mine basin", 
                 "FE: Basin level 8", "FE: Basin level 6", 
                 "Mean instead of Max") # add ESA for croplands EVI below
 
@@ -377,23 +379,15 @@ df_tidy_mod_order_evi <- bind_rows(list_tidy_mod_order_evi) |>
   mutate(term = names_mods, 
          mod = "Order: EVI", 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "At least one basin\n up/downstream", 
-                                  "Maximum order of 1", 
-                                  "Excluding mine basin", 
-                                  "Maximum order of 1 &\nexcluding mine basin", 
-                                  "FE: Basin level 8", "FE: Basin level 6", 
-                                  "Mean instead of Max")))
+                       levels = names_mods))
 
 p_mod_order_evi <- ggplot(df_tidy_mod_order_evi, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI") +
   theme_bw()
-
-
 
 
 mod_order_evi_c_list <- list(mod_order_base[[2]], 
@@ -414,24 +408,97 @@ list_tidy_mod_order_evi_c[[5]] <- list_tidy_mod_order_evi_c[[5]] |>
 df_tidy_mod_order_evi_c <- bind_rows(list_tidy_mod_order_evi_c) |> 
   filter(term == "order_new::0") |> 
   mutate(term = c(names_mods, "ESA cropland mask"), 
-         mod = "Order: EVI", 
+         mod = "Order: EVI croplands", 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "At least one basin\n up/downstream", 
-                                  "Maximum order of 1", 
-                                  "Excluding mine basin", 
-                                  "Maximum order of 1 &\nexcluding mine basin", 
-                                  "FE: Basin level 8", "FE: Basin level 6", 
-                                  "Mean instead of Max", 
+                       levels = c(names_mods, 
                                   "ESA cropland mask")))
 
 p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI") +
   theme_bw()
 
 
+# Distance
+mod_dist_evi_list <- list(mod_dist_base[[1]], 
+                           mod_dist_restr_number_basins[[1]], 
+                           mod_dist_restr_order[[1]], 
+                           mod_dist_restr_mine_basin[[1]], 
+                           mod_dist_restr_comb[[1]],
+                           mod_dist_fe8[[1]],
+                           mod_dist_fe6[[1]],
+                           mod_dist_mean[[1]])
 
+list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.9)
+df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |> 
+  filter(term == "downstream") |> 
+  mutate(term = names_mods, 
+         mod = "Distance: EVI", 
+         term = factor(term, 
+                       levels = names_mods))
+
+p_mod_dist_evi <- ggplot(df_tidy_mod_dist_evi, aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Distance Interaction: EVI") +
+  theme_bw()
+
+mod_dist_evi_c_list <- list(mod_dist_base[[2]], 
+                             mod_dist_restr_number_basins[[2]], 
+                             mod_dist_restr_order[[2]], 
+                             mod_dist_restr_mine_basin[[2]], 
+                             mod_dist_restr_comb[[2]],
+                             mod_dist_fe8[[2]],
+                             mod_dist_fe6[[2]],
+                             mod_dist_mean[[2]], 
+                             mod_dist_base[[3]])
+
+list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.9)
+df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |> 
+  filter(term == "downstream") |> 
+  mutate(term = c(names_mods, "ESA cropland mask"), 
+         mod = "Distance: EVI croplands", 
+         term = factor(term, 
+                       levels = c(names_mods, 
+                                  "ESA cropland mask")))
+
+p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI") +
+  theme_bw()
+
+
+pdf(paste0(p_folder, p_name, ".pdf"), width = 10, height = 12)
+cowplot::plot_grid(p_mod_order_evi, p_mod_order_evi_c, 
+                   p_mod_dist_evi, p_mod_dist_evi_c, ncol = 2)
+dev.off()
+
+
+# Combining plots in one
+df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c, 
+                          df_tidy_mod_dist_evi, df_tidy_mod_dist_evi_c) |> 
+  mutate(mod = factor(mod, levels = c("Order: EVI", 
+                                      "Order: EVI croplands", 
+                                      "Distance: EVI", 
+                                      "Distance: EVI croplands")))
+
+p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  facet_wrap(.~mod, scales = "free_x") +
+  labs(x = "Estimate and 90% Conf. Int.", y = "") +
+  theme_bw()
+
+pdf(paste0(p_folder, p_name, "_comb.pdf"), width = 10, height = 12)
+p_effects_comb
+dev.off()

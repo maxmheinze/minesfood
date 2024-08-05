@@ -612,15 +612,11 @@ df_tidy_mod_order_evi <- bind_rows(list_tidy_mod_order_evi) |>
   mutate(term = names_mods, 
          mod = "Order: EVI", 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "Mine: Size > 0.5km^2", "Mine: Size > 1km^2", "Mine: Size > 2.5km^2", 
-                                  "Mine: Growth > 0%", "Mine: Growth > 10%", "Mine: Growth > 25%", 
-                                  "Biome: Deserts", "Biome: Forest", "Biome: Grasslands", 
-                                  "Region: North & East Africa", "Region: Southern Africa", "Region: West Africa")))
+                       levels = names_mods))
 
 p_mod_order_evi <- ggplot(df_tidy_mod_order_evi, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI") +
@@ -645,15 +641,11 @@ df_tidy_mod_order_evi_c <- bind_rows(list_tidy_mod_order_evi_c) |>
   mutate(term = names_mods, 
          mod = "Order: EVI croplands", 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "Mine: Size > 0.5km^2", "Mine: Size > 1km^2", "Mine: Size > 2.5km^2", 
-                                  "Mine: Growth > 0%", "Mine: Growth > 10%", "Mine: Growth > 25%", 
-                                  "Biome: Deserts", "Biome: Forest", "Biome: Grasslands", 
-                                  "Region: North & East Africa", "Region: Southern Africa", "Region: West Africa")))
+                       levels = names_mods))
 
 p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
@@ -680,15 +672,11 @@ df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |>
   mutate(term = names_mods, 
          mod = "Distance: EVI", 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "Mine: Size > 0.5km^2", "Mine: Size > 1km^2", "Mine: Size > 2.5km^2", 
-                                  "Mine: Growth > 0%", "Mine: Growth > 10%", "Mine: Growth > 25%", 
-                                  "Biome: Deserts", "Biome: Forest", "Biome: Grasslands", 
-                                  "Region: North & East Africa", "Region: Southern Africa", "Region: West Africa")))
+                       levels = names_mods))
 
 p_mod_dist_evi <- ggplot(df_tidy_mod_dist_evi, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Distance Interaction: EVI") +
@@ -713,15 +701,11 @@ df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |>
   mutate(mod = "Distance: EVI croplands", 
          term = names_mods, 
          term = factor(term, 
-                       levels = c("Baseline", 
-                                  "Mine: Size > 0.5km^2", "Mine: Size > 1km^2", "Mine: Size > 2.5km^2", 
-                                  "Mine: Growth > 0%", "Mine: Growth > 10%", "Mine: Growth > 25%", 
-                                  "Biome: Deserts", "Biome: Forest", "Biome: Grasslands", 
-                                  "Region: North & East Africa", "Region: Southern Africa", "Region: West Africa")))
+                       levels = names_mods))
 
 p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
@@ -744,7 +728,7 @@ df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c,
 
 p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
   geom_point()  +
-  scale_y_discrete(limits=rev) +
+  scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   facet_wrap(.~mod, scales = "free_x") +
