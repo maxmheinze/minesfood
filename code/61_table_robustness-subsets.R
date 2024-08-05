@@ -9,7 +9,7 @@ date <- "20240802"
 
 t_folder <- "./output/tables/"
 
-f_name <- paste0("robustness_table_order_subsets_", date) 
+f_name <- paste0("table_robustness_order_subsets_", date) 
 
 restr_year <- 2016:2023
 df_reg <- readRDS(p("processed/df_reg.RDS"))
@@ -130,6 +130,8 @@ mod_dist_restr_comb = feols(c(max_EVI, max_c_EVI_af) ~
                             data = df_reg_restr_comb,
                             cluster = "HYBAS_ID")
 
+# Output creation ---------------------------------------------------------
+
 setFixest_dict(dict = c(distance = "Distance",
                         "as.factor(order)" = "Order",
                         "as.factor(order_new)1" = "Downstream x Order $=$ 1",
@@ -156,8 +158,8 @@ etable(mod_order_base[1],
        mod_order_restr_order[2], 
        mod_order_restr_mine_basin[2], 
        mod_order_restr_comb[2],
-       keep = "Order", drop = "-",
-       notes = paste0("Model YY contains asdasda"),
+       drop = "soilgrid|-", keep = " 0|1$|2$|3$",
+       notes = paste0("Models (1) and (6) are the baseline models, models (2) and (7) only include basin systems with at least one up- and downstream basin, models (3) and (8) include maximum order one up- and downstream basins, models (4) and (9) exclude the mine basin itself, models (5) and (10) include only basins systems with one basin up- and downstream and excludes the mine basin."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = TRUE)
 
@@ -173,7 +175,7 @@ etable(mod_dist_base[1],
        mod_dist_restr_comb[2],
        keep = "Distance|Downstream",
        interaction.order = "Downstream", order = c("Downstream"), 
-       notes = paste0("Model YY contains asdasda"),
+       notes = paste0("Models (1) and (6) are the baseline models, models (2) and (7) only include basin systems with at least one up- and downstream basin, models (3) and (8) include maximum order one up- and downstream basins, models (4) and (9) exclude the mine basin itself, models (5) and (10) include only basins systems with one basin up- and downstream and excludes the mine basin."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
 

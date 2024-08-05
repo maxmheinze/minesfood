@@ -47,6 +47,9 @@ if(restr_number_basins > 0) {
 df_reg_restr <- df_reg_restr |> 
   mutate(order_new = ifelse(downstream == 0, -order, order))
 
+
+# Order specification -----------------------------------------------------
+
 # no covariates
 mod1_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
                            i(order_new, ref = -1) |
@@ -81,6 +84,9 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
                          data = df_reg_restr,
                          cluster = "HYBAS_ID")
 
+
+# Distance specification --------------------------------------------------
+
 # no covariates
 mod1_dist_contr = feols(c(max_EVI, max_c_EVI_af) ~
                           (distance + I(distance^2)) * downstream |
@@ -114,6 +120,9 @@ mod4_dist_contr = feols(c(max_EVI, max_c_EVI_af) ~
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
+
+
+# Output creation ---------------------------------------------------------
 
 setFixest_dict(dict = c(distance = "Distance",
                         "as.factor(order)" = "Order",
