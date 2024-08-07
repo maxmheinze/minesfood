@@ -13,14 +13,6 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-# date <- "20240802"
-# 
-# t_folder <- "./output/tables/"
-# p_folder <- "./output/plots/"
-# 
-# f_name <- paste0("main_table_maxorder", restr_order, "_minnumber", restr_number_basins, 
-#                  "_EXCLmine", excl_mine_basin, "_", date) 
-
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 mine_size_restr <- df_reg |> filter(mine_area_km2 > restr_area_mined) |> pull(mine_basin) |> unique()
 
@@ -71,17 +63,9 @@ df_reg_restr <- df_reg_restr |>
                                 !is.na(pop_2015) & !is.na(accessibility_to_cities_2015) & !is.na(max_c_EVI_af),
                                 residuals(m_evi_c)))
 
-grid_exp <- seq(0.001, 1, by = 0.001)
+grid_exp <- seq(0.001, 2, by = 0.001)
 mods <- list()
 
-# mods[["EVI"]][["linear"]] = feols(c(resids_evi) ~
-#                                       (distance) * downstream,
-#                                     data = df_reg_restr,
-#                                     cluster = "HYBAS_ID")
-# mods[["EVI"]][["squared"]] = feols(c(resids_evi) ~
-#                                        (distance + I(distance^2)) * downstream,
-#                                      data = df_reg_restr,
-#                                      cluster = "HYBAS_ID")
 for(ee in grid_exp) {
   mods[["EVI"]][[paste0("exp-", ee)]] = feols(c(resids_evi) ~
                                                 exp(-ee * distance) : downstream,
@@ -114,19 +98,6 @@ mean_pp_evi <- as.numeric(substr(min_evi_bic_name, 5, nchar(min_evi_bic_name)))
 median_pp_evi <- as.numeric(substr(median_pp_evi, 5, nchar(median_pp_evi)))
 upper_pp_evi <- as.numeric(substr(upper_pp_evi, 5, nchar(upper_pp_evi)))
 
-plot(0:500, exp(-mean_pp_evi * 0:500), type = "l", xlab = "Distance", ylab = "Effect Size")
-lines(0:500, exp(-median_pp_evi * 0:500), lty = 2)
-lines(0:500, exp(-lower_pp_evi * 0:500), lty = 3)
-lines(0:500, exp(-upper_pp_evi * 0:500), lty = 3)
-
-# mods[["EVI_c"]][["linear"]] = feols(c(resids_evi_c) ~
-#                                       (distance) * downstream,
-#                                     data = df_reg_restr,
-#                                     cluster = "HYBAS_ID")
-# mods[["EVI_c"]][["squared"]] = feols(c(resids_evi_c) ~
-#                                        (distance + I(distance^2)) * downstream,
-#                                      data = df_reg_restr,
-#                                      cluster = "HYBAS_ID")
 for(ee in grid_exp) {
   mods[["EVI_c"]][[paste0("exp-", ee)]] = feols(c(resids_evi_c) ~
                                                   exp(-ee * distance) : downstream,
@@ -157,29 +128,23 @@ mean_pp_evi_c <- as.numeric(substr(min_evi_c_bic_name, 5, nchar(min_evi_c_bic_na
 median_pp_evi_c <- as.numeric(substr(median_pp_evi_c, 5, nchar(median_pp_evi_c)))
 upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 
-plot(0:500, exp(-mean_pp_evi_c * 0:500), type = "l", xlab = "Distance", ylab = "Effect Size")
+pdf("./output/plots/effect_decay_exp.pdf", width = 10, height = 5)
+par(mfrow = c(1, 2))
+plot(0:500, exp(-mean_pp_evi * 0:500), type = "l", xlab = "Distance", 
+     ylab = "Rel. Effect Size (EVI)", ylim = c(0, 1), xlim = c(0, 250))
+lines(0:500, exp(-median_pp_evi * 0:500), lty = 2)
+lines(0:500, exp(-lower_pp_evi * 0:500), lty = 3)
+lines(0:500, exp(-upper_pp_evi * 0:500), lty = 3)
+abline(v = which(exp(-mean_pp_evi * 0:500) < 0.5)[1], lty = 2, col = "blue")
+abline(v = which(exp(-mean_pp_evi * 0:500) < 0.1)[1], lty = 2, col = "red")
+
+plot(0:500, exp(-mean_pp_evi_c * 0:500), type = "l", xlab = "Distance", 
+     ylab = "Rel. Effect Size (EVI croplands)", ylim = c(0, 1), xlim = c(0, 250))
 lines(0:500, exp(-median_pp_evi_c * 0:500), lty = 2)
 lines(0:500, exp(-lower_pp_evi_c * 0:500), lty = 3)
 lines(0:500, exp(-upper_pp_evi_c * 0:500), lty = 3)
-
-
-
-pdf("./output/plots/effect_decay_exp.pdf", width = 10, height = 5)
-par(mfrow = c(1, 2))
-plot(0:300, exp(-mean_pp_evi * 0:300), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size (EVI)")
-lines(0:300, exp(-median_pp_evi * 0:300), lty = 2)
-lines(0:300, exp(-lower_pp_evi * 0:300), lty = 3)
-lines(0:300, exp(-upper_pp_evi * 0:300), lty = 3)
-abline(v = which(exp(-mean_pp_evi * 0:300) < 0.5)[1], lty = 2, col = "blue")
-abline(v = which(exp(-mean_pp_evi * 0:300) < 0.1)[1], lty = 2, col = "red")
-plot(0:100, exp(-mean_pp_evi_c * 0:100), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size (EVI croplands)")
-lines(0:100, exp(-median_pp_evi_c * 0:100), lty = 2)
-lines(0:100, exp(-lower_pp_evi_c * 0:100), lty = 3)
-lines(0:100, exp(-upper_pp_evi_c * 0:100), lty = 3)
-abline(v = which(exp(-mean_pp_evi_c * 0:100) < 0.5)[1], lty = 2, col = "blue")
-abline(v = which(exp(-mean_pp_evi_c * 0:100) < 0.1)[1], lty = 2, col = "red")
+abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], lty = 2, col = "blue")
+abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], lty = 2, col = "red")
 dev.off()
 
 

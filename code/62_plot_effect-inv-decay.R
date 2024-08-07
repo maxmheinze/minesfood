@@ -63,18 +63,10 @@ df_reg_restr <- df_reg_restr |>
                                 !is.na(pop_2015) & !is.na(accessibility_to_cities_2015) & !is.na(max_c_EVI_af),
                                 residuals(m_evi_c)))
 
-grid_inv <- seq(0.001, 1, by = 0.001)
+grid_inv <- seq(0.001, 2, by = 0.001)
 mods <- list()
-# mods[["EVI"]][["linear"]] = feols(c(resids_evi) ~
-#                                       (distance) * downstream,
-#                                     data = df_reg_restr,
-#                                     cluster = "HYBAS_ID")
-# mods[["EVI"]][["squared"]] = feols(c(resids_evi) ~
-#                                        (distance + I(distance^2)) * downstream,
-#                                      data = df_reg_restr,
-#                                      cluster = "HYBAS_ID")
 for(ee in grid_inv) {
-  df_reg_restr$dist_temp <- 1 / (ee * (df_reg_restr$distance + 0.01))
+  df_reg_restr$dist_temp <-  (df_reg_restr$distance) ^ (-ee) # add offset to distance?
   mods[["EVI"]][[paste0("inv-", ee)]] = feols(c(resids_evi) ~
                                                 dist_temp : downstream,
                                               data = df_reg_restr,
@@ -96,8 +88,8 @@ ggplot(predictions_evi |> filter(name == min_evi_bic_name),
 
 evi_bic_s <- evi_bic - min(evi_bic) # Standardise for numerics
 post_prob_evi <- exp(evi_bic_s / -2) / sum(exp(evi_bic_s / -2))
-# plot(post_prob_evi)
-# post_prob_evi[post_prob_evi > 0.01] |> plot()
+plot(post_prob_evi)
+post_prob_evi[post_prob_evi > 0.001] |> plot()
 lower_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .1)[1]])
 median_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .5)[1]]) # Median
 upper_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .9)[1]])
@@ -107,21 +99,8 @@ mean_pp_evi <- as.numeric(substr(min_evi_bic_name, 5, nchar(min_evi_bic_name)))
 median_pp_evi <- as.numeric(substr(median_pp_evi, 5, nchar(median_pp_evi)))
 upper_pp_evi <- as.numeric(substr(upper_pp_evi, 5, nchar(upper_pp_evi)))
 
-plot(0:100, 1 / (median_pp_evi * 0:100), type = "l", xlab = "Distance", ylab = "Effect Size")
-# lines(1:100, 1 / (median_pp_evi * 1:100), lty = 2)
-lines(0:100, 1 / (lower_pp_evi * 0:100), lty = 3)
-lines(0:100, 1 / (upper_pp_evi * 0:100), lty = 3)
-
-# mods[["EVI_c"]][["linear"]] = feols(c(resids_evi_c) ~
-#                                       (distance) * downstream,
-#                                     data = df_reg_restr,
-#                                     cluster = "HYBAS_ID")
-# mods[["EVI_c"]][["squared"]] = feols(c(resids_evi_c) ~
-#                                        (distance + I(distance^2)) * downstream,
-#                                      data = df_reg_restr,
-#                                      cluster = "HYBAS_ID")
 for(ee in grid_inv) {
-  df_reg_restr$dist_temp <- 1 / (ee * (df_reg_restr$distance + 0.01))
+  df_reg_restr$dist_temp <- (df_reg_restr$distance) ^ (-ee)
   mods[["EVI_c"]][[paste0("inv-", ee)]] = feols(c(resids_evi_c) ~
                                                   dist_temp : downstream,
                                                 data = df_reg_restr,
@@ -141,8 +120,8 @@ ggplot(predictions_evi_c |> filter(name == min_evi_c_bic_name),
 
 evi_c_bic_s <- evi_c_bic - min(evi_c_bic) # Standardise for numerics
 post_prob_evi_c <- exp(evi_c_bic_s / -2) / sum(exp(evi_c_bic_s / -2))
-# plot(post_prob_evi_c)
-# post_prob_evi_c[post_prob_evi_c > 0.01] |> plot()
+plot(post_prob_evi_c)
+post_prob_evi_c[post_prob_evi_c > 0.001] |> plot()
 lower_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .1)[1]])
 median_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .5)[1]]) # Median
 upper_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .9)[1]])
@@ -152,7 +131,24 @@ mean_pp_evi_c <- as.numeric(substr(min_evi_c_bic_name, 5, nchar(min_evi_c_bic_na
 median_pp_evi_c <- as.numeric(substr(median_pp_evi_c, 5, nchar(median_pp_evi_c)))
 upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 
-plot(1:100, 1 / (median_pp_evi_c * 1:100), type = "l", xlab = "Distance", ylab = "Effect Size")
-# lines(1:100, 1 / (median_pp_evi_c * 1:100), lty = 2)
-lines(1:100, 1 / (lower_pp_evi_c * 1:100), lty = 3)
-lines(1:100, 1 / (upper_pp_evi_c * 1:100), lty = 3)
+pdf("./output/plots/effect_decay_inv.pdf", width = 10, height = 5)
+par(mfrow = c(1, 2))
+plot(0:500, (0:500)^(-mean_pp_evi), type = "l", xlab = "Distance", 
+     ylab = "Rel. Effect Size (EVI)", ylim = c(0,1), xlim = c(0, 100))
+lines(0:500, (0:500)^(-median_pp_evi), lty = 2)
+lines(0:500, (0:500)^(-lower_pp_evi), lty = 3)
+lines(0:500, (0:500)^(-upper_pp_evi), lty = 3)
+abline(v = which((0:500)^(-mean_pp_evi) < 0.5)[1], lty = 2, col = "blue")
+abline(v = which((0:500)^(-mean_pp_evi) < 0.1)[1], lty = 2, col = "red")
+
+plot(1:500, (1:500)^(-mean_pp_evi_c), type = "l", xlab = "Distance", 
+     ylab = "Rel. Effect Size (EVI croplands)", ylim = c(0,1), xlim = c(0, 100))
+lines(1:500, (1:500)^(-median_pp_evi_c), lty = 2)
+lines(1:500, (1:500)^(-lower_pp_evi_c), lty = 3)
+lines(1:500, (1:500)^(-upper_pp_evi_c), lty = 3)
+abline(v = which((0:500)^(-mean_pp_evi_c) < 0.5)[1], lty = 2, col = "blue")
+abline(v = which((0:500)^(-mean_pp_evi_c) < 0.1)[1], lty = 2, col = "red")
+dev.off()
+
+
+
