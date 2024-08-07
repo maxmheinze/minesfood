@@ -369,7 +369,7 @@ mod_order_evi_list <- list(mod_order_base[[1]],
                            mod_order_fe6[[1]],
                            mod_order_mean[[1]])
 
-list_tidy_mod_order_evi <- lapply(mod_order_evi_list, tidy, conf.int = T, conf.level = 0.9)
+list_tidy_mod_order_evi <- lapply(mod_order_evi_list, tidy, conf.int = T, conf.level = 0.95)
 list_tidy_mod_order_evi[[4]] <- list_tidy_mod_order_evi[[4]] |> 
   mutate(term = replace(term, term == "order_new::1", "order_new::0"))
 list_tidy_mod_order_evi[[5]] <- list_tidy_mod_order_evi[[5]] |> 
@@ -400,7 +400,7 @@ mod_order_evi_c_list <- list(mod_order_base[[2]],
                            mod_order_mean[[2]], 
                            mod_order_base[[3]])
 
-list_tidy_mod_order_evi_c <- lapply(mod_order_evi_c_list, tidy, conf.int = T, conf.level = 0.9)
+list_tidy_mod_order_evi_c <- lapply(mod_order_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
 list_tidy_mod_order_evi_c[[4]] <- list_tidy_mod_order_evi_c[[4]] |> 
   mutate(term = replace(term, term == "order_new::1", "order_new::0"))
 list_tidy_mod_order_evi_c[[5]] <- list_tidy_mod_order_evi_c[[5]] |> 
@@ -432,7 +432,7 @@ mod_dist_evi_list <- list(mod_dist_base[[1]],
                            mod_dist_fe6[[1]],
                            mod_dist_mean[[1]])
 
-list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.9)
+list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |> 
   filter(term == "downstream") |> 
   mutate(term = names_mods, 
@@ -458,7 +458,7 @@ mod_dist_evi_c_list <- list(mod_dist_base[[2]],
                              mod_dist_mean[[2]], 
                              mod_dist_base[[3]])
 
-list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.9)
+list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |> 
   filter(term == "downstream") |> 
   mutate(term = c(names_mods, "ESA cropland mask"), 

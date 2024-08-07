@@ -606,7 +606,7 @@ mod_order_evi_list <- list(mod_order_base[[1]],
                            mod_order_region[[pos_evi_region[1]]],
                            mod_order_region[[pos_evi_region[2]]],
                            mod_order_region[[pos_evi_region[3]]])
-list_tidy_mod_order_evi <- lapply(mod_order_evi_list, tidy, conf.int = T, conf.level = 0.90)
+list_tidy_mod_order_evi <- lapply(mod_order_evi_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_order_evi <- bind_rows(list_tidy_mod_order_evi) |> 
   filter(term == "order_new::0") |> 
   mutate(term = names_mods, 
@@ -635,7 +635,7 @@ mod_order_evi_c_list <- list(mod_order_base[[2]],
                              mod_order_region[[pos_evi_c_region[1]]],
                              mod_order_region[[pos_evi_c_region[2]]],
                              mod_order_region[[pos_evi_c_region[3]]])
-list_tidy_mod_order_evi_c <- lapply(mod_order_evi_c_list, tidy, conf.int = T, conf.level = 0.90)
+list_tidy_mod_order_evi_c <- lapply(mod_order_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_order_evi_c <- bind_rows(list_tidy_mod_order_evi_c) |> 
   filter(term == "order_new::0") |> 
   mutate(term = names_mods, 
@@ -665,7 +665,7 @@ mod_dist_evi_list <- list(mod_dist_base[[1]],
                            mod_dist_region[[pos_evi_region[1]]],
                            mod_dist_region[[pos_evi_region[2]]],
                            mod_dist_region[[pos_evi_region[3]]])
-list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.90)
+list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |> 
   filter(term == "downstream") |> 
   mutate(term = names_mods, 
@@ -694,7 +694,7 @@ mod_dist_evi_c_list <- list(mod_dist_base[[2]],
                              mod_dist_region[[pos_evi_c_region[1]]],
                              mod_dist_region[[pos_evi_c_region[2]]],
                              mod_dist_region[[pos_evi_c_region[3]]])
-list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.90)
+list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
 df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |> 
   filter(term == "downstream") |> 
   mutate(mod = "Distance: EVI croplands", 
