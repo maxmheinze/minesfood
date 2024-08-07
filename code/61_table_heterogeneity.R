@@ -370,7 +370,7 @@ setFixest_dict(dict = c(distance = "Distance",
                         precipitation = "Yearly Precipitation",
                         accessibility_to_cities_2015 = "Accessibility in 2015",
                         pop_2015 = "Population in 2015", 
-                        "I(distance^2)" = "Distance square", 
+                        "I(distance^2)" = "Distance$^2$", 
                         max_EVI = "Maximum EVI", 
                         max_c_EVI_af = "Maximum Cropland EVI"))
 
@@ -649,8 +649,7 @@ p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
-  theme_bw() + 
-  theme(axis.text.y = element_blank())
+  theme_bw()
 
 # Distance
 mod_dist_evi_list <- list(mod_dist_base[[1]], 
@@ -709,8 +708,7 @@ p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
-  theme_bw() + 
-  theme(axis.text.y = element_blank())
+  theme_bw()
 
 pdf(paste0(p_folder, p_name, ".pdf"), width = 10, height = 12)
 cowplot::plot_grid(p_mod_order_evi, p_mod_order_evi_c, 
@@ -738,4 +736,27 @@ p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
 pdf(paste0(p_folder, p_name, "_comb.pdf"), width = 10, height = 12)
 p_effects_comb
 dev.off()
+
+df_tidy_mod_comb_order <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |> 
+  mutate(mod = factor(mod, levels = c("Order: EVI", 
+                                      "Order: EVI croplands"), 
+                      labels = c("Dependent Variable: EVI", 
+                                 "Dependent Variable: EVI croplands")))
+
+p_effects_comb_order <- ggplot(df_tidy_mod_comb_order, 
+                               aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  facet_wrap(.~mod, scales = "free_x") +
+  labs(x = "Estimate and 90% Conf. Int.", y = "") +
+  theme_bw()
+
+pdf(paste0(p_folder, p_name, "_comb_order.pdf"), width = 10, height = 6)
+p_effects_comb_order
+dev.off()
+
+
+
 
