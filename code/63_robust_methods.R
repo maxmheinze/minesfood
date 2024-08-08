@@ -78,12 +78,20 @@ rdplot(df_reg_restr$max_EVI, df_reg_restr$distance, c = 0, p = 1, binselect = "e
 
 
 # RECODE as facto to include fixed effects
-df_reg_restr <- df_reg_restr %>%
-  mutate(mine_basin = as.factor(mine_basin))
+df_reg_restr_falsification <- df_reg_restr %>%
+  mutate(mine_basin = as.factor(mine_basin)) %>%
+  filter(downstream == 0)
 
 #### Implementation of RDROBUST
-m1 <- rdrobust(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, 
-               bwselect="mserd", 
+m1 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$distance, c= -2, bwselect="mserd", 
                covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
                cluster=df_reg_restr$mine_basin)
 summary(m1)
+
+#### Implementation of RDROBUST
+m2 <- rdrobust(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, c= 2,
+               bwselect="mserd", 
+               covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
+               cluster=df_reg_restr$mine_basin)
+summary(m2)
+rdplot(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, binselect = "qs", )
