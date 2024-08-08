@@ -89,9 +89,9 @@ evi_bic_s <- evi_bic - min(evi_bic) # Standardise for numerics
 post_prob_evi <- exp(evi_bic_s / -2) / sum(exp(evi_bic_s / -2))
 plot(post_prob_evi)
 post_prob_evi[post_prob_evi > 0.01] |> plot()
-lower_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .1)[1]])
+lower_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .05)[1]])
 median_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .5)[1]]) # Median
-upper_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .9)[1]])
+upper_pp_evi <- names(post_prob_evi[which(cumsum(post_prob_evi) > .95)[1]])
 
 lower_pp_evi <- as.numeric(substr(lower_pp_evi, 5, nchar(lower_pp_evi)))
 mean_pp_evi <- as.numeric(substr(min_evi_bic_name, 5, nchar(min_evi_bic_name)))
@@ -119,9 +119,9 @@ evi_c_bic_s <- evi_c_bic - min(evi_c_bic) # Standardise for numerics
 post_prob_evi_c <- exp(evi_c_bic_s / -2) / sum(exp(evi_c_bic_s / -2))
 plot(post_prob_evi_c)
 post_prob_evi_c[post_prob_evi_c > 0.01] |> plot()
-lower_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .1)[1]])
+lower_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .05)[1]])
 median_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .5)[1]]) # Median
-upper_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .9)[1]])
+upper_pp_evi_c <- names(post_prob_evi_c[which(cumsum(post_prob_evi_c) > .95)[1]])
 
 lower_pp_evi_c <- as.numeric(substr(lower_pp_evi_c, 5, nchar(lower_pp_evi_c)))
 mean_pp_evi_c <- as.numeric(substr(min_evi_c_bic_name, 5, nchar(min_evi_c_bic_name)))
