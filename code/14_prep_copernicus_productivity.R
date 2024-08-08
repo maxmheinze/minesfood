@@ -3,6 +3,8 @@ library(raster)
 library(sf)
 library(RColorBrewer)
 
+sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
+
 # Define the years
 years <- 2000:2021
 
@@ -31,9 +33,6 @@ for (year in 2000:2021) {
 
 # Step 2: Load the Basin Data
 basins <- read_sf(p("processed/relevant_basins.gpkg"))
-
-
-
 
 # Define the base file path and pattern
 base_path <- "/data/jde/copernicus_crop_productivity/"
@@ -70,12 +69,13 @@ for (year in names(file_paths)) {
   
   # Add the mean values to the basins dataframe with the appropriate year column name
   basins[[paste0("year_", year)]] <- mean_values
+  cat(year, " extraction done!\n")
 }
 
 basins_cropland_productivity_esa <- basins %>%
   st_drop_geometry() %>% 
   as_tibble()  %>%
-  dplyr::select(HYBAS_ID, year_2000:year_2021) %>%
+  dplyr::select(HYBAS_ID, year_2000:year_2023) %>%
   rename_with(~ str_replace_all(., "\\[,.*\\]", "")) %>%
   mutate(across(where(is.list), ~ map(.x, as.numeric) %>% unlist())) %>%
   mutate(across(where(~ is.matrix(.)), ~ as.vector(.)))

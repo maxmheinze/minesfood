@@ -619,7 +619,7 @@ p_mod_order_evi <- ggplot(df_tidy_mod_order_evi, aes(estimate, term)) +
   scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
-  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "", title = "Order Interaction: EVI") +
   theme_bw()
 
 mod_order_evi_c_list <- list(mod_order_base[[2]], 
@@ -648,7 +648,7 @@ p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
   scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
-  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
   theme_bw()
 
 # Distance
@@ -678,7 +678,7 @@ p_mod_dist_evi <- ggplot(df_tidy_mod_dist_evi, aes(estimate, term)) +
   scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
-  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Distance Interaction: EVI") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "", title = "Distance Interaction: EVI") +
   theme_bw()
 
 mod_dist_evi_c_list <- list(mod_dist_base[[2]], 
@@ -707,7 +707,7 @@ p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
   scale_y_discrete(limits = rev) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
-  labs(x = "Estimate and 90% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "", title = "Order Interaction: EVI Croplands") +
   theme_bw()
 
 pdf(paste0(p_folder, p_name, ".pdf"), width = 10, height = 12)
@@ -730,7 +730,7 @@ p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   facet_wrap(.~mod, scales = "free_x") +
-  labs(x = "Estimate and 90% Conf. Int.", y = "") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "") +
   theme_bw()
 
 pdf(paste0(p_folder, p_name, "_comb.pdf"), width = 10, height = 12)
@@ -750,7 +750,7 @@ p_effects_comb_order <- ggplot(df_tidy_mod_comb_order,
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 0, lty = 2) +
   facet_wrap(.~mod, scales = "free_x") +
-  labs(x = "Estimate and 90% Conf. Int.", y = "") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "") +
   theme_bw()
 
 pdf(paste0(p_folder, p_name, "_comb_order.pdf"), width = 10, height = 6)
