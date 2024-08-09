@@ -6,7 +6,7 @@ library("rdrobust")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
 
-date <- "20240802"
+date <- "20240809"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -179,7 +179,8 @@ etable(mod_order_base[1],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream."),
+                      restr_number_basins, " basins up/downstream.  ", 
+                      "Models (1) and (5) are the baseline models for overall maximum EVI and the cropland-specific maximum EVI, respectively, with mine fixed effects. Models (2) and (6) use fixed effects at Pfaffstetter level 8 basins, models (3) and (7) fixed effects at Pfaffstetter level 6 basins. Models (4) and (8) report results for the yearly mean of the overall EVI and the cropland-specific EVI instead of the maximum, respectively. Model (9) reports result for the cropland-specific EVI based on the time-varying cropland mask retreived from \\cite{cci2024} instead of the time-invariant of \\cite{DigitalEarthAfrica2022}."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = TRUE)
 
@@ -199,7 +200,8 @@ etable(mod_dist_base[1],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream."),
+                      restr_number_basins, " basins up/downstream.  ", 
+                      "Models (1) and (5) are the baseline models for overall maximum EVI and the cropland-specific maximum EVI, respectively, with mine fixed effects. Models (2) and (6) use fixed effects at Pfaffstetter level 8 basins, models (3) and (7) fixed effects at Pfaffstetter level 6 basins. Models (4) and (8) report results for the yearly mean of the overall EVI and the cropland-specific EVI instead of the maximum, respectively. Model (9) reports result for the cropland-specific EVI based on the time-varying cropland mask retreived from \\cite{cci2024} instead of the time-invariant of \\cite{DigitalEarthAfrica2022}."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
 

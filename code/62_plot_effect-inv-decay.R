@@ -13,6 +13,11 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
+date <- "20240809"
+
+p_folder <- "./output/plots/"
+p_name <- "plot_effect_decay_inv"
+
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 mine_size_restr <- df_reg |> filter(mine_area_km2 > restr_area_mined) |> pull(mine_basin) |> unique()
 
@@ -76,16 +81,6 @@ for(ee in grid_inv) {
 evi_bic <- unlist(lapply(mods[["EVI"]], BIC))
 min_evi_bic_name <- names(evi_bic[which.min(evi_bic)])
 
-summary(mods[["EVI"]][[min_evi_bic_name]])
-
-newdat <- data.frame(dist_temp = seq(-25, 200, by = 1), downstream = 0) |> 
-  mutate(downstream = ifelse(dist_temp < 0, downstream, 1))
-predictions_evi <- lapply(mods$EVI, function(x) predict(x, newdata = newdat)) |> 
-  bind_cols() |> mutate(distance = -25:200) |> tidyr::pivot_longer(cols = contains("inv"))
-ggplot(predictions_evi |> filter(name == min_evi_bic_name), 
-       aes(x = distance, y = value)) + 
-  geom_point()
-
 evi_bic_s <- evi_bic - min(evi_bic) # Standardise for numerics
 post_prob_evi <- exp(evi_bic_s / -2) / sum(exp(evi_bic_s / -2))
 plot(post_prob_evi)
@@ -99,6 +94,14 @@ mean_pp_evi <- as.numeric(substr(min_evi_bic_name, 5, nchar(min_evi_bic_name)))
 median_pp_evi <- as.numeric(substr(median_pp_evi, 5, nchar(median_pp_evi)))
 upper_pp_evi <- as.numeric(substr(upper_pp_evi, 5, nchar(upper_pp_evi)))
 
+# newdat <- data.frame(dist_temp = seq(-25, 200, by = 1) ^ (-mean_pp_evi), downstream = 0) |> 
+#   mutate(downstream = ifelse(dist_temp < 0, downstream, 1))
+# predictions_evi <- lapply(mods$EVI, function(x) predict(x, newdata = newdat)) |> 
+#   bind_cols() |> mutate(distance = -25:200) |> tidyr::pivot_longer(cols = contains("inv"))
+# ggplot(predictions_evi |> filter(name == min_evi_bic_name), 
+#        aes(x = distance, y = value)) + 
+#   geom_point()
+
 for(ee in grid_inv) {
   df_reg_restr$dist_temp <- (df_reg_restr$distance) ^ (-ee)
   mods[["EVI_c"]][[paste0("inv-", ee)]] = feols(c(resids_evi_c) ~
@@ -109,14 +112,6 @@ for(ee in grid_inv) {
 
 evi_c_bic <- unlist(lapply(mods[["EVI_c"]], BIC))
 min_evi_c_bic_name <- names(evi_c_bic[which.min(evi_c_bic)])
-
-summary(mods[["EVI"]][[min_evi_c_bic_name]])
-
-predictions_evi_c <- lapply(mods$EVI_c, function(x) predict(x, newdata = newdat)) |> 
-  bind_cols() |> mutate(distance = -25:200) |> tidyr::pivot_longer(cols = contains("inv"))
-ggplot(predictions_evi_c |> filter(name == min_evi_c_bic_name), 
-       aes(x = distance, y = value)) + 
-  geom_point()
 
 evi_c_bic_s <- evi_c_bic - min(evi_c_bic) # Standardise for numerics
 post_prob_evi_c <- exp(evi_c_bic_s / -2) / sum(exp(evi_c_bic_s / -2))
@@ -131,7 +126,13 @@ mean_pp_evi_c <- as.numeric(substr(min_evi_c_bic_name, 5, nchar(min_evi_c_bic_na
 median_pp_evi_c <- as.numeric(substr(median_pp_evi_c, 5, nchar(median_pp_evi_c)))
 upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 
-pdf("./output/plots/effect_decay_inv.pdf", width = 10, height = 5)
+# predictions_evi_c <- lapply(mods$EVI_c, function(x) predict(x, newdata = newdat)) |> 
+#   bind_cols() |> mutate(distance = -25:200) |> tidyr::pivot_longer(cols = contains("inv"))
+# ggplot(predictions_evi_c |> filter(name == min_evi_c_bic_name), 
+#        aes(x = distance, y = value)) + 
+#   geom_point()
+
+pdf(paste0(p_folder, p_name, "_", date, ".pdf"), width = 10, height = 5)
 par(mfrow = c(1, 2))
 plot(0:500, (0:500)^(-mean_pp_evi), type = "l", xlab = "Distance", 
      ylab = "Rel. Effect Size (EVI)", ylim = c(0,1), xlim = c(0, 100))
