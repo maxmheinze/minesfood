@@ -47,10 +47,12 @@ if(restr_number_basins > 0) {
 
 df_reg_restr$order <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$order * -1, df_reg_restr$order)
 df_reg_restr$distance <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$distance * -1, df_reg_restr$distance)
+df_reg_restr$distance_centroid <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$distance_centroid * -1, df_reg_restr$distance_centroid)
 
 # Perform the McCrary density test
-mccrary_test <- rddensity(df_reg_restr$distance, c = 0, plot = TRUE)
-mccrary_test <- rddensity(df_reg_restr$order, c = 0, plot = TRUE)
+mccrary_test <- rddensity(df_reg_restr$distance, c = 0)
+mccrary_test <- rddensity(df_reg_restr$distance_centroid, c = 0)
+mccrary_test <- rddensity(df_reg_restr$order, c = 0)
 
 # Summarize the test results
 summary(mccrary_test)

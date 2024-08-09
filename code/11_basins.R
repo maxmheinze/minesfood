@@ -31,6 +31,7 @@ m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
 lvl <- "12"
 s <- st_read(p("hybas_lakes/hybas_lake_af_lev", lvl, "_v1c.shp"))
 s <- st_make_valid(s)
+s <- s |> mutate(NEXT_DOWN = ifelse(DIST_SINK == 0, 0, NEXT_DOWN))
 lake_id <- s |> st_drop_geometry() |> filter(LAKE != 0) |> pull(HYBAS_ID)
 s <- dplyr::filter(s, LAKE == 0)
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
@@ -149,7 +150,6 @@ write_sf(relevant_basins, p("processed/relevant_basins.gpkg"))
 write_sf(relevant_basins, p("processed/relevant_basins.shp"))
 
 
-
 # Calculating Elaborated Distances ----------------------------------------
 
 basin_centroids <- relevant_basins %>%
@@ -165,23 +165,20 @@ basin_distances_centroids <- basin_centroids %>%
   mutate(geometry.x = basin_centroids$geometry) %>%
   rename(geometry.y = geometry) %>%
   relocate(geometry.y, .after = geometry.x) %>%
-  mutate(distance = as.numeric(st_distance(st_sfc(geometry.x), # distance in km
+  mutate(distance = ifelse(NEXT_DOWN == 0, 0,
+                           as.numeric(st_distance(st_sfc(geometry.x), # distance in km
                                            st_sfc(geometry.y), 
-                                           by_element = TRUE)) / 10^3) %>%
+                                           by_element = TRUE)) / 10^3)) %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
 # River Flow Distances
 basin_distances_river <- relevant_basins %>%
   st_drop_geometry() %>%
-  dplyr::select(HYBAS_ID, NEXT_DOWN, NEXT_SINK, DIST_SINK) %>%
+  dplyr::select(HYBAS_ID, NEXT_DOWN, NEXT_SINK, DIST_SINK, DIST_MAIN) %>%
   mutate(NEXT_DOWN = ifelse(DIST_SINK == 0, 0, NEXT_DOWN)) %>%
   left_join(., ., by = join_by("NEXT_DOWN" == "HYBAS_ID")) %>%
-  mutate(distance = DIST_SINK.x - DIST_SINK.y) %>%
+  mutate(distance = ifelse(NEXT_DOWN ==0, DIST_SINK.x, DIST_SINK.x - DIST_SINK.y)) %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
-
-# Select Distance Measure to Use
-#basin_distances <- basin_distances_river
-# basin_distances <- basin_distances_centroid
 
 
 # Elaborated Downstream Distances -----------------------------------------
