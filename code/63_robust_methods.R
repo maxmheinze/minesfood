@@ -79,22 +79,33 @@ rdplot(df_reg_restr$max_EVI, df_reg_restr$distance, c = 0, p = 1, binselect = "e
        col.dots = NULL, col.lines = NULL)
 
 
+
+########################### Running a Placebo Test ################################################
 # RECODE as factor to include fixed effects
 df_reg_restr_falsification <- df_reg_restr %>%
   mutate(mine_basin = as.factor(mine_basin)) %>%
   filter(downstream == 0)
 
 #### Implementation of RDROBUST
+m2 <- rdrobust(y=df_reg_restr_falsification$max_c_EVI_af, x=df_reg_restr_falsification$distance, c= -5,
+               bwselect="mserd", 
+               kernel = "triangular", 
+               covs=cbind((df_reg_restr_falsification$mine_basin), df_reg_restr_falsification$elevation, df_reg_restr_falsification$slope, df_reg_restr_falsification$precipitation, df_reg_restr_falsification$tmp_mean), 
+               cluster=df_reg_restr_falsification$mine_basin)
+summary(m2)
+
+
+# placebo
+m2 <- rdrobust(y=df_reg_restr$tmp_mean, 
+               x=df_reg_restr$order, c= 0,
+               bwselect="mserd", 
+               covs=cbind(df_reg_restr$mine_basin), 
+               cluster=df_reg_restr$mine_basin)
+summary(m2)
+########################################################################################################## 
+
+#### Implementation of RDROBUST
 m1 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$distance, c= -2, bwselect="mserd", 
                covs=cbind((df_reg_restr_falsification$mine_basin), df_reg_restr_falsification$elevation, df_reg_restr_falsification$slope, df_reg_restr_falsification$precipitation, df_reg_restr_falsification$tmp_mean), 
                cluster=df_reg_restr_falsification$mine_basin)
 summary(m1)
-
-#### Implementation of RDROBUST
-m2 <- rdrobust(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, c= 2,
-               bwselect="mserd", 
-               covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
-               cluster=df_reg_restr$mine_basin)
-summary(m2)
-rdplot(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, binselect = "qs", )
-
