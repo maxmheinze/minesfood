@@ -12,7 +12,7 @@ library("rddtools")
 
 sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 
-restr_year <- 2000:2023 # years
+restr_year <- 2016:2023 # years
 restr_area_mined <- 0 # minimum of mined area in mine basin
 restr_order <- 30 # maximum order of basins to include
 excl_mine_basin <- TRUE # should the mine basin itself be excluded?
@@ -79,21 +79,22 @@ rdplot(df_reg_restr$max_EVI, df_reg_restr$distance, c = 0, p = 1, binselect = "e
        col.dots = NULL, col.lines = NULL)
 
 
-# RECODE as facto to include fixed effects
+# RECODE as factor to include fixed effects
 df_reg_restr_falsification <- df_reg_restr %>%
   mutate(mine_basin = as.factor(mine_basin)) %>%
   filter(downstream == 0)
 
 #### Implementation of RDROBUST
 m1 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$distance, c= -2, bwselect="mserd", 
-               covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
-               cluster=df_reg_restr$mine_basin)
+               covs=cbind((df_reg_restr_falsification$mine_basin), df_reg_restr_falsification$elevation, df_reg_restr_falsification$slope, df_reg_restr_falsification$precipitation, df_reg_restr_falsification$tmp_mean), 
+               cluster=df_reg_restr_falsification$mine_basin)
 summary(m1)
 
 #### Implementation of RDROBUST
-m2 <- rdrobust(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, c= 2,
+m2 <- rdrobust(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, c= 2,
                bwselect="mserd", 
                covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
                cluster=df_reg_restr$mine_basin)
 summary(m2)
-rdplot(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, binselect = "qs", )
+rdplot(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, binselect = "qs", )
+
