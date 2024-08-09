@@ -12,7 +12,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240802"
+date <- "20240809"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"

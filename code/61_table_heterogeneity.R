@@ -12,7 +12,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240802"
+date <- "20240809"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -451,7 +451,7 @@ etable(mod_order_base[2],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(4) are sample splits by biome, and models (5)-(7) are sample splits by regions (USDA crop classifications). All specifications include the full set of controls."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -468,7 +468,7 @@ etable(mod_order_base[2],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(7) are countries with the most mining basins within them."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -487,7 +487,7 @@ etable(mod_dist_base[1],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(4) are sample splits by mine area in the mined basin, and models (5)-(7) are samples with any, more than 10 percent and more than 25 percent increase in mining area between 2017 and 2023, respectively. All specifications include the full set of controls."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -504,7 +504,7 @@ etable(mod_dist_base[1],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(4) are sample splits by biome, and models (5)-(7) are sample splits by regions (USDA crop classifications). All specifications include the full set of controls."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -521,7 +521,7 @@ etable(mod_dist_base[1],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(7) are countries with the most mining basins within them."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -539,7 +539,7 @@ etable(mod_dist_base[2],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(4) are sample splits by mine area in the mined basin, and models (5)-(7) are samples with any, more than 10 percent and more than 25 percent increase in mining area between 2017 and 2023, respectively. All specifications include the full set of controls."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -556,7 +556,7 @@ etable(mod_dist_base[2],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(4) are sample splits by biome, and models (5)-(7) are sample splits by regions (USDA crop classifications). All specifications include the full set of controls."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -573,7 +573,7 @@ etable(mod_dist_base[2],
                       ", up to ", restr_order, " order basins away from the mined basin, ", 
                       ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
                       "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.", 
+                      restr_number_basins, " basins up/downstream. ", 
                       "Model (1) is the baseline specification, models (2)-(7) are countries with the most mining basins within them."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
