@@ -14,8 +14,8 @@ sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 
 restr_year <- 2016:2023 # years
 restr_area_mined <- 0 # minimum of mined area in mine basin
-restr_order <- 30 # maximum order of basins to include
-excl_mine_basin <- TRUE # should the mine basin itself be excluded?
+restr_order <- 10 # maximum order of basins to include
+excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
@@ -44,6 +44,9 @@ if(restr_number_basins > 0) {
     filter(mine_basin %in% mine_number_restr)
 }
 
+df_reg_restr <- df_reg_restr %>%
+  mutate(mine_basin = as.factor(mine_basin))
+
 
 df_reg_restr$order <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$order * -1, df_reg_restr$order)
 df_reg_restr$distance <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$distance * -1, df_reg_restr$distance)
@@ -60,23 +63,6 @@ summary(mccrary_test)
 rdplotdensity <- rdplotdensity(mccrary_test, df_reg_restr$distance, 
                        plotRange = c(-10, 10)) # I have no idea how to interpret this precisely
 
-
-rdplot(df_reg_restr$max_c_EVI_af, df_reg_restr$distance, c = 0, p = 1, nbins = NULL, binselect = "esmvpr",
-       scale = NULL, kernel = "triangular", weights = NULL, h = NULL,
-       covs = NULL, covs_eval = "mean", covs_drop = TRUE, ginv.tol = 1e-20,
-       support = NULL, subset = NULL, masspoints = "adjust",
-       hide = FALSE, ci = NULL, shade = FALSE, title = NULL,
-       x.label = NULL, y.label = NULL, x.lim = NULL, y.lim = NULL,
-       col.dots = NULL, col.lines = NULL)
-
-
-rdplot(df_reg_restr$max_EVI, df_reg_restr$distance, c = 0, p = 1, binselect = "esmvpr",
-       scale = NULL, kernel = "triangular", weights = NULL, h = NULL,
-       covs = NULL, covs_eval = "mean", covs_drop = TRUE, ginv.tol = 1e-20,
-       support = NULL, subset = NULL, masspoints = "adjust",
-       hide = FALSE, ci = NULL, shade = FALSE, title = NULL,
-       x.label = NULL, y.label = NULL, x.lim = NULL, y.lim = NULL,
-       col.dots = NULL, col.lines = NULL)
 
 
 
@@ -104,8 +90,32 @@ m2 <- rdrobust(y=df_reg_restr$tmp_mean,
 summary(m2)
 ########################################################################################################## 
 
-#### Implementation of RDROBUST
-m1 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$distance, c= -2, bwselect="mserd", 
-               covs=cbind((df_reg_restr_falsification$mine_basin), df_reg_restr_falsification$elevation, df_reg_restr_falsification$slope, df_reg_restr_falsification$precipitation, df_reg_restr_falsification$tmp_mean), 
-               cluster=df_reg_restr_falsification$mine_basin)
+
+##############################################################
+#### REPLICATION using RDROBUST###############################
+##############################################################
+bandwidth <- rdbwselect(y=df_reg_restr$max_EVI, x=df_reg_restr$order, c= 0, bwselect="mserd", kernel = "triangular", 
+           covs=cbind((df_reg_restr$mine_basin)), 
+           cluster=df_reg_restr$mine_basin)
+
+m1 <- rdrobust(y=df_reg_restr$max_EVI, x=df_reg_restr$order, c= 0, bwselect="mserd", kernel = "triangular", 
+               covs=cbind((df_reg_restr$mine_basin)), 
+               cluster=df_reg_restr$mine_basin)
 summary(m1)
+
+m2 <- rdrobust(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$order, c= 0, bwselect="mserd", kernel = "triangular", 
+               covs=cbind((df_reg_restr$mine_basin)), 
+               cluster=df_reg_restr$mine_basin)
+summary(m2)
+
+
+m1 <- rdrobust(y=df_reg_restr$max_EVI, x=df_reg_restr$distance, c= 0, bwselect="mserd", kernel = "uniform", 
+               covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
+               cluster=df_reg_restr$mine_basin)
+summary(m1)
+
+m2 <- rdrobust(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, c= 0, bwselect="mserd", kernel = "uniform", 
+               covs=cbind((df_reg_restr$mine_basin), df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$precipitation, df_reg_restr$tmp_mean), 
+               cluster=df_reg_restr$mine_basin)
+
+summary(m2)
