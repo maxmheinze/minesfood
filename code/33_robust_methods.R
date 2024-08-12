@@ -11,6 +11,7 @@ library("rddensity")
 library("rddtools")
 library("modelsummary")
 library("foreign")
+library("rdlocrand")
 
 # For summarising rdrobust models: https://stackoverflow.com/que --------
 
@@ -37,6 +38,8 @@ glance.rdrobust <- function(model, ...) {
   )
   ret
 }
+
+options("modelsummary_format_numeric_latex" = "plain")
 
 
 sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
@@ -73,12 +76,12 @@ if(restr_number_basins > 0) {
     filter(mine_basin %in% mine_number_restr)
 }
 
+# recoding variables to cateogrical variables for fixed effects
 df_reg_restr <- df_reg_restr %>%
   mutate(mine_basin = as.factor(mine_basin)) %>%
   mutate(year = as.factor(year)) 
-  
 
-
+# recoding running variable to zero when basin lies upstream
 df_reg_restr$order <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$order * -1, df_reg_restr$order)
 df_reg_restr$distance <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$distance * -1, df_reg_restr$distance)
 df_reg_restr$distance_centroid <- ifelse(df_reg_restr$downstream == 0, df_reg_restr$distance_centroid * -1, df_reg_restr$distance_centroid)
@@ -92,100 +95,122 @@ mccrary_test <- rddensity(df_reg_restr$order, c = 0)
 summary(mccrary_test)
 
 rdplotdensity <- rdplotdensity(mccrary_test, df_reg_restr$distance, 
-                       plotRange = c(-10, 10)) # I have no idea how to interpret this precisely
-
-
-
+                               plotRange = c(-10, 10)) # I have no idea how to interpret this precisely
 
 ##############################################################
 #### REPLICATION using RDROBUST###############################
 ##############################################################
-cov <- cbind(df_reg_restr$mine_basin, df_reg_restr$year)
 
-cov_add <- cbind(df_reg_restr$mine_basin, df_reg_restr$year, df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$soilgrid_grouped, df_reg_restr$tmp_max, df_reg_restr$precipitation, df_reg_restr$accessibility_to_cities_2015, df_reg_restr$pop_2015)
+df_reg_restr_africover <- df_reg_restr %>% 
+  filter(!is.na(max_c_EVI_af))
 
-bandwidth <- rdbwselect(y=df_reg_restr$max_EVI, x=df_reg_restr$order, c= 0, bwselect="mserd", kernel = "triangular", 
-           covs=cbind((df_reg_restr$mine_basin)), 
-           cluster=df_reg_restr$mine_basin)
-
-rdout_p1 <- rdrobust(y = df_reg_restr$max_EVI, 
-                  x = df_reg_restr$distance, 
-                  c = 0, 
-                  p = 1,
-                  bwselect ="mserd", 
-                  kernel = "triangular", 
-                  covs = cov_add, 
-                  cluster = df_reg_restr$mine_basin, 
-                  all = TRUE)
-
-summary(rdout_p1)
-
-rdout_p2 <- rdrobust(y = df_reg_restr$max_EVI, 
-               x = df_reg_restr$order, 
-               c = 0, 
-               p = 1,
-               bwselect ="mserd", 
-               kernel = "triangular", 
-               covs =  cov, 
-               cluster = df_reg_restr$mine_basin)
-
-summary(rdout_p2)
-
-# Null Effects 
-summary(rdout_p1)
-summary(rdout_p2)
+m1 <- feols(max_EVI ~ 1 | mine_basin + year + soilgrid_grouped, df_reg_restr)
+m2 <- feols(max_c_EVI_af ~ 1 | mine_basin + year + soilgrid_grouped, df_reg_restr_africover)
 
 
+df_reg_restr$resid_evi <- m1$residuals
+df_reg_restr_africover$resids_afri_evi <- m2$residuals
 
-m1 <- rdrobust(y = df_reg_restr$max_c_EVI_af, 
-               x = df_reg_restr$distance, 
-               c = 0, 
-               p = 1,
-               bwselect ="mserd", 
-               kernel = "triangular", 
-               covs = cov_add, 
-               cluster = df_reg_restr$mine_basin, 
-               all = TRUE)
-summary(m1)
+cov_add <- cbind(df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$tmp_max, df_reg_restr$precipitation, df_reg_restr$accessibility_to_cities_2015, df_reg_restr$pop_2015)
+cov_add_africover <- cbind(df_reg_restr_africover$elevation, df_reg_restr_africover$slope, df_reg_restr_africover$tmp_max, df_reg_restr_africover$precipitation, df_reg_restr_africover$accessibility_to_cities_2015, df_reg_restr_africover$pop_2015)
+
+rdd1 <- rdrobust(y = df_reg_restr$resid_evi, 
+                 x = df_reg_restr$distance, 
+                 c = 0, 
+                 p = 1,
+                 bwselect ="mserd", 
+                 kernel = "triangular", 
+                 covs = cov_add, 
+                 cluster = df_reg_restr$mine_basin, 
+                 all = TRUE)
+
+rdd2 <- rdrobust(y = df_reg_restr$resid_evi, 
+                 x = df_reg_restr$distance, 
+                 c = 0, 
+                 p = 2,
+                 bwselect ="mserd", 
+                 kernel = "triangular", 
+                 covs = cov_add, 
+                 cluster = df_reg_restr$mine_basin, 
+                 all = TRUE)
+
+rdd3 <- rdrobust(y = df_reg_restr_africover$resids_afri_evi, 
+                 x = df_reg_restr_africover$distance, 
+                 c = 0, 
+                 p = 1,
+                 bwselect ="mserd", 
+                 kernel = "triangular", 
+                 covs = cov_add_africover, 
+                 cluster = df_reg_restr_africover$mine_basin, 
+                 all = TRUE)
+
+rdd4 <- rdrobust(y = df_reg_restr_africover$resids_afri_evi, 
+                 x = df_reg_restr_africover$distance, 
+                 c = 0, 
+                 p = 2,
+                 bwselect ="mserd", 
+                 kernel = "triangular", 
+                 covs = cov_add_africover, 
+                 cluster = df_reg_restr_africover$mine_basin, 
+                 all = TRUE)
 
 
-m2 <- rdrobust(y = df_reg_restr$max_c_EVI_af, 
-               x = df_reg_restr$distance, 
-               c = 0, 
-               p = 1, 
-               bwselect ="mserd", 
-               kernel = "triangular", 
-               covs = cbind(df_reg_restr$mine_basin, df_reg_restr$year), 
-               cluster = df_reg_restr$mine_basin)
-summary(m2)
-
-
-
+modelsummary(list(rdd1,rdd2,rdd3,rdd4), 
+             output = "latex_tabular",
+             fmt = 3, 
+             statistic = c("({std.error})", "[{p.value}]")) 
 
 
 
 
 
+#### using order as a running variable
 
-m2 <- rdrobust(y=df_reg_restr$max_c_EVI_ESA, 
-               x=df_reg_restr$order, 
-               c= 0, 
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs= cov, 
-               cluster=df_reg_restr$mine_basin)
-summary(m2)
+rdd1_or <- rdrobust(y = df_reg_restr$resid_evi, 
+                    x = df_reg_restr$order, 
+                    c = 0, 
+                    p = 1,
+                    bwselect ="mserd", 
+                    kernel = "triangular", 
+                    covs = cov_add, 
+                    cluster = df_reg_restr$mine_basin, 
+                    all = TRUE)
+
+rdd2_or <- rdrobust(y = df_reg_restr$resid_evi, 
+                    x = df_reg_restr$order, 
+                    c = 0, 
+                    p = 2,
+                    bwselect ="mserd", 
+                    kernel = "triangular", 
+                    covs = cov_add, 
+                    cluster = df_reg_restr$mine_basin, 
+                    all = TRUE)
+
+rdd3_or <- rdrobust(y = df_reg_restr$resids_afri_evi, 
+                    x = df_reg_restr$order, 
+                    c = 0, 
+                    p = 1,
+                    bwselect ="mserd", 
+                    kernel = "triangular", 
+                    covs = cov_add_africover, 
+                    cluster = df_reg_restr$mine_basin, 
+                    all = TRUE)
+
+rdd4_or <- rdrobust(y = df_reg_restr$resids_afri_evi, 
+                    x = df_reg_restr$order, 
+                    c = 0, 
+                    p = 2,
+                    bwselect ="mserd", 
+                    kernel = "triangular", 
+                    covs = cov_add_africover, 
+                    cluster = df_reg_restr$mine_basin, 
+                    all = TRUE)
 
 
-m3 <- rdrobust(y=df_reg_restr$max_c_EVI_ESA, 
-               x=df_reg_restr$order, 
-               p= 1,
-               c= 0, 
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs=cbind(df_reg_restr$mine_basin, df_reg_restr$year), 
-               cluster=df_reg_restr$mine_basin)
-summary(m3)
+modelsummary(list(rdd1_or,rdd2_or,rdd3_or,rdd4_or), 
+             output = "latex_tabular",
+             fmt = 3, 
+             statistic = c("({std.error})", "[{p.value}]")) 
 
 
 
@@ -253,7 +278,14 @@ modelsummary(list(rdd1,rdd2,rdd3,rdd4),
 
 
 
+
+
+
 ########################################################################################################## 
 
+### implementation of local randomization approach
+#z <- df_reg_restr[, c("elevation", "slope", "tmp_max", "precipitation", "accessibility_to_cities_2015", "pop_2015")]
+#df_reg_restr <- df_reg_restr %>% mutate(order = as.numeric(order))
+#rdwinselect(df_reg_restr$order, z, seed = 50)
 
-
+            
