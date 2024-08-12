@@ -405,7 +405,7 @@ etable(mod1_order_contr[1], mod2_order_contr[1], mod3_order_contr[1], mod4_order
 ```{r reg_dist_rob_addcontr, warning=FALSE, message=FALSE}
 # no covariates
 mod1_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
-                          (distance + I(distance^2)) * downstream |
+                          (distance+ I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
@@ -1088,4 +1088,38 @@ coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
 
 
 
+
+
+### Falsification Tests - Placebo Outcomes
+
+```{r plot_reg_order, warning=FALSE, message=FALSE}
+mod1_order_plot = feols(c(precipitation) ~ 
+                           i(factor(order), downstream)  |
+                     year +  as.factor(mine_basin),
+                   data = df_reg_restr,
+                   cluster = "HYBAS_ID")
+coefplot(mod1_order_plot, ci_level = 0.9,
+         main = "Effects by order of basins (without controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
+
+mod_dist = feols(c(tmp_mean) ~ (distance) * downstream  +
+                                  elevation + slope + soilgrid_grouped + precipitation  +
+                                  accessibility_to_cities_2015 + pop_2015 |
+                                  year +  as.factor(mine_basin),
+                                data = df_reg_restr,
+                                cluster = "HYBAS_ID")
+
+mod_dist = feols(c(max_EVI, max_c_EVI_af) ~ tmp_mean + precipitation |
+                                  year +  as.factor(mine_basin),
+                                data = df_reg_restr,
+                                cluster = "HYBAS_ID")
+
+mod2_order_plot = feols(c(tmp_mean, tmp_max, tmp_min, frs_days) ~ 
+                          i(factor(order), downstream) |
+                          year +  as.factor(mine_basin),
+                        data = df_reg_restr,
+                        cluster = "HYBAS_ID")
+
+coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
+         main = "Effects by order of basins (with controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
+```
 
