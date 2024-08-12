@@ -16,9 +16,14 @@ pacman::p_load(
   sf,
   readxl,
   fixest,
-  rdrobust
+  rdrobust,
+  foreign, 
+  rddensity, 
+  modelsummary
 )
+
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
+
 
 
 # Read in Data ------------------------------------------------------------

@@ -1113,11 +1113,24 @@ mod_dist = feols(c(max_EVI, max_c_EVI_af) ~ tmp_mean + precipitation |
                                 data = df_reg_restr,
                                 cluster = "HYBAS_ID")
 
-mod2_order_plot = feols(c(tmp_mean, tmp_max, tmp_min, frs_days) ~ 
-                          i(factor(order), downstream) |
+mod2_order_plot = feols(c(tmp_mean, tmp_max, tmp_min) ~ 
+                          i(factor(order), downstream)   +
+                           elevation + slope + soilgrid_grouped + precipitation  +
+                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "HYBAS_ID")
+
+
+mod2_order_plot = feols(c(tmp_mean, tmp_max, tmp_min, precipitation) ~ 
+                          downstream*(distance + I(distance^2))  +
+                           elevation + slope + soilgrid_grouped  +
+                           accessibility_to_cities_2015 + pop_2015 |
+                          year +  as.factor(mine_basin),
+                        data = df_reg_restr,
+                        cluster = "HYBAS_ID")
+
+etable(mod2_order_plot)
 
 coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
          main = "Effects by order of basins (with controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")

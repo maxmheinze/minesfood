@@ -9,6 +9,35 @@ library("rdrobust")
 library("rdd")
 library("rddensity")
 library("rddtools")
+library("modelsummary")
+library("foreign")
+
+# For summarising rdrobust models: https://stackoverflow.com/que --------
+
+tidy.rdrobust <- function(model, ...) {
+  ret <- data.frame(
+    term = row.names(model$coef),
+    estimate = model$coef[, 1],
+    std.error = model$se[, 1],
+    p.value = model$pv[, 1]
+  )
+  row.names(ret) <- NULL
+  ret
+}
+
+# # For summarising rdrobust models: https://stackoverflow.com/que --------
+
+
+glance.rdrobust <- function(model, ...) {
+  ret <- data.frame(
+    Kernel = model$kernel,
+    Bandwidth = model$bwselect,
+    Polynomial = ifelse(model$p == 1, "Linear", ifelse(model$p == 2, "Quadratic", "OTHER")),
+    Observations = sum(model$N_h)
+  )
+  ret
+}
+
 
 sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
 
@@ -17,7 +46,7 @@ restr_area_mined <- 0 # minimum of mined area in mine basin
 restr_order <- 500 # maximum order of basins to include
 excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
-restr_number_basins <- 1 # minimum number of up/downstream basins each mine basin has to have
+restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 
@@ -68,69 +97,12 @@ rdplotdensity <- rdplotdensity(mccrary_test, df_reg_restr$distance,
 
 
 
-########################### Running a Placebo Test ################################################
-# RECODE as factor to include fixed effects
-df_reg_restr_falsification <- df_reg_restr %>%
-  filter(downstream == 0)
-
-#### Implementation of RDROBUST
-m2 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$order, c= -3,
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs=cbind(df_reg_restr_falsification$mine_basin, df_reg_restr_falsification$year), 
-               cluster=df_reg_restr_falsification$mine_basin)
-summary(m2)
-
-
-# placebo
-m2 <- rdrobust(y=df_reg_restr$tmp_mean, 
-               x=df_reg_restr$order, 
-               c= 0,
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
-               cluster=df_reg_restr$mine_basin)
-
-m2 <- rdrobust(y=df_reg_restr$tmp_max, 
-               x=df_reg_restr$distance, 
-               c= 0,
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
-               cluster=df_reg_restr$mine_basin)
-
-summary(m2)
-
-
-m3 <- rdrobust(y=df_reg_restr$tmp_max, 
-               x=df_reg_restr$order, 
-               c= 0,
-               h = c(-10,10) 
-               kernel = "uniform", 
-               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
-               cluster=df_reg_restr$mine_basin)
-
-summary(m3)
-
-m3 <- rdrobust(y=df_reg_restr$elevation, 
-               x=df_reg_restr$order, 
-               c= 0,
-               bwselect="mserd", 
-               kernel = "triangular", 
-               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
-               cluster=df_reg_restr$mine_basin)
-
-summary(m3)
-
-########################################################################################################## 
-
-
 ##############################################################
 #### REPLICATION using RDROBUST###############################
 ##############################################################
 cov <- cbind(df_reg_restr$mine_basin, df_reg_restr$year)
 
-cov_add <- cbind(df_reg_restr$mine_basin, df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$soilgrid_grouped, df_reg_restr$tmp_max, df_reg_restr$precipitation, df_reg_restr$accessibility_to_cities_2015, df_reg_restr$pop_2015)
+cov_add <- cbind(df_reg_restr$mine_basin, df_reg_restr$year, df_reg_restr$elevation, df_reg_restr$slope, df_reg_restr$soilgrid_grouped, df_reg_restr$tmp_max, df_reg_restr$precipitation, df_reg_restr$accessibility_to_cities_2015, df_reg_restr$pop_2015)
 
 bandwidth <- rdbwselect(y=df_reg_restr$max_EVI, x=df_reg_restr$order, c= 0, bwselect="mserd", kernel = "triangular", 
            covs=cbind((df_reg_restr$mine_basin)), 
@@ -143,7 +115,10 @@ rdout_p1 <- rdrobust(y = df_reg_restr$max_EVI,
                   bwselect ="mserd", 
                   kernel = "triangular", 
                   covs = cov_add, 
-                  cluster = df_reg_restr$mine_basin)
+                  cluster = df_reg_restr$mine_basin, 
+                  all = TRUE)
+
+summary(rdout_p1)
 
 rdout_p2 <- rdrobust(y = df_reg_restr$max_EVI, 
                x = df_reg_restr$order, 
@@ -151,8 +126,10 @@ rdout_p2 <- rdrobust(y = df_reg_restr$max_EVI,
                p = 1,
                bwselect ="mserd", 
                kernel = "triangular", 
-               covs =  cov_add, 
+               covs =  cov, 
                cluster = df_reg_restr$mine_basin)
+
+summary(rdout_p2)
 
 # Null Effects 
 summary(rdout_p1)
@@ -161,13 +138,14 @@ summary(rdout_p2)
 
 
 m1 <- rdrobust(y = df_reg_restr$max_c_EVI_af, 
-               x = df_reg_restr$order, 
+               x = df_reg_restr$distance, 
                c = 0, 
                p = 1,
                bwselect ="mserd", 
                kernel = "triangular", 
                covs = cov_add, 
-               cluster = df_reg_restr$mine_basin)
+               cluster = df_reg_restr$mine_basin, 
+               all = TRUE)
 summary(m1)
 
 
@@ -208,5 +186,74 @@ m3 <- rdrobust(y=df_reg_restr$max_c_EVI_ESA,
                covs=cbind(df_reg_restr$mine_basin, df_reg_restr$year), 
                cluster=df_reg_restr$mine_basin)
 summary(m3)
+
+
+
+
+
+########################### Running a Placebo Test ################################################
+# RECODE as factor to include fixed effects
+df_reg_restr_falsification <- df_reg_restr %>%
+  filter(downstream == 0)
+
+#### Implementation of RDROBUST
+m2 <- rdrobust(y=df_reg_restr_falsification$max_EVI, x=df_reg_restr_falsification$order, c= -3,
+               bwselect="mserd", 
+               kernel = "triangular", 
+               covs=cbind(df_reg_restr_falsification$mine_basin, df_reg_restr_falsification$year), 
+               cluster=df_reg_restr_falsification$mine_basin)
+summary(m2)
+
+
+# placebo
+m2 <- rdrobust(y=df_reg_restr$tmp_mean, 
+               x=df_reg_restr$order, 
+               c= 0,
+               bwselect="mserd", 
+               kernel = "triangular", 
+               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
+               cluster=df_reg_restr$mine_basin)
+
+m2 <- rdrobust(y=df_reg_restr$tmp_max, 
+               x=df_reg_restr$distance, 
+               c= 0,
+               bwselect="mserd", 
+               kernel = "triangular", 
+               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
+               cluster=df_reg_restr$mine_basin)
+
+summary(m2)
+
+
+m3 <- rdrobust(y=df_reg_restr$tmp_max, 
+               x=df_reg_restr$order, 
+               c= 0,
+               h = c(-10,10),
+               kernel = "uniform", 
+               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
+               cluster=df_reg_restr$mine_basin)
+
+summary(m3)
+
+m3 <- rdrobust(y=df_reg_restr$elevation, 
+               x=df_reg_restr$order, 
+               c= 0,
+               bwselect="mserd", 
+               kernel = "triangular", 
+               covs=cbind(df_reg_restr$mine_basin,df_reg_restr$year), 
+               cluster=df_reg_restr$mine_basin)
+
+summary(m3)
+
+
+modelsummary(list(rdd1,rdd2,rdd3,rdd4), 
+             output = "latex_tabular",
+             fmt = 3, 
+             statistic = c("({std.error})", "[{p.value}]")) 
+
+
+
+########################################################################################################## 
+
 
 
