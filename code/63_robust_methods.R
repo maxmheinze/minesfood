@@ -119,3 +119,4 @@ m2 <- rdrobust(y=df_reg_restr$max_c_EVI_af, x=df_reg_restr$distance, c= 0, bwsel
                cluster=df_reg_restr$mine_basin)
 
 summary(m2)
+
