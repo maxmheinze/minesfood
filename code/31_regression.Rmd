@@ -34,7 +34,7 @@ df_reg_restr <- df_reg |>
   filter(order <= restr_order, 
          year %in% restr_year, 
          mine_basin %in% mine_size_restr, 
-         if(excl_mine_basin) order > 0 else order >= 0) 
+         if(excl_mine_basin) order > 0 else order >= 0)
 if(!mine_downstream) {
   df_reg_restr <- df_reg_restr |> 
     mutate(downstream = replace(downstream, order == 0, 0))
@@ -97,13 +97,13 @@ This specification includes:
 #                            downstream |
 #                            year +  as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod2_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            downstream |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with covariates
 # mod3_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -113,7 +113,7 @@ mod2_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
 #                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod4_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            downstream +
@@ -122,7 +122,7 @@ mod4_noint_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 etable(mod2_noint_restr[1], mod4_noint_restr[1],
        mod2_noint_restr[2], mod4_noint_restr[2],
@@ -162,13 +162,13 @@ on average **without** (with) controls.
 #                            i(as.factor(order), ref = 1) + downstream |
 #                            year +  as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod2_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            i(as.factor(order), downstream) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with covariates, order interaction
 # mod3_order_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -178,7 +178,7 @@ mod2_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
 #                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod4_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            i(as.factor(order), downstream) +
@@ -187,7 +187,7 @@ mod4_order_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 etable(mod2_order_restr[1], mod4_order_restr[1],
        mod2_order_restr[2], mod4_order_restr[2],
@@ -227,13 +227,13 @@ on average **without** (with) controls.
 #                           (distance) + downstream |
 #                           year +  as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance + I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with covariates, linear distance
 # mod3_dist_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -243,7 +243,7 @@ mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
 #                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod4_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance + I(distance^2)) * downstream +
@@ -252,7 +252,7 @@ mod4_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 etable(mod2_dist_restr[1], mod4_dist_restr[1],
        mod2_dist_restr[2], mod4_dist_restr[2],
@@ -293,13 +293,13 @@ on average **without** (with) controls.
 #                           (distance_bin) + downstream |
 #                           year +  as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod2_dist_bin_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance_bin) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with covariates, linear distance_bin
 # mod3_dist_bin_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -309,7 +309,7 @@ mod2_dist_bin_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yie
 #                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod4_dist_bin_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance_bin) * downstream +
@@ -318,7 +318,7 @@ mod4_dist_bin_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yie
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 etable(mod2_dist_bin_restr[1], mod4_dist_bin_restr[1],
        mod2_dist_bin_restr[2], mod4_dist_bin_restr[2],
@@ -363,7 +363,7 @@ mod1_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            i(as.factor(order), downstream) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with geo covariates
 mod2_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -371,7 +371,7 @@ mod2_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            elevation + slope + soilgrid_grouped|
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with geo + met covariates
 mod3_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -380,7 +380,7 @@ mod3_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            tmp_max + precipitation |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with geo + met + socio covariates
 mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -390,7 +390,7 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 etable(mod1_order_contr[1], mod2_order_contr[1], mod3_order_contr[1], mod4_order_contr[1], 
        mod1_order_contr[2], mod2_order_contr[2], mod3_order_contr[2], mod4_order_contr[2], 
@@ -408,7 +408,7 @@ mod1_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                           (distance + I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with geo covariates
 mod2_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -416,7 +416,7 @@ mod2_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                           elevation + slope + soilgrid_grouped |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with geo + met covariates
 mod3_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -425,7 +425,7 @@ mod3_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                           tmp_max + precipitation |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with geo + met + socio covariates
 mod4_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -435,7 +435,7 @@ mod4_dist_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 etable(mod1_dist_contr[1], mod2_dist_contr[1], mod3_dist_contr[1], mod4_dist_contr[1], 
        mod1_dist_contr[2], mod2_dist_contr[2], mod3_dist_contr[2], mod4_dist_contr[2], 
@@ -455,13 +455,13 @@ etable(mod1_dist_contr[1], mod2_dist_contr[1], mod3_dist_contr[1], mod4_dist_con
 #                            i(as.factor(order), ref = 1) + downstream |
 #                            year +  as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod2_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                            i(as.factor(order), downstream) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with covariates, order interaction
 # mod3_order_meanEVI = feols(c(mean_c_EVI_af, mean_c_EVI_ESA) ~
@@ -471,7 +471,7 @@ mod2_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_restr,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod4_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                            i(as.factor(order), downstream) +
@@ -480,7 +480,7 @@ mod4_order_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 etable(mod2_order_meanEVI[1], mod4_order_meanEVI[1],
        mod2_order_meanEVI[2], mod4_order_meanEVI[2],
@@ -516,13 +516,13 @@ on average **without** (with) controls.
 #                           (distance) + downstream |
 #                           year +  as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod2_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                           (distance + I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with covariates, linear distance
 # mod3_dist_meanEVI = feols(c(mean_c_EVI_af, mean_c_EVI_ESA) ~
@@ -532,7 +532,7 @@ mod2_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
 #                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_restr,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod4_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                           (distance + I(distance^2)) * downstream +
@@ -541,7 +541,7 @@ mod4_dist_meanEVI = feols(c(mean_EVI, mean_c_EVI_af, mean_c_EVI_ESA) ~
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 etable(mod2_dist_meanEVI[1], mod4_dist_meanEVI[1],
        mod2_dist_meanEVI[2], mod4_dist_meanEVI[2],
@@ -579,13 +579,13 @@ df_reg_no_mine <- df_reg_restr |> filter(order != 0)
 #                            i(as.factor(order), ref = 1) + downstream |
 #                            year +  as.factor(mine_basin),
 #                          data = df_reg_no_mine,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod2_ordermine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            i(as.factor(order), downstream) |
                            year +  as.factor(mine_basin),
                          data = df_reg_no_mine,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # with covariates, order interaction
 # mod3_ordermine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -595,7 +595,7 @@ mod2_ordermine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yie
 #                            accessibility_to_cities_2015 + pop_2015 |
 #                            year + as.factor(mine_basin),
 #                          data = df_reg_no_mine,
-#                          cluster = "HYBAS_ID")
+#                          cluster = "mine_basin")
 
 mod4_ordermine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                            i(as.factor(order), downstream) +
@@ -604,7 +604,7 @@ mod4_ordermine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yie
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin),
                          data = df_reg_no_mine,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 etable(mod2_ordermine_excl[1], mod4_ordermine_excl[1],
        mod2_ordermine_excl[2], mod4_ordermine_excl[2],
@@ -644,13 +644,13 @@ on average **without** (with) controls.
 #                           (distance) + downstream |
 #                           year +  as.factor(mine_basin),
 #                         data = df_reg_no_mine,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod2_distmine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance + I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_no_mine,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # with covariates, linear distance
 # mod3_distmine_excl = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -660,7 +660,7 @@ mod2_distmine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yiel
 #                           accessibility_to_cities_2015 + pop_2015 |
 #                           year + as.factor(mine_basin),
 #                         data = df_reg_no_mine,
-#                         cluster = "HYBAS_ID")
+#                         cluster = "mine_basin")
 
 mod4_distmine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                           (distance + I(distance^2)) * downstream +
@@ -669,7 +669,7 @@ mod4_distmine_excl = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yiel
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_no_mine,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 etable(mod2_distmine_excl[1], mod4_distmine_excl[1],
        mod2_distmine_excl[2], mod4_distmine_excl[2],
@@ -720,7 +720,7 @@ mod1_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # country FEs
 mod2_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -730,7 +730,7 @@ mod2_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(iso3c),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # USDA region FEs
 mod3_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -740,7 +740,7 @@ mod3_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(region),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # Basin level 4
 mod4_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -750,7 +750,7 @@ mod4_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl4),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # Basin level 6
 mod5_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -760,7 +760,7 @@ mod5_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl6),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # Basin level 8
 mod6_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -770,7 +770,7 @@ mod6_order_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl8),
                       data = df_reg_restr_fe,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 etable(mod1_order_fe[[1]], mod2_order_fe[[1]], mod3_order_fe[[1]], 
        mod4_order_fe[[1]], mod5_order_fe[[1]], mod6_order_fe[[1]],
@@ -806,7 +806,7 @@ mod1_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_basin),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # country FEs
 mod2_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -816,7 +816,7 @@ mod2_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(iso3c),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # USDA region FEs
 mod3_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -826,7 +826,7 @@ mod3_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(region),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # Basin level 4
 mod4_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -836,7 +836,7 @@ mod4_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl4),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # Basin level 6
 mod5_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -846,7 +846,7 @@ mod5_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl6),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # Basin level 8
 mod6_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
@@ -856,7 +856,7 @@ mod6_dist_fe = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_h
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl8),
                      data = df_reg_restr_fe,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 etable(mod1_dist_fe[[1]], mod2_dist_fe[[1]], mod3_dist_fe[[1]], 
        mod4_dist_fe[[1]], mod5_dist_fe[[1]], mod6_dist_fe[[1]], 
@@ -883,7 +883,7 @@ etable(mod1_dist_fe[[4]], mod2_dist_fe[[4]], mod4_dist_fe[[4]],
 #### Order interaction
 
 ```{r reg_order_heterogeneity_biome, warning=FALSE, message=FALSE, include=TRUE}
-mod_order_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
+mod_order_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            i(as.factor(order), downstream)  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
@@ -891,25 +891,25 @@ mod_order_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          split = "biome_group",
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 pos_EVI <- which(grepl("max_EVI", names(mod_order_hetero_biome)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_order_hetero_biome)))
 pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_order_hetero_biome)))
-pos_yield <- which(grepl("cropland_yield_kg_ha", names(mod_order_hetero_biome)))
+# pos_yield <- which(grepl("cropland_yield_kg_ha", names(mod_order_hetero_biome)))
 etable(mod_order_hetero_biome[pos_EVI], 
        drop = "soilgrid")
 etable(mod_order_hetero_biome[pos_africover], 
        drop = "soilgrid")
 etable(mod_order_hetero_biome[pos_ESA], 
        drop = "soilgrid")
-etable(mod_order_hetero_biome[pos_yield], 
-       drop = "soilgrid")
+# etable(mod_order_hetero_biome[pos_yield], 
+#        drop = "soilgrid")
 ```
 
 #### Distance interaction
 
 ```{r reg_dist_heterogeneity_biome, warning=FALSE, message=FALSE, include=TRUE}
-mod_dist_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
+mod_dist_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            (distance + I(distance^2)) * downstream  +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation  +
@@ -917,19 +917,19 @@ mod_dist_hetero_biome = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_y
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          split = "biome_group",
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 pos_EVI <- which(grepl("max_EVI", names(mod_dist_hetero_biome)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_dist_hetero_biome)))
 pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_dist_hetero_biome)))
-pos_yield <- which(grepl("cropland_yield_kg_ha", names(mod_dist_hetero_biome)))
+# pos_yield <- which(grepl("cropland_yield_kg_ha", names(mod_dist_hetero_biome)))
 etable(mod_dist_hetero_biome[pos_EVI], 
        drop = "soilgrid")
 etable(mod_dist_hetero_biome[pos_africover], 
        drop = "soilgrid")
 etable(mod_dist_hetero_biome[pos_ESA], 
        drop = "soilgrid")
-etable(mod_dist_hetero_biome[pos_yield], 
-       drop = "soilgrid")
+# etable(mod_dist_hetero_biome[pos_yield], 
+#        drop = "soilgrid")
 ```
 
 
@@ -946,7 +946,7 @@ mod_order_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland
                                    year +  as.factor(mine_basin),
                                  data = df_reg_restr,
                                  split = "region_grouped",
-                                 cluster = "HYBAS_ID")
+                                 cluster = "mine_basin")
 pos_EVI <- which(grepl("max_EVI", names(mod_order_hetero_region)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_order_hetero_region)))
 pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_order_hetero_region)))
@@ -964,7 +964,7 @@ etable(mod_order_hetero_region[pos_yield],
 
 #### Distance interaction
 
-```{r reg_dist_heterogeneity_region, warning=FALSE, message=FALSE, include=TRUE}
+```{r reg_dist_heterogeneity_region, warning=FALSE, message=FALSE, include=FALSE}
 mod_dist_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
                                   (distance + I(distance^2)) * downstream  +
                                   elevation + slope + soilgrid_grouped +
@@ -973,7 +973,7 @@ mod_dist_hetero_region = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_
                                   year +  as.factor(mine_basin),
                                 data = df_reg_restr,
                                 split = "region_grouped",
-                                cluster = "HYBAS_ID")
+                                cluster = "mine_basin")
 pos_EVI <- which(grepl("max_EVI", names(mod_dist_hetero_region)))
 pos_africover <- which(grepl("max_c_EVI_af", names(mod_dist_hetero_region)))
 pos_ESA <- which(grepl("max_c_EVI_ESA", names(mod_dist_hetero_region)))
@@ -1056,7 +1056,7 @@ mod1_order_plot = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                            i(factor(order), downstream)  |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr,
-                   cluster = "HYBAS_ID")
+                   cluster = "mine_basin")
 coefplot(mod1_order_plot, ci_level = 0.9,
          main = "Effects by order of basins (without controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
 mod2_order_plot = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~ 
@@ -1066,7 +1066,7 @@ mod2_order_plot = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
          main = "Effects by order of basins (with controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
 ```
@@ -1078,7 +1078,7 @@ coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
 <!--                          i(factor(downstream), distance_bin) | -->
 <!--                          year +  as.factor(mine_basin), -->
 <!--                        data = df_reg_restr, -->
-<!--                        cluster = "HYBAS_ID") -->
+<!--                        cluster = "mine_basin") -->
 
 
 <!-- coefplot(mod_dist_plot, ci_level = 0.9, -->
