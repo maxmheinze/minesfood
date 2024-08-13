@@ -15,35 +15,44 @@ library("rdlocrand")
 # remotes::install_github("kolesarm/RDHonest")
 library("RDHonest")
 
-# For summarising rdrobust models: https://stackoverflow.com/que --------
-
-tidy.rdrobust <- function(model, ...) {
+# For summarising RDHonest models
+tidy.RDResults <- function(model, ...) {
   ret <- data.frame(
-    term = row.names(model$coef),
-    estimate = model$coef[, 1],
-    std.error = model$se[, 1],
-    p.value = model$pv[, 1]
+    term = row.names(model$coefficients),
+    estimate = model$coefficients[, "estimate"],
+    std.error = model$coefficients[, "std.error"],
+    p.value = model$coefficients[, "p.value"]
   )
   row.names(ret) <- NULL
   ret
 }
 
-# # For summarising rdrobust models: https://stackoverflow.com/que --------
+glance.RDResults <- function(model, ...) {
+  ret <- data.frame(
+    Kernel = model$coefficients[, "kernel"],
+    Observations = round(model$coefficients[, "eff.obs"]),
+    "BW Criterion" = model$call$opt.criterion,
+    "Bandwidth" = round(model$coefficients[, "bandwidth"])
+  )
+  row.names(ret) <- NULL
+  ret
+}
 
+# for getting additional statistics for rdrobust models
 glance.rdrobust <- function(model, ...) {
   ret <- data.frame(
     Kernel = model$kernel,
-    Bandwidth = model$bwselect,
     Polynomial = ifelse(model$p == 1, "Linear", ifelse(model$p == 2, "Quadratic", "OTHER")),
-    Observations = sum(model$N_h)
+    Observations = sum(model$N_h), 
+    "BW Criterion" = model$bwselect,
+    "Bandwidth" = round(model$bws[1,1], 1)
   )
   ret
 }
 
 options("modelsummary_format_numeric_latex" = "plain")
 
-
-sapply(list.files("../R", ".R$"), \(f) {source(paste0("../R/", f)); TRUE})
+sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
 restr_year <- 2016:2023 # years
 restr_area_mined <- 0 # minimum of mined area in mine basin
@@ -139,7 +148,6 @@ rdd2_dist_no_contr <- rdrobust(y = df_reg_restr$resids_evi_no_contr,
                                p = 2,
                                bwselect ="mserd", 
                                kernel = "triangular", 
-                               covs = cov_add, 
                                cluster = df_reg_restr$mine_basin, 
                                all = TRUE)
 
@@ -161,60 +169,63 @@ rdd4_dist_no_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_no_contr,
                                cluster = df_reg_restr$mine_basin, 
                                all = TRUE)
 
-models_distance_no_contr <- list("Max EVI" = rdd1_dist_no_contr , "Max EVI" = rdd2_dist_no_contr,
-                                 "Cropland EVI" = rdd3_dist_no_contr, "Cropland EVI" = rdd4_dist_no_contr)
+rdd_models_distance_no_contr <- list("Max EVI" = rdd1_dist_no_contr , "Max EVI" = rdd2_dist_no_contr,
+                                     "Max C EVI" = rdd3_dist_no_contr, "Max C EVI" = rdd4_dist_no_contr)
 
-modelsummary(models_distance_no_contr, 
+modelsummary(rdd_models_distance_no_contr, 
              output = "latex_tabular",
-             fmt = 3, 
-             statistic = c("({std.error})", "[{p.value}]")) 
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
 
 # specifications with full controls
 rdd1_dist_with_contr <- rdrobust(y = df_reg_restr$resids_evi_with_contr, 
-                               x = df_reg_restr$distance, 
-                               c = 0, 
-                               p = 1,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                 x = df_reg_restr$distance, 
+                                 c = 0, 
+                                 p = 1,
+                                 bwselect ="mserd", 
+                                 kernel = "triangular", 
+                                 cluster = df_reg_restr$mine_basin, 
+                                 all = TRUE)
 
 rdd2_dist_with_contr <- rdrobust(y = df_reg_restr$resids_evi_with_contr, 
-                               x = df_reg_restr$distance, 
-                               c = 0, 
-                               p = 2,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               covs = cov_add, 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                 x = df_reg_restr$distance, 
+                                 c = 0, 
+                                 p = 2,
+                                 bwselect ="mserd", 
+                                 kernel = "triangular", 
+                                 cluster = df_reg_restr$mine_basin, 
+                                 all = TRUE)
 
 rdd3_dist_with_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_with_contr, 
-                               x = df_reg_restr$distance, 
-                               c = 0, 
-                               p = 1,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                 x = df_reg_restr$distance, 
+                                 c = 0, 
+                                 p = 1,
+                                 bwselect ="mserd", 
+                                 kernel = "triangular", 
+                                 cluster = df_reg_restr$mine_basin, 
+                                 all = TRUE)
 
 rdd4_dist_with_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_with_contr, 
-                               x = df_reg_restr$distance, 
-                               c = 0, 
-                               p = 2,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                 x = df_reg_restr$distance, 
+                                 c = 0, 
+                                 p = 2,
+                                 bwselect ="mserd", 
+                                 kernel = "triangular", 
+                                 cluster = df_reg_restr$mine_basin, 
+                                 all = TRUE)
 
-models_distance_with_contr <- list("Max EVI" = rdd1_dist_with_contr , "Max EVI" = rdd2_dist_with_contr,
-                                 "Cropland EVI" = rdd3_dist_with_contr, "Cropland EVI" = rdd4_dist_with_contr)
+rdd_models_distance_with_contr <- list("Max EVI" = rdd1_dist_with_contr , "Max EVI" = rdd2_dist_with_contr,
+                                       "Max C EVI" = rdd3_dist_with_contr, "Max C EVI" = rdd4_dist_with_contr)
 
-modelsummary(models_distance_with_contr, 
+modelsummary(rdd_models_distance_with_contr, 
              output = "latex_tabular",
-             fmt = 3, 
-             statistic = c("({std.error})", "[{p.value}]")) 
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
 # Order specification using rdrobust -------------------------------------
 
@@ -222,96 +233,98 @@ modelsummary(models_distance_with_contr,
 
 # specifications without controls
 rdd1_order_no_contr <- rdrobust(y = df_reg_restr$resids_evi_no_contr, 
-                               x = df_reg_restr$order, 
-                               c = 0, 
-                               p = 1,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                x = df_reg_restr$order, 
+                                c = 0, 
+                                p = 1,
+                                bwselect ="mserd", 
+                                kernel = "triangular", 
+                                cluster = df_reg_restr$mine_basin, 
+                                all = TRUE)
 
 rdd2_order_no_contr <- rdrobust(y = df_reg_restr$resids_evi_no_contr, 
-                               x = df_reg_restr$order, 
-                               c = 0, 
-                               p = 2,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               covs = cov_add, 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                x = df_reg_restr$order, 
+                                c = 0, 
+                                p = 2,
+                                bwselect ="mserd", 
+                                kernel = "triangular", 
+                                cluster = df_reg_restr$mine_basin, 
+                                all = TRUE)
 
 rdd3_order_no_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_no_contr, 
-                               x = df_reg_restr$order, 
-                               c = 0, 
-                               p = 1,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                x = df_reg_restr$order, 
+                                c = 0, 
+                                p = 1,
+                                bwselect ="mserd", 
+                                kernel = "triangular", 
+                                cluster = df_reg_restr$mine_basin, 
+                                all = TRUE)
 
 rdd4_order_no_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_no_contr, 
-                               x = df_reg_restr$order, 
-                               c = 0, 
-                               p = 2,
-                               bwselect ="mserd", 
-                               kernel = "triangular", 
-                               cluster = df_reg_restr$mine_basin, 
-                               all = TRUE)
+                                x = df_reg_restr$order, 
+                                c = 0, 
+                                p = 2,
+                                bwselect ="mserd", 
+                                kernel = "triangular", 
+                                cluster = df_reg_restr$mine_basin, 
+                                all = TRUE)
 
-models_orderance_no_contr <- list("Max EVI" = rdd1_order_no_contr , "Max EVI" = rdd2_order_no_contr,
-                                 "Cropland EVI" = rdd3_order_no_contr, "Cropland EVI" = rdd4_order_no_contr)
+rdd_models_order_no_contr <- list("Max EVI" = rdd1_order_no_contr , "Max EVI" = rdd2_order_no_contr,
+                                  "Max C EVI" = rdd3_order_no_contr, "Max C EVI" = rdd4_order_no_contr)
 
-modelsummary(models_orderance_no_contr, 
+modelsummary(rdd_models_order_no_contr, 
              output = "latex_tabular",
-             fmt = 3, 
-             statistic = c("({std.error})", "[{p.value}]")) 
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
 
 # specifications with full controls
 rdd1_order_with_contr <- rdrobust(y = df_reg_restr$resids_evi_with_contr, 
-                                 x = df_reg_restr$order, 
-                                 c = 0, 
-                                 p = 1,
-                                 bwselect ="mserd", 
-                                 kernel = "triangular", 
-                                 cluster = df_reg_restr$mine_basin, 
-                                 all = TRUE)
+                                  x = df_reg_restr$order, 
+                                  c = 0, 
+                                  p = 1,
+                                  bwselect ="mserd", 
+                                  kernel = "triangular", 
+                                  cluster = df_reg_restr$mine_basin, 
+                                  all = TRUE)
 
 rdd2_order_with_contr <- rdrobust(y = df_reg_restr$resids_evi_with_contr, 
-                                 x = df_reg_restr$order, 
-                                 c = 0, 
-                                 p = 2,
-                                 bwselect ="mserd", 
-                                 kernel = "triangular", 
-                                 covs = cov_add, 
-                                 cluster = df_reg_restr$mine_basin, 
-                                 all = TRUE)
+                                  x = df_reg_restr$order, 
+                                  c = 0, 
+                                  p = 2,
+                                  bwselect ="mserd", 
+                                  kernel = "triangular", 
+                                  cluster = df_reg_restr$mine_basin, 
+                                  all = TRUE)
 
 rdd3_order_with_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_with_contr, 
-                                 x = df_reg_restr$order, 
-                                 c = 0, 
-                                 p = 1,
-                                 bwselect ="mserd", 
-                                 kernel = "triangular", 
-                                 cluster = df_reg_restr$mine_basin, 
-                                 all = TRUE)
+                                  x = df_reg_restr$order, 
+                                  c = 0, 
+                                  p = 1,
+                                  bwselect ="mserd", 
+                                  kernel = "triangular", 
+                                  cluster = df_reg_restr$mine_basin, 
+                                  all = TRUE)
 
 rdd4_order_with_contr <- rdrobust(y = df_reg_restr$resids_afri_evi_with_contr, 
-                                 x = df_reg_restr$order, 
-                                 c = 0, 
-                                 p = 2,
-                                 bwselect ="mserd", 
-                                 kernel = "triangular", 
-                                 cluster = df_reg_restr$mine_basin, 
-                                 all = TRUE)
+                                  x = df_reg_restr$order, 
+                                  c = 0, 
+                                  p = 2,
+                                  bwselect ="mserd", 
+                                  kernel = "triangular", 
+                                  cluster = df_reg_restr$mine_basin, 
+                                  all = TRUE)
 
-models_orderance_with_contr <- list("Max EVI" = rdd1_order_with_contr , "Max EVI" = rdd2_order_with_contr,
-                                   "Cropland EVI" = rdd3_order_with_contr, "Cropland EVI" = rdd4_order_with_contr)
+rdd_models_order_with_contr <- list("Max EVI" = rdd1_order_with_contr , "Max EVI" = rdd2_order_with_contr,
+                                    "Max C EVI" = rdd3_order_with_contr, "Max C EVI" = rdd4_order_with_contr)
 
-modelsummary(models_orderance_with_contr, 
+modelsummary(rdd_models_order_with_contr, 
              output = "latex_tabular",
-             fmt = 3, 
-             statistic = c("({std.error})", "[{p.value}]")) 
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
 
 
@@ -328,7 +341,6 @@ rdd1_order_no_contr_discrete <- RDHonest(resids_evi_no_contr ~ order,
                                          cutoff = 0, 
                                          kern = "triangular", 
                                          opt.criterion = "MSE")
-rdd1_order_no_contr_discrete
 
 # clustered SEs by mine_basin
 rdd2_order_no_contr_discrete <- RDHonest(resids_evi_no_contr ~ order, 
@@ -339,7 +351,6 @@ rdd2_order_no_contr_discrete <- RDHonest(resids_evi_no_contr ~ order,
                                          clusterid = df_reg_restr |> filter(!is.na(resids_evi_no_contr)) |> 
                                            mutate(mine_basin = as.numeric(mine_basin)) |> pull(mine_basin),  
                                          se.method = "EHW")
-rdd2_order_no_contr_discrete
 
 # unclustered SEs
 rdd3_order_no_contr_discrete <- RDHonest(resids_afri_evi_no_contr ~ order, 
@@ -347,7 +358,6 @@ rdd3_order_no_contr_discrete <- RDHonest(resids_afri_evi_no_contr ~ order,
                                          cutoff = 0, 
                                          kern = "triangular", 
                                          opt.criterion = "MSE")
-rdd3_order_no_contr_discrete
 
 # clustered SEs by mine_basin
 rdd4_order_no_contr_discrete <- RDHonest(resids_afri_evi_no_contr ~ order, 
@@ -358,7 +368,18 @@ rdd4_order_no_contr_discrete <- RDHonest(resids_afri_evi_no_contr ~ order,
                                          clusterid = df_reg_restr |> filter(!is.na(resids_afri_evi_no_contr)) |> 
                                            mutate(mine_basin = as.numeric(mine_basin)) |> pull(mine_basin), 
                                          se.method = "EHW")
-rdd4_order_no_contr_discrete
+
+rdd_models_order_no_contr_discrete <- list("Max EVI" = rdd1_order_no_contr_discrete , 
+                                           "Max EVI (cluster SE)" = rdd2_order_no_contr_discrete,
+                                           "Max C EVI" = rdd3_order_no_contr_discrete, 
+                                           "Max C EVI (cluster SE)" = rdd4_order_no_contr_discrete)
+
+modelsummary(rdd_models_order_no_contr_discrete, 
+             output = "latex_tabular",
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
 
 # specifications with full controls
@@ -369,7 +390,6 @@ rdd1_order_with_contr_discrete <- RDHonest(resids_evi_with_contr ~ order,
                                            cutoff = 0, 
                                            kern = "triangular", 
                                            opt.criterion = "MSE")
-rdd1_order_with_contr_discrete
 
 # clustered SEs by mine_basin
 rdd2_order_with_contr_discrete <- RDHonest(resids_evi_with_contr ~ order, 
@@ -380,7 +400,6 @@ rdd2_order_with_contr_discrete <- RDHonest(resids_evi_with_contr ~ order,
                                            clusterid = df_reg_restr |> filter(!is.na(resids_evi_with_contr)) |> 
                                              mutate(mine_basin = as.numeric(mine_basin)) |> pull(mine_basin),  
                                            se.method = "EHW")
-rdd2_order_with_contr_discrete
 
 # unclustered SEs
 rdd3_order_with_contr_discrete <- RDHonest(resids_afri_evi_with_contr ~ order, 
@@ -388,7 +407,6 @@ rdd3_order_with_contr_discrete <- RDHonest(resids_afri_evi_with_contr ~ order,
                                            cutoff = 0, 
                                            kern = "triangular", 
                                            opt.criterion = "MSE")
-rdd3_order_with_contr_discrete
 
 # clustered SEs by mine_basin
 rdd4_order_with_contr_discrete <- RDHonest(resids_afri_evi_with_contr ~ order, 
@@ -399,5 +417,16 @@ rdd4_order_with_contr_discrete <- RDHonest(resids_afri_evi_with_contr ~ order,
                                            clusterid = df_reg_restr |> filter(!is.na(resids_afri_evi_with_contr)) |> 
                                              mutate(mine_basin = as.numeric(mine_basin)) |> pull(mine_basin), 
                                            se.method = "EHW")
-rdd4_order_with_contr_discrete
+
+rdd_models_order_with_contr_discrete <- list("Max EVI" = rdd1_order_with_contr_discrete , 
+                                             "Max EVI (cluster SE)" = rdd2_order_with_contr_discrete,
+                                             "Max C EVI" = rdd3_order_with_contr_discrete, 
+                                             "Max C EVI (cluster SE)" = rdd4_order_with_contr_discrete)
+
+modelsummary(rdd_models_order_with_contr_discrete, 
+             output = "latex_tabular",
+             fmt = 4, 
+             estimate = "{estimate}{stars}",
+             stars = c("*" = .1,"**" = .05, "***" = .01),
+             statistic = c("({std.error})")) 
 
