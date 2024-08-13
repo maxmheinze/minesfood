@@ -154,14 +154,20 @@ rdd4 <- rdrobust(y = df_reg_restr_africover$resids_afri_evi,
                  cluster = df_reg_restr_africover$mine_basin, 
                  all = TRUE)
 
+models <- list("Max EVI" = rdd1 , "Max EVI" = rdd2,"Cropland EVI" = rdd3, "Cropland EVI" = rdd4)
 
-modelsummary(list(rdd1,rdd2,rdd3,rdd4), 
+modelsummary(models, 
              output = "latex_tabular",
              fmt = 3, 
-             statistic = c("({std.error})", "[{p.value}]")) 
+             statistic = c("({std.error})", "[{p.value}]"),  
+             notes = list('This sample impl')) 
 
 
+rdplot(y = df_reg_restr$resid_evi, 
+       x = df_reg_restr$distance)
 
+rdplot(y = df_reg_restr_africover$resids_afri_evi, 
+       x = df_reg_restr_africover$distance)
 
 
 #### using order as a running variable
@@ -186,28 +192,29 @@ rdd2_or <- rdrobust(y = df_reg_restr$resid_evi,
                     cluster = df_reg_restr$mine_basin, 
                     all = TRUE)
 
-rdd3_or <- rdrobust(y = df_reg_restr$resids_afri_evi, 
-                    x = df_reg_restr$order, 
+rdd3_or <- rdrobust(y = df_reg_restr_africover$resids_afri_evi, 
+                    x = df_reg_restr_africover$order, 
                     c = 0, 
                     p = 1,
                     bwselect ="mserd", 
                     kernel = "triangular", 
                     covs = cov_add_africover, 
-                    cluster = df_reg_restr$mine_basin, 
+                    cluster = df_reg_restr_africover$mine_basin, 
                     all = TRUE)
 
-rdd4_or <- rdrobust(y = df_reg_restr$resids_afri_evi, 
-                    x = df_reg_restr$order, 
+rdd4_or <- rdrobust(y = df_reg_restr_africover$resids_afri_evi, 
+                    x = df_reg_restr_africover$order, 
                     c = 0, 
                     p = 2,
                     bwselect ="mserd", 
                     kernel = "triangular", 
                     covs = cov_add_africover, 
-                    cluster = df_reg_restr$mine_basin, 
+                    cluster = df_reg_restr_africover$mine_basin, 
                     all = TRUE)
+models_africover <- list("Max EVI" = rdd1_or , "Max EVI" = rdd2_or,"Cropland EVI" = rdd3_or, "Cropland EVI" = rdd4_or)
 
 
-modelsummary(list(rdd1_or,rdd2_or,rdd3_or,rdd4_or), 
+modelsummary(models_africover, 
              output = "latex_tabular",
              fmt = 3, 
              statistic = c("({std.error})", "[{p.value}]")) 
