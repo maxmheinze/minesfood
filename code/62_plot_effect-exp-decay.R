@@ -13,7 +13,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240809"
+date <- "20240813"
 
 p_folder <- "./output/plots/"
 p_name <- "plot_effect_decay_exp"
@@ -49,7 +49,7 @@ m_evi <- feols(c(max_EVI) ~
              accessibility_to_cities_2015 + pop_2015 |
              year +  as.factor(mine_basin),
            data = df_reg_restr,
-           cluster = "HYBAS_ID")
+           cluster = "mine_basin")
 
 m_evi_c <- feols(c(max_c_EVI_af) ~
                  elevation + slope + soilgrid_grouped +
@@ -57,7 +57,7 @@ m_evi_c <- feols(c(max_c_EVI_af) ~
                  accessibility_to_cities_2015 + pop_2015 |
                  year +  as.factor(mine_basin),
                data = df_reg_restr,
-               cluster = "HYBAS_ID")
+               cluster = "mine_basin")
 
 df_reg_restr <- df_reg_restr |> 
   mutate(resids_evi = NA, 
@@ -76,7 +76,8 @@ for(ee in grid_exp) {
   mods[["EVI"]][[paste0("exp-", ee)]] = feols(c(resids_evi) ~
                                                 exp(-ee * distance) : downstream,
                                               data = df_reg_restr,
-                                              cluster = "HYBAS_ID")
+                                              cluster = "mine_basin", 
+                                              notes = FALSE)
 }
 
 evi_bic <- unlist(lapply(mods[["EVI"]], BIC))
@@ -106,7 +107,8 @@ for(ee in grid_exp) {
   mods[["EVI_c"]][[paste0("exp-", ee)]] = feols(c(resids_evi_c) ~
                                                   exp(-ee * distance) : downstream,
                                                 data = df_reg_restr,
-                                                cluster = "HYBAS_ID")
+                                                cluster = "mine_basin", 
+                                                notes = FALSE)
 }
 
 evi_c_bic <- unlist(lapply(mods[["EVI_c"]], BIC))

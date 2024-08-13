@@ -12,7 +12,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240809"
+date <- "20240813"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -62,7 +62,7 @@ mod_order_base = feols(c(max_EVI, max_c_EVI_af) ~
                          accessibility_to_cities_2015 + pop_2015 |
                          year +  as.factor(mine_basin),
                        data = df_reg_restr,
-                       cluster = "HYBAS_ID")
+                       cluster = "mine_basin")
 
 # region
 mod_order_region = feols(c(max_EVI, max_c_EVI_af) ~
@@ -73,7 +73,7 @@ mod_order_region = feols(c(max_EVI, max_c_EVI_af) ~
                            year +  as.factor(mine_basin),
                          split = "region_grouped",
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # biome
 mod_order_biome = feols(c(max_EVI, max_c_EVI_af) ~
@@ -84,7 +84,7 @@ mod_order_biome = feols(c(max_EVI, max_c_EVI_af) ~
                           year +  as.factor(mine_basin),
                         split = "biome_group",
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # country
 mod_order_country = feols(c(max_EVI, max_c_EVI_af) ~
@@ -95,7 +95,7 @@ mod_order_country = feols(c(max_EVI, max_c_EVI_af) ~
                             year +  as.factor(mine_basin),
                           split = "iso3c",
                           data = df_reg_restr,
-                          cluster = "HYBAS_ID")
+                          cluster = "mine_basin")
 
 # mine size
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 0.5) |> pull(mine_basin) |> unique()
@@ -106,7 +106,7 @@ mod_order_size0.5 = feols(c(max_EVI, max_c_EVI_af) ~
                             accessibility_to_cities_2015 + pop_2015 |
                             year +  as.factor(mine_basin),
                           data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                          cluster = "HYBAS_ID")
+                          cluster = "mine_basin")
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 1) |> pull(mine_basin) |> unique()
 mod_order_size1 = feols(c(max_EVI, max_c_EVI_af) ~
                             i(order_new, ref = -1) +
@@ -115,7 +115,7 @@ mod_order_size1 = feols(c(max_EVI, max_c_EVI_af) ~
                             accessibility_to_cities_2015 + pop_2015 |
                             year +  as.factor(mine_basin),
                           data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                          cluster = "HYBAS_ID")
+                          cluster = "mine_basin")
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 2.5) |> pull(mine_basin) |> unique()
 mod_order_size2.5 = feols(c(max_EVI, max_c_EVI_af) ~
                             i(order_new, ref = -1) +
@@ -124,7 +124,11 @@ mod_order_size2.5 = feols(c(max_EVI, max_c_EVI_af) ~
                             accessibility_to_cities_2015 + pop_2015 |
                             year +  as.factor(mine_basin),
                           data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                          cluster = "HYBAS_ID")
+                          cluster = "mine_basin")
+
+EVI_mean <- df_reg_restr |> filter(mine_basin %in% mine_size_restr, 
+                                   !is.na(max_c_EVI_af)) |> pull(max_c_EVI_af) |> mean()
+coef(mod_order_size2.5$`lhs: max_c_EVI_af`)["order_new::0"] / EVI_mean
 
 # mine activity 
 id_active_mines <- readRDS("/data/jde/processed/filter_active_mines.RDS")
@@ -145,7 +149,7 @@ mod_order_act_abs2016 = feols(c(max_EVI, max_c_EVI_af) ~
                             accessibility_to_cities_2015 + pop_2015 |
                             year +  as.factor(mine_basin),
                           data = df_reg_restr |> filter(mine_basin %in% id_active_abs_2016),
-                          cluster = "HYBAS_ID")
+                          cluster = "mine_basin")
 mod_order_act_rel0.05_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      i(order_new, ref = -1) +
                                      elevation + slope + soilgrid_grouped +
@@ -153,7 +157,7 @@ mod_order_act_rel0.05_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.05_2016),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 mod_order_act_rel0.1_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      i(order_new, ref = -1) +
                                      elevation + slope + soilgrid_grouped +
@@ -161,7 +165,7 @@ mod_order_act_rel0.1_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.1_2016),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 mod_order_act_rel0.25_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      i(order_new, ref = -1) +
                                      elevation + slope + soilgrid_grouped +
@@ -169,7 +173,7 @@ mod_order_act_rel0.25_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.25_2016),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 
 mod_order_act_abs2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                 i(order_new, ref = -1) +
@@ -178,7 +182,7 @@ mod_order_act_abs2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                 accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr |> filter(mine_basin %in% id_active_abs_2017),
-                              cluster = "HYBAS_ID")
+                              cluster = "mine_basin")
 mod_order_act_rel0.05_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      i(order_new, ref = -1) +
                                      elevation + slope + soilgrid_grouped +
@@ -186,7 +190,7 @@ mod_order_act_rel0.05_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.05_2017),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 mod_order_act_rel0.1_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                     i(order_new, ref = -1) +
                                     elevation + slope + soilgrid_grouped +
@@ -194,7 +198,7 @@ mod_order_act_rel0.1_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                     accessibility_to_cities_2015 + pop_2015 |
                                     year +  as.factor(mine_basin),
                                   data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.1_2017),
-                                  cluster = "HYBAS_ID")
+                                  cluster = "mine_basin")
 mod_order_act_rel0.25_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      i(order_new, ref = -1) +
                                      elevation + slope + soilgrid_grouped +
@@ -202,7 +206,7 @@ mod_order_act_rel0.25_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.25_2017),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 
 
 # Distance specification --------------------------------------------------
@@ -215,7 +219,7 @@ mod_dist_base = feols(c(max_EVI, max_c_EVI_af) ~
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
                       data = df_reg_restr,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # region
 mod_dist_region = feols(c(max_EVI, max_c_EVI_af) ~
@@ -226,7 +230,7 @@ mod_dist_region = feols(c(max_EVI, max_c_EVI_af) ~
                           year +  as.factor(mine_basin),
                         split = "region_grouped",
                         data = df_reg_restr,
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 
 # biome
 mod_dist_biome = feols(c(max_EVI, max_c_EVI_af) ~
@@ -237,7 +241,7 @@ mod_dist_biome = feols(c(max_EVI, max_c_EVI_af) ~
                          year +  as.factor(mine_basin),
                        split = "biome_group",
                        data = df_reg_restr,
-                       cluster = "HYBAS_ID")
+                       cluster = "mine_basin")
 
 # region
 mod_dist_country = feols(c(max_EVI, max_c_EVI_af) ~
@@ -248,7 +252,7 @@ mod_dist_country = feols(c(max_EVI, max_c_EVI_af) ~
                            year +  as.factor(mine_basin),
                          split = "iso3c",
                          data = df_reg_restr,
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # mine size
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 0.5) |> pull(mine_basin) |> unique()
@@ -259,7 +263,7 @@ mod_dist_size0.5 = feols(c(max_EVI, max_c_EVI_af) ~
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin), 
                          data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 1) |> pull(mine_basin) |> unique()
 mod_dist_size1 = feols(c(max_EVI, max_c_EVI_af) ~
                           (distance + I(distance^2)) * downstream +
@@ -268,7 +272,7 @@ mod_dist_size1 = feols(c(max_EVI, max_c_EVI_af) ~
                           accessibility_to_cities_2015 + pop_2015 |
                           year +  as.factor(mine_basin), 
                         data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                        cluster = "HYBAS_ID")
+                        cluster = "mine_basin")
 mine_size_restr <- df_reg |> filter(mine_area_km2 > 2.5) |> pull(mine_basin) |> unique()
 mod_dist_size2.5 = feols(c(max_EVI, max_c_EVI_af) ~
                            (distance + I(distance^2)) * downstream +
@@ -277,7 +281,7 @@ mod_dist_size2.5 = feols(c(max_EVI, max_c_EVI_af) ~
                            accessibility_to_cities_2015 + pop_2015 |
                            year +  as.factor(mine_basin), 
                          data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
-                         cluster = "HYBAS_ID")
+                         cluster = "mine_basin")
 
 # mine activity 
 id_active_mines <- readRDS("/data/jde/processed/filter_active_mines.RDS")
@@ -298,7 +302,7 @@ mod_dist_act_abs2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                 accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr |> filter(mine_basin %in% id_active_abs_2016),
-                              cluster = "HYBAS_ID")
+                              cluster = "mine_basin")
 mod_dist_act_rel0.05_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      (distance + I(distance^2)) * downstream +
                                      elevation + slope + soilgrid_grouped +
@@ -306,7 +310,7 @@ mod_dist_act_rel0.05_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.05_2016),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 mod_dist_act_rel0.1_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                     (distance + I(distance^2)) * downstream +
                                     elevation + slope + soilgrid_grouped +
@@ -314,7 +318,7 @@ mod_dist_act_rel0.1_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                     accessibility_to_cities_2015 + pop_2015 |
                                     year +  as.factor(mine_basin),
                                   data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.1_2016),
-                                  cluster = "HYBAS_ID")
+                                  cluster = "mine_basin")
 mod_dist_act_rel0.25_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      (distance + I(distance^2)) * downstream +
                                      elevation + slope + soilgrid_grouped +
@@ -322,7 +326,7 @@ mod_dist_act_rel0.25_2016 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.25_2016),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 
 mod_dist_act_abs2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                 (distance + I(distance^2)) * downstream +
@@ -331,7 +335,7 @@ mod_dist_act_abs2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                 accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr |> filter(mine_basin %in% id_active_abs_2017),
-                              cluster = "HYBAS_ID")
+                              cluster = "mine_basin")
 mod_dist_act_rel0.05_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      (distance + I(distance^2)) * downstream +
                                      elevation + slope + soilgrid_grouped +
@@ -339,7 +343,7 @@ mod_dist_act_rel0.05_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.05_2017),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 mod_dist_act_rel0.1_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                     (distance + I(distance^2)) * downstream +
                                     elevation + slope + soilgrid_grouped +
@@ -347,7 +351,7 @@ mod_dist_act_rel0.1_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                     accessibility_to_cities_2015 + pop_2015 |
                                     year +  as.factor(mine_basin),
                                   data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.1_2017),
-                                  cluster = "HYBAS_ID")
+                                  cluster = "mine_basin")
 mod_dist_act_rel0.25_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      (distance + I(distance^2)) * downstream +
                                      elevation + slope + soilgrid_grouped +
@@ -355,7 +359,7 @@ mod_dist_act_rel0.25_2017 = feols(c(max_EVI, max_c_EVI_af) ~
                                      accessibility_to_cities_2015 + pop_2015 |
                                      year +  as.factor(mine_basin),
                                    data = df_reg_restr |> filter(mine_basin %in% id_active_rel0.25_2017),
-                                   cluster = "HYBAS_ID")
+                                   cluster = "mine_basin")
 
 
 # Output creation ---------------------------------------------------------

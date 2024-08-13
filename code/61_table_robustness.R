@@ -6,7 +6,7 @@ library("rdrobust")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
 
-date <- "20240809"
+date <- "20240813"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -66,7 +66,7 @@ mod_order_base = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                          accessibility_to_cities_2015 + pop_2015 |
                          year +  as.factor(mine_basin),
                        data = df_reg_restr,
-                       cluster = "HYBAS_ID")
+                       cluster = "mine_basin")
 
 # FE - Pfaffstetter level 8
 mod_order_fe8 = feols(c(max_EVI, max_c_EVI_af) ~
@@ -76,7 +76,7 @@ mod_order_fe8 = feols(c(max_EVI, max_c_EVI_af) ~
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl8),
                       data = df_reg_restr,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # FE - Pfaffstetter level 6
 mod_order_fe6 = feols(c(max_EVI, max_c_EVI_af) ~
@@ -86,7 +86,7 @@ mod_order_fe6 = feols(c(max_EVI, max_c_EVI_af) ~
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_pfaf_lvl6),
                       data = df_reg_restr,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # mean EVI
 mod_order_mean = feols(c(mean_EVI, mean_c_EVI_af) ~
@@ -96,7 +96,7 @@ mod_order_mean = feols(c(mean_EVI, mean_c_EVI_af) ~
                          accessibility_to_cities_2015 + pop_2015 |
                          year +  as.factor(mine_basin),
                        data = df_reg_restr,
-                       cluster = "HYBAS_ID")
+                       cluster = "mine_basin")
 
 
 #####
@@ -110,7 +110,7 @@ mod_dist_base = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
                       data = df_reg_restr,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 # FE - Pfaffstetter level 8
 mod_dist_fe8 = feols(c(max_EVI, max_c_EVI_af) ~
@@ -120,7 +120,7 @@ mod_dist_fe8 = feols(c(max_EVI, max_c_EVI_af) ~
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl8),
                      data = df_reg_restr,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # FE - Pfaffstetter level 6
 mod_dist_fe6 = feols(c(max_EVI, max_c_EVI_af) ~
@@ -130,7 +130,7 @@ mod_dist_fe6 = feols(c(max_EVI, max_c_EVI_af) ~
                        accessibility_to_cities_2015 + pop_2015 |
                        year +  as.factor(mine_pfaf_lvl6),
                      data = df_reg_restr,
-                     cluster = "HYBAS_ID")
+                     cluster = "mine_basin")
 
 # mean EVI
 mod_dist_mean = feols(c(mean_EVI, mean_c_EVI_af) ~
@@ -140,7 +140,7 @@ mod_dist_mean = feols(c(mean_EVI, mean_c_EVI_af) ~
                         accessibility_to_cities_2015 + pop_2015 |
                         year +  as.factor(mine_basin),
                       data = df_reg_restr,
-                      cluster = "HYBAS_ID")
+                      cluster = "mine_basin")
 
 
 #####
@@ -236,7 +236,7 @@ mod_order_restr_number_basins = feols(c(max_EVI, max_c_EVI_af) ~
                                         accessibility_to_cities_2015 + pop_2015 |
                                         year +  as.factor(mine_basin),
                                       data = df_reg_restr_number_basins,
-                                      cluster = "HYBAS_ID")
+                                      cluster = "mine_basin")
 
 mod_dist_restr_number_basins = feols(c(max_EVI, max_c_EVI_af) ~
                                        (distance + I(distance^2)) * downstream +
@@ -245,7 +245,7 @@ mod_dist_restr_number_basins = feols(c(max_EVI, max_c_EVI_af) ~
                                        accessibility_to_cities_2015 + pop_2015 |
                                        year +  as.factor(mine_basin),
                                      data = df_reg_restr_number_basins,
-                                     cluster = "HYBAS_ID")
+                                     cluster = "mine_basin")
 
 # including only order 1
 restr_order <- 1
@@ -258,7 +258,7 @@ mod_order_restr_order = feols(c(max_EVI, max_c_EVI_af) ~
                                 accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr_order,
-                              cluster = "HYBAS_ID")
+                              cluster = "mine_basin")
 
 mod_dist_restr_order = feols(c(max_EVI, max_c_EVI_af) ~
                                (distance + I(distance^2)) * downstream +
@@ -267,7 +267,7 @@ mod_dist_restr_order = feols(c(max_EVI, max_c_EVI_af) ~
                                accessibility_to_cities_2015 + pop_2015 |
                                year +  as.factor(mine_basin),
                              data = df_reg_restr_order,
-                             cluster = "HYBAS_ID")
+                             cluster = "mine_basin")
 
 # exluding the mine basin itself
 df_reg_restr_mine_basin <- df_reg_restr |> 
@@ -279,7 +279,7 @@ mod_order_restr_mine_basin = feols(c(max_EVI, max_c_EVI_af) ~
                                 accessibility_to_cities_2015 + pop_2015 |
                                 year +  as.factor(mine_basin),
                               data = df_reg_restr_mine_basin,
-                              cluster = "HYBAS_ID")
+                              cluster = "mine_basin")
 
 mod_dist_restr_mine_basin = feols(c(max_EVI, max_c_EVI_af) ~
                                (distance + I(distance^2)) * downstream +
@@ -288,7 +288,7 @@ mod_dist_restr_mine_basin = feols(c(max_EVI, max_c_EVI_af) ~
                                accessibility_to_cities_2015 + pop_2015 |
                                year +  as.factor(mine_basin),
                              data = df_reg_restr_mine_basin,
-                             cluster = "HYBAS_ID")
+                             cluster = "mine_basin")
 
 # including exactly order -1 and 1
 df_reg_restr_comb <- df_reg_restr_number_basins |> 
@@ -300,7 +300,7 @@ mod_order_restr_comb = feols(c(max_EVI, max_c_EVI_af) ~
                                accessibility_to_cities_2015 + pop_2015 |
                                year +  as.factor(mine_basin),
                              data = df_reg_restr_comb,
-                             cluster = "HYBAS_ID")
+                             cluster = "mine_basin")
 
 mod_dist_restr_comb = feols(c(max_EVI, max_c_EVI_af) ~
                               (distance + I(distance^2)) * downstream +
@@ -309,7 +309,7 @@ mod_dist_restr_comb = feols(c(max_EVI, max_c_EVI_af) ~
                               accessibility_to_cities_2015 + pop_2015 |
                               year +  as.factor(mine_basin),
                             data = df_reg_restr_comb,
-                            cluster = "HYBAS_ID")
+                            cluster = "mine_basin")
 
 #####
 # Output creation
