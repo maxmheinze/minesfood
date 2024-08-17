@@ -56,7 +56,9 @@ basin_mines_iso <- basin_mines |>
   select(-mine_area_km2)
 basin_mines <- basin_mines |>
   group_by(mine_basin) |>
-  summarise(mine_area_km2 = sum(mine_area_km2)) |>
+  summarise(mine_area_km2 = sum(mine_area_km2), 
+            mine_number = n()) |>
+  mutate(mine_avg_area_km2 = mine_area_km2 / mine_number) |> 
   left_join(basin_mines_iso) |>
   left_join(s |> st_drop_geometry() |> 
               transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |> 
@@ -394,7 +396,8 @@ downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_ar
   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID = HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
   transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
-            iso3c, downstream, order, distance, distance_centroid, basin_area_km2, mine_area_km2)
+            iso3c, downstream, order, distance, distance_centroid, basin_area_km2, mine_area_km2,
+            mine_number, mine_avg_area_km2)
 
 write.csv(downstream_upstream_distance,
   p("processed/downstream_upstream_distance.csv"), row.names = FALSE)
@@ -462,7 +465,8 @@ downstream_upstream_distance_ordered <- downstream_upstream_distance |>
   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
   mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
   transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
-            iso3c, downstream, status, order, distance, distance_centroid, basin_area_km2, mine_area_km2)
+            iso3c, downstream, status, order, distance, distance_centroid, basin_area_km2,
+            mine_area_km2, mine_number, mine_avg_area_km2)
 
 write.csv(downstream_upstream_distance_ordered,
   p("processed/downstream_upstream_distance_ordered.csv"), row.names = FALSE)

@@ -501,7 +501,7 @@ evi_avg <- df_reg_restr |>
 Compared to the sample mean, the presence of a mine upstream changes
 
 * the overall EVI by **`r round(coef(mod2_order_meanEVI[[1]])["as.factor(order)::0:downstream"] / evi_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[1]])["as.factor(order)::0:downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[1]])["as.factor(order)::0:downstream"] / evi_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[1]])["as.factor(order)::0:downstream"], 3)`*)
-* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_meanEVI[[2]])["as.factor(order)::0:downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[2]])["as.factor(order)::0:downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[2]])["as.factor(order)::0:downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[2]])["as.factor(order)::0:downstream"], 3)`*)
+* the croplands EVI (based on Africover mask) by **`r round(coef(mod2_order_meanEVI[[2]])["as.factor(order)::0:downstream"] / evi_cropland_africover_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[2]])["as.factor(order)::0:downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[2]])["as.factor(order)::0:downstream"] / evi_cropland_africover_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[2]])["as.factor(order)::0:downstream"], 3)`*)
 * the croplands EVI (based on ESA mask) by **`r round(coef(mod2_order_meanEVI[[3]])["as.factor(order)::0:downstream"] / evi_cropland_ESA_avg * 100, 2)`%**, p-value = *`r round(pvalue(mod2_order_meanEVI[[3]])["as.factor(order)::0:downstream"], 3)`* (`r round(coef(mod4_order_meanEVI[[3]])["as.factor(order)::0:downstream"] / evi_cropland_ESA_avg * 100, 2)`%, p-value = *`r round(pvalue(mod4_order_meanEVI[[3]])["as.factor(order)::0:downstream"], 3)`*)
 
 
@@ -1092,14 +1092,14 @@ coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
 
 ### Falsification Tests - Placebo Outcomes
 
-```{r plot_reg_order, warning=FALSE, message=FALSE}
+```{r plot_reg_placebo, warning=FALSE, message=FALSE}
 mod1_order_plot = feols(c(precipitation) ~ 
                            i(factor(order), downstream)  |
                      year +  as.factor(mine_basin),
                    data = df_reg_restr,
                    cluster = "HYBAS_ID")
 coefplot(mod1_order_plot, ci_level = 0.9,
-         main = "Effects by order of basins (without controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
+         main = "Effects by order of basins (without controls)")
 
 mod_dist = feols(c(tmp_mean) ~ (distance) * downstream  +
                                   elevation + slope + soilgrid_grouped + precipitation  +
@@ -1132,7 +1132,7 @@ mod2_order_plot = feols(c(tmp_mean, tmp_max, tmp_min, precipitation) ~
 
 etable(mod2_order_plot)
 
-coefplot(mod2_order_plot, ci_level = 0.9, keep = "order",
-         main = "Effects by order of basins (with controls)", sub = "Black = EVI, Red = Africover EVI, Green = ESA EVI")
+coefplot(mod2_order_plot, ci_level = 0.9, keep = "downstream",
+         main = "Effects by order of basins (with controls)")
 ```
 

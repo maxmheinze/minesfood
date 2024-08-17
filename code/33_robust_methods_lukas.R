@@ -45,7 +45,8 @@ glance.rdrobust <- function(model, ...) {
     Polynomial = ifelse(model$p == 1, "Linear", ifelse(model$p == 2, "Quadratic", "OTHER")),
     Observations = sum(model$N_h), 
     "BW Criterion" = model$bwselect,
-    "Bandwidth" = round(model$bws[1,1], 1)
+    "Bandwidth (conv)" = round(model$bws[1,1], 1),
+    "Bandwidth (bias)" = round(model$bws[2,1], 1)
   )
   ret
 }

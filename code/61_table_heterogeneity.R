@@ -126,10 +126,6 @@ mod_order_size2.5 = feols(c(max_EVI, max_c_EVI_af) ~
                           data = df_reg_restr |> filter(mine_basin %in% mine_size_restr),
                           cluster = "mine_basin")
 
-EVI_mean <- df_reg_restr |> filter(mine_basin %in% mine_size_restr, 
-                                   !is.na(max_c_EVI_af)) |> pull(max_c_EVI_af) |> mean()
-coef(mod_order_size2.5$`lhs: max_c_EVI_af`)["order_new::0"] / EVI_mean
-
 # mine activity 
 id_active_mines <- readRDS("/data/jde/processed/filter_active_mines.RDS")
 
