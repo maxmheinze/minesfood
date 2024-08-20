@@ -95,7 +95,7 @@ mccrary_test <- rddensity(df_reg_restr$order, c = 0)
 summary(mccrary_test)
 
 rdplotdensity <- rdplotdensity(mccrary_test, df_reg_restr$distance, 
-                               plotRange = c(-10, 10)) # I have no idea how to interpret this precisely
+                               plotRange = c(-10, 10)) 
 
 ##############################################################
 #### REPLICATION using RDROBUST###############################
@@ -154,13 +154,20 @@ rdd4 <- rdrobust(y = df_reg_restr_africover$resids_afri_evi,
                  cluster = df_reg_restr_africover$mine_basin, 
                  all = TRUE)
 
-models <- list("Max EVI" = rdd1 , "Max EVI" = rdd2,"Cropland EVI" = rdd3, "Cropland EVI" = rdd4)
 
-modelsummary(models, 
+panels <- list(
+    "Max EVI" = rdd1, 
+    "Max EVI" = rdd2,
+    "Max Cropland EVI" = rdd3,
+    "Max Cropland EVI" = rdd4)
+
+
+modelsummary(panels, 
              output = "latex_tabular",
              fmt = 3, 
+             header = "Robust Regression Discontinuity",
              statistic = c("({std.error})", "[{p.value}]"),  
-             notes = list('This sample impl')) 
+             notes = list('This table presents results for the local average treatment effect using best practices as suggested by \\textcite{cattaneo2019}.')) 
 
 
 rdplot(y = df_reg_restr$resid_evi, 
