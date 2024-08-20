@@ -112,7 +112,7 @@ etable(mod1_dist_square_contr,
        adjustbox = TRUE,
        replace = TRUE, 
        drop = "soilgrid", 
-       order = c("Downstream")
+       order = c("Downstream"), 
 )
 
 
@@ -121,7 +121,7 @@ etable(mod1_dist_linear_contr,
        adjustbox = TRUE,
        replace = TRUE, 
        drop = "soilgrid", 
-       order = c("Downstream")
+       order = c("Downstream"), 
 )
 
 
