@@ -134,10 +134,11 @@ upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 
 
 pdf(paste0(p_folder, p_name, "_", date, ".pdf"), width = 10, height = 5)
-par(mfrow = c(1, 2), oma = c(0, 0, 1, 0)) 
+par(mfrow = c(1, 2)) 
 
 plot(0:500, exp(-mean_pp_evi * 0:500), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size (EVI)", ylim = c(0, 1), xlim = c(0, 250))
+     ylab = "Rel. Effect Size", ylim = c(0, 1), xlim = c(0, 250),
+     main = "Impact Decay, EVI")
 polygon(c(0:500, 500:0), c(exp(-lower_pp_evi * 0:500), rev(exp(-upper_pp_evi * 0:500))), 
         col = rgb(0, 0, 0, 0.1), border = NA)
 lines(0:500, exp(-median_pp_evi * 0:500), lty = 2)
@@ -147,7 +148,8 @@ abline(v = which(exp(-mean_pp_evi * 0:500) < 0.5)[1], lty = 2, col = "blue")
 abline(v = which(exp(-mean_pp_evi * 0:500) < 0.1)[1], lty = 2, col = "red")
 
 plot(0:500, exp(-mean_pp_evi_c * 0:500), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size (EVI croplands)", ylim = c(0, 1), xlim = c(0, 250))
+     ylab = "Rel. Effect Size", ylim = c(0, 1), xlim = c(0, 250),
+     main = "Impact Decay, Cropland EVI")
 polygon(c(0:500, 500:0), c(exp(-lower_pp_evi_c * 0:500), rev(exp(-upper_pp_evi_c * 0:500))), 
         col = rgb(0, 0, 0, 0.1), border = NA)
 lines(0:500, exp(-median_pp_evi_c * 0:500), lty = 2)
@@ -155,8 +157,6 @@ lines(0:500, exp(-lower_pp_evi_c * 0:500), lty = 3)
 lines(0:500, exp(-upper_pp_evi_c * 0:500), lty = 3)
 abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], lty = 2, col = "blue")
 abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], lty = 2, col = "red")
-
-mtext("Effect decay (exponential)", outer = TRUE, cex = 1.5, line = -2, font = 2)
 
 dev.off()
 
