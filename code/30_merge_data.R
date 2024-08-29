@@ -45,7 +45,8 @@ df_reg <- full_join(dup, basin_evi, by = "HYBAS_ID") |> relocate(year, .after = 
   left_join(met_controls, by = c("HYBAS_ID", "year")) |>
   left_join(pop, by = c("HYBAS_ID", "year")) |> 
   mutate(t.trend = year - 2000, 
-         distance_bin = cut(distance, breaks = c(-Inf, 10, 20, 30, 40, 50, Inf)))
+         distance_bin = cut(distance, breaks = c(-Inf, 10, 20, 30, 40, 50, Inf)),
+         distance_centroid_bin = cut(distance_centroid, breaks = c(-Inf, 10, 20, 30, 40, 50, Inf)))
 
 # what's done here is that we assign a downstream basin to be unique for a mine? 
 # Meaning that a basin can only be downstream to one mine but not more? we only 

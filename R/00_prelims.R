@@ -19,3 +19,4 @@ if(!dir.exists(DATA_ALT)) {
   message("\tCouldn't find the directory `DATA_ALT`. ",
     "This may prevent some code from executing properly.")
 }
+

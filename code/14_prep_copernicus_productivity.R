@@ -3,14 +3,16 @@ library(raster)
 library(sf)
 library(RColorBrewer)
 
+sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
+
 # Define the years
-years <- 2006:2023
+years <- 2000:2021
 
 # Base path for the directories
 base_path <- "/data/jde/copernicus_crop_productivity"
 
 # Loop over the years from 2006 to 2023
-for (year in 2000:2023) {
+for (year in 2000:2021) {
   # Construct the path for the current year's directory
   year_dir <- file.path(base_path, as.character(year))
   
@@ -32,9 +34,6 @@ for (year in 2000:2023) {
 # Step 2: Load the Basin Data
 basins <- read_sf(p("processed/relevant_basins.gpkg"))
 
-
-
-
 # Define the base file path and pattern
 base_path <- "/data/jde/copernicus_crop_productivity/"
 crop <- "Maize_TAGP_C3S-glob-agric"
@@ -45,7 +44,7 @@ date_suffix <- "-12-31_dek_CSSF_hist_v1.nc"
 file_paths <- list()
 
 # Loop through the years and construct file paths
-for (year in 2023:2023) {
+for (year in 2000:2021) {
   # Construct the file path for each year
   file_path <- paste0(base_path, year, "/", crop, "_", year, date_prefix, year, date_suffix)
   
@@ -70,12 +69,13 @@ for (year in names(file_paths)) {
   
   # Add the mean values to the basins dataframe with the appropriate year column name
   basins[[paste0("year_", year)]] <- mean_values
+  cat(year, " extraction done!\n")
 }
 
 basins_cropland_productivity_esa <- basins %>%
   st_drop_geometry() %>% 
   as_tibble()  %>%
-  dplyr::select(HYBAS_ID, year_2000:year_2021) %>%
+  dplyr::select(HYBAS_ID, year_2000:year_2023) %>%
   rename_with(~ str_replace_all(., "\\[,.*\\]", "")) %>%
   mutate(across(where(is.list), ~ map(.x, as.numeric) %>% unlist())) %>%
   mutate(across(where(~ is.matrix(.)), ~ as.vector(.)))
