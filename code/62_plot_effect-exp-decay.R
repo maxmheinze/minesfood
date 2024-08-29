@@ -133,31 +133,60 @@ upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 #   geom_point()
 
 
-pdf(paste0(p_folder, p_name, "_", date, ".pdf"), width = 10, height = 5)
-par(mfrow = c(1, 2)) 
+# pdf(paste0(p_folder, p_name, "_", date, "-EVI.pdf"), width = 5, height = 4)
+cairo_pdf("outputs/effect-decay_EVI.pdf", width = 5, height = 4)
 
-plot(0:500, exp(-mean_pp_evi * 0:500), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size", ylim = c(0, 1), xlim = c(0, 250),
-     main = "Impact Decay, EVI")
+par(mfrow = c(1, 1), family = "Helvetica", mar = c(2, 2, 2, .5))
+plot.new()
+plot.window(ylim = c(0, 1), xlim = c(0, 275))
+axis(2, at = seq(0, 1, .2), labels = paste0(seq(0, 1, .2) * 100, "%"))
+axis(1, at = seq(0, 250, 50), labels = paste0(seq(0, 250, 50), " km"))
+abline(v = 0, col = "gray", lty = 1); abline(h = 0, col = "gray", lty = 1)
+# grid()
+lines(0:500, exp(-mean_pp_evi * 0:500))
+title(xlab = "Distance (km)", ylab = "Relative effect size", main = "Impact Decay, EVI")
 polygon(c(0:500, 500:0), c(exp(-lower_pp_evi * 0:500), rev(exp(-upper_pp_evi * 0:500))), 
         col = rgb(0, 0, 0, 0.1), border = NA)
 lines(0:500, exp(-median_pp_evi * 0:500), lty = 2)
-lines(0:500, exp(-lower_pp_evi * 0:500), lty = 3)
-lines(0:500, exp(-upper_pp_evi * 0:500), lty = 3)
-abline(v = which(exp(-mean_pp_evi * 0:500) < 0.5)[1], lty = 2, col = "blue")
-abline(v = which(exp(-mean_pp_evi * 0:500) < 0.1)[1], lty = 2, col = "red")
+lines(0:500, exp(-lower_pp_evi * 0:500), lty = 3, col = "gray")
+lines(0:500, exp(-upper_pp_evi * 0:500), lty = 3, col = "gray")
+segments(x0 = which(exp(-mean_pp_evi * 0:500) < 0.5)[1], x1 = which(exp(-mean_pp_evi * 0:500) < 0.5)[1], 
+  y0 = 0, y1 = 0.9, lty = 4, col = "#008080")
+text(x = 20 + which(exp(-mean_pp_evi * 0:500) < 0.5)[1], y = .9, 
+  labels = paste0("50%\n", which(exp(-mean_pp_evi * 0:500) < 0.5)[1], " km"))
+segments(x0 = which(exp(-mean_pp_evi * 0:500) < 0.1)[1], x1 = which(exp(-mean_pp_evi * 0:500) < 0.1)[1],
+  y0 = 0, y1 = .6, lty = 4, col = "#008080")
+text(x = -25 + which(exp(-mean_pp_evi * 0:500) < 0.1)[1], y = .5, 
+  labels = paste0("10%\n", which(exp(-mean_pp_evi * 0:500) < 0.1)[1], " km"))
+dev.off()
 
-plot(0:500, exp(-mean_pp_evi_c * 0:500), type = "l", xlab = "Distance", 
-     ylab = "Rel. Effect Size", ylim = c(0, 1), xlim = c(0, 250),
-     main = "Impact Decay, Cropland EVI")
+# pdf(paste0(p_folder, p_name, "_", date, "-EVI-c.pdf"), width = 5, height = 4)
+cairo_pdf("outputs/effect-decay_EVI-c.pdf", width = 5, height = 4)
+
+par(mfrow = c(1, 1), family = "Helvetica", mar = c(2, 2, 2, .5))
+plot.new()
+plot.window(ylim = c(0, 1), xlim = c(0, 275))
+axis(2, at = seq(0, 1, .2), labels = paste0(seq(0, 1, .2) * 100, "%"))
+axis(1, at = seq(0, 250, 50), labels = paste0(seq(0, 250, 50), " km"))
+abline(v = 0, col = "gray", lty = 1); abline(h = 0, col = "gray", lty = 1)
+# grid()
+lines(0:500, exp(-mean_pp_evi_c * 0:500))
+title(xlab = "Distance (km)", ylab = "Relative effect size", main = "Impact Decay, Cropland EVI")
 polygon(c(0:500, 500:0), c(exp(-lower_pp_evi_c * 0:500), rev(exp(-upper_pp_evi_c * 0:500))), 
         col = rgb(0, 0, 0, 0.1), border = NA)
 lines(0:500, exp(-median_pp_evi_c * 0:500), lty = 2)
-lines(0:500, exp(-lower_pp_evi_c * 0:500), lty = 3)
-lines(0:500, exp(-upper_pp_evi_c * 0:500), lty = 3)
-abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], lty = 2, col = "blue")
-abline(v = which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], lty = 2, col = "red")
-
+lines(0:500, exp(-lower_pp_evi_c * 0:500), lty = 3, col = "gray")
+lines(0:500, exp(-upper_pp_evi_c * 0:500), lty = 3, col = "gray")
+segments(x0 = which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], x1 = which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], 
+  y0 = 0, y1 = 0.9, lty = 4, col = "#008080")
+text(x = 20 + which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], y = .9, 
+  labels = paste0("50%\n", which(exp(-mean_pp_evi_c * 0:500) < 0.5)[1], " km"))
+segments(x0 = which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], x1 = which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1],
+  y0 = 0, y1 = .6, lty = 4, col = "#008080")
+text(x = 20 + which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], y = .5, 
+  labels = paste0("10%\n", which(exp(-mean_pp_evi_c * 0:500) < 0.1)[1], " km"))
+legend("topright", lty = c(1, 2, 3, 4), col = c("black", "black", "gray"),
+  legend = c("Mean", "Median", "90% CI"), cex = 1.2, bty = "n")
 dev.off()
 
 
