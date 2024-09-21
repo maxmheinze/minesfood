@@ -382,4 +382,30 @@ iplot(mod1_order_contr, ci_level = 0.95,
 iplot(mod4_order_contr, ci_level = 0.95,
          main = "Effects by order of basins (with controls)", sub = "Black = EVI, Red = Africover EVI", 
          dict = c("order_new" = "Order"))
+
+
+# Set graphical parameters to increase axis label size and overall text size
+par(cex.axis = 1.2,
+    cex.lab = 1.4,          # Increase axis label size
+    cex.main = 1.5,           # Increase main title size
+    cex.sub = 1.2,          # Increase subtitle size
+    lwd = 1.5,                # Increase line widths globally
+    font.axis = 2,          # Bold axis labels
+    font.lab = 2,           # Bold axis titles
+    font.main = 2,          # Bold main title
+    font.sub = 2)           # Bold subtitle
+
+# Plot with adjusted sizes and thicknesses
+iplot(
+  mod4_order_contr,
+  cex = 1.5,
+  ci_level = 0.95,
+  pt.cex = 1.5,             # Increase point size
+  pt.lwd = 1.5,               # Increase line width of points
+  ci.lwd = 1.5,               # Increase confidence interval line width
+  main = "Effects by Order of Basins (with Controls)",
+  #sub = "Black = EVI, Red = Cropland EVI",
+  dict = c("order_new" = "Basin Order"))
+
+# Close the graphics device if needed
 dev.off()
