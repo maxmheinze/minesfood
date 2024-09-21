@@ -404,8 +404,9 @@ iplot(
   pt.lwd = 1.5,               # Increase line width of points
   ci.lwd = 1.5,               # Increase confidence interval line width
   main = "Effects by Order of Basins (with Controls)",
-  #sub = "Black = EVI, Red = Cropland EVI",
+  sub = "Black = EVI, Red = Cropland EVI",
   dict = c("order_new" = "Basin Order"))
 
 # Close the graphics device if needed
 dev.off()
+
