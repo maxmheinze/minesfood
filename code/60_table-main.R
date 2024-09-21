@@ -384,6 +384,10 @@ iplot(mod4_order_contr, ci_level = 0.95,
          dict = c("order_new" = "Order"))
 
 
+
+
+# Create Plot for Presentation; increasing Fontsizes and making the bigfat
+
 # Set graphical parameters to increase axis label size and overall text size
 par(cex.axis = 1.2,
     cex.lab = 1.4,          # Increase axis label size
