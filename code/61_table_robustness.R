@@ -525,3 +525,9 @@ p_effects_comb_order <- ggplot(df_tidy_mod_comb_order,
 pdf(paste0(p_folder, p_name, "_comb_order.pdf"), width = 10, height = 6)
 p_effects_comb_order
 dev.off()
+
+
+
+
+
+
