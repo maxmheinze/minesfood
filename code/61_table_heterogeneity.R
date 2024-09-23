@@ -771,10 +771,11 @@ p_effects_comb_order <- ggplot(df_tidy_mod_comb_order,
   labs(x = "Estimate and 95% Conf. Int.", y = "") +
   theme_bw() +
   theme(
-    text = element_text(color = "black", size = 14), # Set text color to black and increase text size
-    axis.title = element_text(size = 14, color = "black"), # Increase axis title size and set to black
-    axis.text = element_text(size = 12, color = "black")  # Increase axis text size and set to black
-  )
+    text = element_text(color = "black", size = 14, face = "bold"), # Set text color to black and increase text size
+    axis.title = element_text(size = 15, color = "black", face = "bold"), # Increase axis title size and set to black
+    axis.text = element_text(size = 16, color = "black", face = "bold"), 
+    axis.text.x = element_text(size = 10, color = "black", face = "bold")  # Increase axis text size and set to black)  # Increase axis text size and set to black
+    )
 
 # Save the plot as PDF
 pdf(paste0(p_folder, p_name, "_comb_order.pdf"), width = 10, height = 6)

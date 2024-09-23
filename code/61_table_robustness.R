@@ -531,3 +531,54 @@ dev.off()
 
 
 
+
+
+
+
+
+
+
+
+
+
+# Combining plots in one
+df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |> 
+  mutate(mod = factor(mod, levels = c("Order: EVI", 
+                                      "Order: EVI croplands", 
+                                      "Distance: EVI", 
+                                      "Distance: EVI croplands")))
+
+p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  facet_wrap(.~mod, scales = "free_x") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "") +
+  theme_bw()
+
+pdf(paste0(p_folder, p_name, "_comb.pdf"), width = 10, height = 12)
+p_effects_comb
+dev.off()
+
+
+# Adjusted plot with increased text size and bold formatting
+p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
+  geom_point() +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  facet_wrap(.~mod, scales = "free_x") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "") +
+  theme_bw() +
+  theme(
+    text = element_text(color = "black", size = 14, face = "bold"), # Set text color to black and increase text size
+    axis.title = element_text(size = 15, color = "black", face = "bold"), # Increase axis title size and set to black
+    axis.text = element_text(size = 16, color = "black", face = "bold"), 
+    axis.text.x = element_text(size = 10, color = "black", face = "bold"  # Increase axis text size and set to black)  # Increase axis text size and set to black
+  ))
+
+# Save the plot as a PDF with increased readability
+pdf(paste0(p_folder, p_name, "_comb_presentation.pdf"), width = 12, height = 6)
+p_effects_comb
+dev.off()
