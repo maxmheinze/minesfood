@@ -26,7 +26,7 @@ regions_usda <- read_csv(p("processed/concordance_regions_USDA.csv"))
 geo_controls <- readRDS(p("processed/geo_data_agg.RDS"))
 
 # meteorological controls
-met_controls <- readRDS(p("processed/met_data_agg.RDS"))
+met_controls <- readRDS(p("processed/cru_met_data_agg.RDS"))
 
 # population 
 pop <- read_csv(p("processed/basin_pop.csv"))
