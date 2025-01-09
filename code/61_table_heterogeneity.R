@@ -1,4 +1,5 @@
 library("dplyr")
+library("ggplot2")
 library("readr")
 library("fixest")
 library("pdftools")
@@ -758,5 +759,27 @@ p_effects_comb_order
 dev.off()
 
 
+# increasing size of text for 
+# Your original plot code with modifications
+p_effects_comb_order <- ggplot(df_tidy_mod_comb_order, 
+                               aes(estimate, term)) +
+  geom_point()  +
+  scale_y_discrete(limits = rev) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, lty = 2) +
+  facet_wrap(.~mod, scales = "free_x") +
+  labs(x = "Estimate and 95% Conf. Int.", y = "") +
+  theme_bw() +
+  theme(
+    text = element_text(color = "black", size = 14, face = "bold"), # Set text color to black and increase text size
+    axis.title = element_text(size = 15, color = "black", face = "bold"), # Increase axis title size and set to black
+    axis.text = element_text(size = 16, color = "black", face = "bold"), 
+    axis.text.x = element_text(size = 10, color = "black", face = "bold")  # Increase axis text size and set to black)  # Increase axis text size and set to black
+    )
+
+# Save the plot as PDF
+pdf(paste0(p_folder, p_name, "_comb_order.pdf"), width = 10, height = 6)
+print(p_effects_comb_order)
+dev.off()
 
 

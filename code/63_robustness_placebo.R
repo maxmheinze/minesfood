@@ -56,7 +56,7 @@ df_reg_restr <- df_reg_restr |>
 # no covariates
 mod4_order_contr = feols(c(elevation, slope, tmp_max, precipitation, 
                              accessibility_to_cities_2015, pop_2015) ~
-                           i(order_new, ref = -1) |
+                           i(order_new, ref = -1)*downstream |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
