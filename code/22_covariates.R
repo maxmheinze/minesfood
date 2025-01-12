@@ -384,13 +384,13 @@ saveRDS(frs_df, file = p("processed/cru_frs.RDS"))
 # Aggregating monthly frequency of time-varying climate variables and merging
 tmp_df <- readRDS(p("processed/cru_tmp.RDS"))
 tmx_df <- readRDS(p("processed/cru_tmx.RDS"))
-tmn_df <- readRDS(p("processed/cru_tmn.RDS"))
+tmn_df <- readRDS(p("processed/cru_tmn.RDS")) 
 pre_df <- readRDS(p("processed/cru_pre.RDS"))
 cld_df <- readRDS(p("processed/cru_cld.RDS"))
-wet_df <- readRDS(p("processed/cru_wet.RDS"))
+wet_df <- readRDS(p("processed/cru_wet.RDS")) 
 frs_df <- readRDS(p("processed/cru_frs.RDS"))
 
-met_data_df <- left_join(tmp_df, tmx_df, by = c("HYBAS_ID", "year", "month")) |>
+cru_met_data_df <- left_join(tmp_df, tmx_df, by = c("HYBAS_ID", "year", "month")) |>
   left_join(tmn_df, by = c("HYBAS_ID", "year", "month")) |>
   left_join(pre_df, by = c("HYBAS_ID", "year", "month")) |>
   left_join(cld_df, by = c("HYBAS_ID", "year", "month")) |>
@@ -405,4 +405,111 @@ met_data_df <- left_join(tmp_df, tmx_df, by = c("HYBAS_ID", "year", "month")) |>
             wet_days = sum(wet_days, na.rm = T),
             frs_days = sum(frs_days, na.rm = T))
 
-saveRDS(met_data_df, file = p("processed/met_data_agg.RDS"))
+saveRDS(cru_met_data_df, file = p("processed/cru_met_data_agg.RDS"))
+
+
+
+######
+# Weather variables from TerraClimate (TC)
+# https://www.climatologylab.org/terraclimate.html
+
+# PPT (precipitation) from Terraclimate
+files <- list.files("/data/redd/Terraclimate/others/")
+files <- files[which(grepl("ppt", files))]
+files <- files[which(as.numeric(unlist(str_extract_all(files, "\\d+"))) >= 2001)]
+ppt_basins_df <- c()
+start <- Sys.time()
+for(ff in files) {
+  
+  t.start <- Sys.time()
+  cat(unlist(str_extract_all(ff, "\\d+")), "started...")
+  
+  ppt_data <- terra::rast(paste0("/data/redd/Terraclimate/others/", ff), 
+                          subds = "ppt")
+  pos <- which(substr(time(ppt_data), 1, 7) %in% dates)
+  time <- time(ppt_data)
+  
+  df_ppt_basins <- terra::extract(ppt_data[[pos]], basins, weights = T, exact = T) |> 
+    filter(if_all(contains("ppt"), ~ !is.na(.x))) |>
+    group_by(ID) |> 
+    mutate(weight = weight / sum(weight), 
+           across(contains("ppt"), function(x) x * weight)) |> 
+    dplyr::select(-weight) |> 
+    summarise(across(contains("ppt"), function(x) sum(x, na.rm = T))) |> 
+    left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |> 
+    relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID) |> 
+    tidyr::pivot_longer(contains("ppt")) |> 
+    left_join(tibble(name = names(ppt_data), 
+                     time = substr(time(ppt_data), 1, 7)), 
+              by = "name") |> 
+    transmute(HYBAS_ID, 
+              year = as.numeric(substr(time, 1, 4)), 
+              month = as.numeric(substr(time, 6, 7)), 
+              ppt_tc = value) |> 
+    arrange(year, month, HYBAS_ID)
+  
+  ppt_basins_df <- rbind(ppt_basins_df, df_ppt_basins)
+  
+  cat("done after", format(Sys.time() - t.start), "\n")
+  
+}
+cat("Calculation finished after", format(Sys.time() - start), "\n")
+
+saveRDS(ppt_basins_df, file = p("processed/tc_ppt.RDS"))
+
+# TMAX (temperature max) from Terraclimate
+files <- list.files("/data/redd/Terraclimate/others/")
+files <- files[which(grepl("tmax", files))]
+files <- files[which(as.numeric(unlist(str_extract_all(files, "\\d+"))) >= 2001)]
+tmax_basins_df <- c()
+start <- Sys.time()
+for(ff in files) {
+  
+  t.start <- Sys.time()
+  cat(unlist(str_extract_all(ff, "\\d+")), "started...")
+  
+  tmax_data <- terra::rast(paste0("/data/redd/Terraclimate/others/", ff), 
+                          subds = "tmax")
+  pos <- which(substr(time(tmax_data), 1, 7) %in% dates)
+  time <- time(tmax_data)
+  
+  df_tmax_basins <- terra::extract(tmax_data[[pos]], basins, weights = T, exact = T) |> 
+    filter(if_all(contains("tmax"), ~ !is.na(.x))) |>
+    group_by(ID) |> 
+    mutate(weight = weight / sum(weight), 
+           across(contains("tmax"), function(x) x * weight)) |> 
+    dplyr::select(-weight) |> 
+    summarise(across(contains("tmax"), function(x) sum(x, na.rm = T))) |> 
+    left_join(tibble(ID = seq_len(nrow(basins)), HYBAS_ID = basins$HYBAS_ID), by = "ID") |> 
+    relocate(HYBAS_ID, .before = ID) |> dplyr::select(-ID) |> 
+    tidyr::pivot_longer(contains("tmax")) |> 
+    left_join(tibble(name = names(tmax_data), 
+                     time = substr(time(tmax_data), 1, 7)), 
+              by = "name") |> 
+    transmute(HYBAS_ID, 
+              year = as.numeric(substr(time, 1, 4)), 
+              month = as.numeric(substr(time, 6, 7)), 
+              tmax_tc = value) |> 
+    arrange(year, month, HYBAS_ID)
+  
+  tmax_basins_df <- rbind(tmax_basins_df, df_tmax_basins)
+  
+  cat("done after", format(Sys.time() - t.start), "\n")
+  
+}
+cat("Calculation finished after", format(Sys.time() - start), "\n")
+
+saveRDS(tmax_basins_df, file = p("processed/tc_tmax.RDS"))
+
+
+#####
+# Aggregating monthly frequency of time-varying climate variables and merging
+ppt_tc_df <- readRDS(p("processed/tc_ppt.RDS"))
+tmax_tc_df <- readRDS(p("processed/tc_tmax.RDS"))
+
+tc_met_data_df <- left_join(ppt_tc_df, tmax_tc_df, by = c("HYBAS_ID", "year", "month")) |>
+  group_by(HYBAS_ID, year) |>
+  summarise(tmax_tc = max(tmax_tc, na.rm = T),
+            ppt_tc = sum(ppt_tc, na.rm = T))
+
+saveRDS(tc_met_data_df, file = p("processed/tc_met_data_agg.RDS"))
