@@ -1,7 +1,7 @@
 library("dplyr")
 library("readr")
 library("fixest")
-library("pdftools")
+# library("pdftools")
 library("rdrobust")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
@@ -12,7 +12,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240813"
+date <- "20250113"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -54,14 +54,14 @@ df_reg_restr <- df_reg_restr |>
 # No interaction specification --------------------------------------------
 
 # no covariates
-mod1_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod1_noint_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            downstream |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
 
 # with geo covariates
-mod2_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod2_noint_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            downstream +
                            elevation + slope + soilgrid_grouped |
                            year +  as.factor(mine_basin),
@@ -69,7 +69,7 @@ mod2_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
                          cluster = "mine_basin")
 
 # with geo + met covariates
-mod3_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod3_noint_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation |
@@ -78,7 +78,7 @@ mod3_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
                          cluster = "mine_basin")
 
 # with geo + met + socio covariates
-mod4_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod4_noint_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            downstream +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
@@ -91,14 +91,14 @@ mod4_noint_contr = feols(c(max_EVI, max_c_EVI_af) ~
 # Order specification -----------------------------------------------------
 
 # no covariates
-mod1_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod1_order_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            i(order_new, ref = -1) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
 
 # with geo covariates
-mod2_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod2_order_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            i(order_new, ref = -1) +
                            elevation + slope + soilgrid_grouped|
                            year +  as.factor(mine_basin),
@@ -106,7 +106,7 @@ mod2_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
                          cluster = "mine_basin")
 
 # with geo + met covariates
-mod3_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod3_order_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            i(order_new, ref = -1) +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation |
@@ -115,7 +115,7 @@ mod3_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
                          cluster = "mine_basin")
 
 # with geo + met + socio covariates
-mod4_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod4_order_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                            i(order_new, ref = -1) +
                            elevation + slope + soilgrid_grouped +
                            tmp_max + precipitation +
@@ -128,14 +128,14 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af) ~
 # Distance linear specification -------------------------------------------
 
 # no covariates
-mod1_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod1_dist_linear_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "mine_basin")
 
 # with geo covariates
-mod2_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod2_dist_linear_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped |
                           year +  as.factor(mine_basin),
@@ -143,7 +143,7 @@ mod2_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
                         cluster = "mine_basin")
 
 # with geo + met covariates
-mod3_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod3_dist_linear_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation |
@@ -152,7 +152,7 @@ mod3_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
                         cluster = "mine_basin")
 
 # with geo + met + socio covariates
-mod4_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod4_dist_linear_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
@@ -166,14 +166,14 @@ mod4_dist_linear_contr = feols(c(max_EVI, max_c_EVI_af) ~
 # Distance square specification -------------------------------------------
 
 # no covariates
-mod1_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod1_dist_square_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance + I(distance^2)) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
                         cluster = "mine_basin")
 
 # with geo covariates
-mod2_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod2_dist_square_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance + I(distance^2)) * downstream +
                           elevation + slope + soilgrid_grouped |
                           year +  as.factor(mine_basin),
@@ -181,7 +181,7 @@ mod2_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
                         cluster = "mine_basin")
 
 # with geo + met covariates
-mod3_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod3_dist_square_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance + I(distance^2)) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation |
@@ -190,7 +190,7 @@ mod3_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
                         cluster = "mine_basin")
 
 # with geo + met + socio covariates
-mod4_dist_square_contr = feols(c(max_EVI, max_c_EVI_af) ~
+mod4_dist_square_contr = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                           (distance + I(distance^2)) * downstream +
                           elevation + slope + soilgrid_grouped +
                           tmp_max + precipitation +
@@ -214,24 +214,21 @@ setFixest_dict(dict = c(distance = "Distance",
                         accessibility_to_cities_2015 = "Accessibility in 2015",
                         pop_2015 = "Population in 2015", 
                         "I(distance^2)" = "Distance$^2$", 
-                        max_EVI = "Maximum EVI", 
-                        max_c_EVI_af = "Maximum Cropland EVI",
-                        max_c_EVI_ESA = "ESA C EVI",
+                        max_EVI_16_nomask = "Maximum EVI", 
+                        max_EVI_16_af_c = "Maximum Cropland EVI",
+                        max_EVI_16_cci_c_broad = "ESA C EVI",
                         mean_EVI = "Mean EVI", 
                         mean_c_EVI_af = "Mean C EVI"))
 
 evi_cropland_africover_avg <- df_reg_restr |>
-  filter(!is.na(max_c_EVI_af)) |>
-  pull(max_c_EVI_af) |> mean()
+  filter(!is.na(max_EVI_16_af_c)) |>
+  pull(max_EVI_16_af_c) |> mean()
 evi_cropland_ESA_avg <- df_reg_restr |>
-  filter(!is.na(max_c_EVI_ESA)) |>
-  pull(max_c_EVI_ESA) |> mean()
-yield_cropland_avg <- df_reg_restr |>
-  filter(!is.na(cropland_yield_kg_ha)) |>
-  pull(cropland_yield_kg_ha) |> mean()
+  filter(!is.na(max_EVI_16_cci_c_broad)) |>
+  pull(max_EVI_16_cci_c_broad) |> mean()
 evi_avg <- df_reg_restr |>
-  filter(!is.na(max_EVI)) |>
-  pull(max_EVI) |> mean()
+  filter(!is.na(max_EVI_16_nomask)) |>
+  pull(max_EVI_16_nomask) |> mean()
 
 
 extra_lines <- list()

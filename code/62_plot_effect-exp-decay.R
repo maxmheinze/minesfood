@@ -1,7 +1,7 @@
 library("dplyr")
 library("readr")
 library("fixest")
-library("pdftools")
+# library("pdftools")
 library("rdrobust")
 library("ggplot2")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
@@ -13,7 +13,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240828"
+date <- "20250113"
 
 p_folder <- "./output/plots/"
 p_name <- "plot_effect_decay_exp"
@@ -43,7 +43,7 @@ if(restr_number_basins > 0) {
     filter(mine_basin %in% mine_number_restr)
 }
 
-m_evi <- feols(c(max_EVI) ~
+m_evi <- feols(c(max_EVI_16_nomask) ~
              elevation + slope + soilgrid_grouped +
              tmp_max + precipitation +
              accessibility_to_cities_2015 + pop_2015 |
@@ -51,7 +51,7 @@ m_evi <- feols(c(max_EVI) ~
            data = df_reg_restr,
            cluster = "mine_basin")
 
-m_evi_c <- feols(c(max_c_EVI_af) ~
+m_evi_c <- feols(c(max_EVI_16_af_c) ~
                  elevation + slope + soilgrid_grouped +
                  tmp_max + precipitation +
                  accessibility_to_cities_2015 + pop_2015 |
@@ -62,11 +62,15 @@ m_evi_c <- feols(c(max_c_EVI_af) ~
 df_reg_restr <- df_reg_restr |> 
   mutate(resids_evi = NA, 
          resids_evi = replace(resids_evi, 
-                              !is.na(pop_2015) & !is.na(accessibility_to_cities_2015), 
+                              !is.na(pop_2015) & 
+                                !is.na(accessibility_to_cities_2015) & 
+                                !is.na(max_EVI_16_nomask), 
                               residuals(m_evi)),
          resids_evi_c = NA, 
          resids_evi_c = replace(resids_evi_c, 
-                                !is.na(pop_2015) & !is.na(accessibility_to_cities_2015) & !is.na(max_c_EVI_af),
+                                !is.na(pop_2015) & 
+                                  !is.na(accessibility_to_cities_2015) & 
+                                  !is.na(max_EVI_16_af_c),
                                 residuals(m_evi_c)))
 
 grid_exp <- seq(0.001, 2, by = 0.001)
@@ -134,7 +138,7 @@ upper_pp_evi_c <- as.numeric(substr(upper_pp_evi_c, 5, nchar(upper_pp_evi_c)))
 
 
 # pdf(paste0(p_folder, p_name, "_", date, "-EVI.pdf"), width = 5, height = 4)
-cairo_pdf("outputs/effect-decay_EVI.pdf", width = 5, height = 4)
+cairo_pdf(paste0(p_folder, p_name, "_", date, "-EVI.pdf"), width = 5, height = 4)
 
 par(mfrow = c(1, 1), family = "Helvetica", mar = c(2, 2, 2, .5))
 plot.new()
@@ -161,7 +165,7 @@ text(x = -25 + which(exp(-mean_pp_evi * 0:500) < 0.1)[1], y = .5,
 dev.off()
 
 # pdf(paste0(p_folder, p_name, "_", date, "-EVI-c.pdf"), width = 5, height = 4)
-cairo_pdf("outputs/effect-decay_EVI-c.pdf", width = 5, height = 4)
+cairo_pdf(paste0(p_folder, p_name, "_", date, "-EVI-c.pdf"), width = 5, height = 4)
 
 par(mfrow = c(1, 1), family = "Helvetica", mar = c(2, 2, 2, .5))
 plot.new()

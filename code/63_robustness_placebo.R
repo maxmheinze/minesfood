@@ -1,7 +1,7 @@
 library("dplyr")
 library("readr")
 library("fixest")
-library("pdftools")
+# library("pdftools")
 library("rdrobust")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
@@ -12,7 +12,7 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
-date <- "20240813"
+date <- "20250113"
 
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
@@ -56,7 +56,7 @@ df_reg_restr <- df_reg_restr |>
 # no covariates
 mod4_order_contr = feols(c(elevation, slope, tmp_max, precipitation, 
                              accessibility_to_cities_2015, pop_2015) ~
-                           i(order_new, ref = -1)*downstream |
+                           i(order_new, ref = -1) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
@@ -100,11 +100,11 @@ setFixest_dict(dict = c(distance = "Distance",
                         accessibility_to_cities_2015 = "Accessibility in 2015",
                         pop_2015 = "Population in 2015", 
                         "I(distance^2)" = "Distance$^2$", 
-                        max_EVI = "Maximum EVI", 
-                        max_c_EVI_af = "Maximum Cropland EVI",
-                        max_c_EVI_ESA = "ESA C EVI",
-                        mean_EVI = "Mean EVI", 
-                        mean_c_EVI_af = "Mean C EVI"))
+                        max_EVI_16_nomask = "Maximum EVI", 
+                        max_EVI_16_af_c = "Maximum Cropland EVI",
+                        max_EVI_16_cci_c_broad = "ESA C EVI",
+                        mean_EVI_16_nomask = "Mean EVI", 
+                        mean_EVI_16_af_c = "Mean C EVI"))
 
 
 etable(mod1_dist_square_contr, 
@@ -112,7 +112,7 @@ etable(mod1_dist_square_contr,
        adjustbox = TRUE,
        replace = TRUE, 
        drop = "soilgrid", 
-       order = c("Downstream"), 
+       order = c("Downstream") 
 )
 
 
@@ -121,7 +121,7 @@ etable(mod1_dist_linear_contr,
        adjustbox = TRUE,
        replace = TRUE, 
        drop = "soilgrid", 
-       order = c("Downstream"), 
+       order = c("Downstream")
 )
 
 
