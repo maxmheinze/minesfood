@@ -394,6 +394,8 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                          data = df_reg_restr,
                          cluster = "mine_basin")
 
+max_EVI_px_af_c
+
 etable(mod1_order_contr[1], mod2_order_contr[1], mod3_order_contr[1], mod4_order_contr[1], 
        mod1_order_contr[2], mod2_order_contr[2], mod3_order_contr[2], mod4_order_contr[2], 
        mod1_order_contr[3], mod2_order_contr[3], mod3_order_contr[3], mod4_order_contr[3], 
