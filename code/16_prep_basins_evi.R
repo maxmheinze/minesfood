@@ -10,8 +10,10 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 # EVI data for all areas of basins ---------------------------------------------
 evi_basins_1 <- read_csv(p("basins_evi/01_mean_evi_basin.csv"))
 
+evi_basins_2 <- read_csv(p("basins_evi/update_revision/00_evi-mean_nomask.csv"))
+
 # max EVI
-max_evi_basins <- evi_basins_1 %>%
+max_evi_basins_1 <- evi_basins_1 %>%
   dplyr::select(HYBAS_ID, image_date, mean_EVI) %>%
   mutate(year = year(image_date),
          HYBAS_ID = as.numeric(HYBAS_ID)) %>%
@@ -21,6 +23,34 @@ max_evi_basins <- evi_basins_1 %>%
   slice_head(n = 1) |>
   rename(max_EVI = mean_EVI,
          max_EVI_date = image_date)
+
+max_evi_basins_2 <- evi_basins_2 %>%
+  dplyr::select(HYBAS_ID, image_date, mean_EVI) %>%
+  mutate(year = year(image_date),
+         HYBAS_ID = as.numeric(HYBAS_ID)) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
+  slice_max(mean_EVI, n = 1, na_rm = TRUE) %>%
+  slice_head(n = 1) |>
+  rename(max_EVI = mean_EVI,
+         max_EVI_date = image_date)
+
+
+# there are some basins in the old data that do not appear in the new one
+# but they also do not appear in df_reg anymore
+chk <- full_join(max_evi_basins_1 |> filter(year > 2000, year < 2024) |> 
+                   transmute(HYBAS_ID, year, max_EVI_old = max_EVI), 
+                 max_evi_basins_2 |> filter(year > 2000, year < 2024) |> 
+                   transmute(HYBAS_ID, year, max_EVI_new = max_EVI))
+chk |> filter(is.na(max_EVI_new))
+unique(max_evi_basins_1$HYBAS_ID)[which(!unique(max_evi_basins_1$HYBAS_ID) %in% 
+                                          unique(max_evi_basins_2$HYBAS_ID))]
+
+
+cor_check <- chk |> filter(!is.na(max_EVI_new))
+
+cor.test(cor_check$max_EVI_old, cor_check$max_EVI_new)
+
 
 # min EVI
 min_evi_basins <- evi_basins_1 %>%
@@ -48,7 +78,7 @@ max_evi_basins |> group_by(HYBAS_ID) |>
 # 8 basins miss a few years of EVI observations
 
 
-# EVI data for croplpand areas of basins ---------------------------------------
+# EVI data for cropland areas (Africover) of basins ----------------------------
 
 # Africover cropland mask
 cropland_evi_basins_1 <- read_csv(p("basins_evi/02_mean_africover_cropland_evi_basin.csv"))
