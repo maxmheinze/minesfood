@@ -236,6 +236,7 @@ mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                         data = df_reg_restr,
                         cluster = "mine_basin")
 
+
 # with covariates, linear distance
 # mod3_dist_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
 #                           (distance) + downstream +
