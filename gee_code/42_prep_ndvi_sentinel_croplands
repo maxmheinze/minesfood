@@ -1,0 +1,135 @@
+// SENTINEL LAND USE MASK: CROPLAND NDVI, MEAN AND MAX PER BASIN
+// GOOGLE EARTH ENGINE SCRIPT NO. 42
+// OUTPUTS: S21 (MAX), S22 (MEAN)
+
+// Load the basins dataset
+var basins = ee.FeatureCollection("users/maxmheinze/relevant_basins");
+
+// Define the date range for twenty years
+var startDate = '2000-01-01';
+var endDate = '2023-12-31';
+
+// Load MODIS NDVI image collection
+var modisNDVI = ee.ImageCollection("MODIS/061/MOD13Q1")
+  .filterDate(startDate, endDate)
+  .select(['NDVI', 'SummaryQA']);
+
+// Load land cover data 
+var landCover = ee.ImageCollection('projects/sat-io/open-datasets/landcover/ESRI_Global-LULC_10m_TS')
+  .select('b1');
+
+// Function for Cloud Masking
+var bitwiseExtract = function(input, fromBit, toBit) {
+  var maskSize = ee.Number(1).add(toBit).subtract(fromBit);
+  var mask = ee.Number(1).leftShift(maskSize).subtract(1);
+  return input.rightShift(fromBit).bitwiseAnd(mask);
+};
+
+var maskSnowAndClouds = function(image) {
+  var summaryQa = image.select('SummaryQA');
+  var qaMask = bitwiseExtract(summaryQa, 0, 1).lte(1);
+  var maskedImage = image.updateMask(qaMask);
+  return maskedImage.copyProperties(
+    image, ['system:index', 'system:time_start']);
+};
+
+// Precompute the 2017 land cover mosaic for use in earlier years
+var landCover2017 = landCover.filterDate('2017-01-01', '2017-12-31').mosaic();
+
+// Function for Land Use Masking
+var maskLanduse = function(image) {
+  var year = ee.Date(image.get('system:time_start')).get('year');
+  var start = ee.Date.fromYMD(year, 1, 1);
+  var end = start.advance(1, 'year');
+
+  // Mosaic all tiles for the given year
+  var filteredTiles = landCover.filterDate(start, end);
+  var yearlyMosaic = filteredTiles.mosaic();
+  var mosaicHasBands = yearlyMosaic.bandNames().size().gt(0);
+
+  // If no valid mosaic exists, use the 2017 mosaic for earlier years
+  var landCoverMask = ee.Algorithms.If(
+    mosaicHasBands,
+    yearlyMosaic.eq(5),
+    landCover2017.eq(5) // Use 2017 mosaic as fallback
+  );
+
+  // Apply the land cover mask
+  return image.updateMask(landCoverMask).copyProperties(
+    image, ['system:index', 'system:time_start']
+  );
+};
+
+// Function for Scaling Pixel Values
+var NDVIScaled = function(image) {
+  var scaled = image.divide(10000);
+  return scaled.copyProperties(
+    image, ['system:index', 'system:time_start']);
+};
+
+// Apply the functions to MODIS NDVI
+var processedModisNDVI = modisNDVI
+  .map(maskSnowAndClouds)
+  .map(maskLanduse)
+  .map(NDVIScaled)
+  .select('NDVI');
+
+// Function to calculate NDVI for each basin
+function calculateNDVI(image, NDVIType) {
+  return basins.map(function(feature) {
+    // Extract the mean NDVI for the basin
+    var meanNDVI = image.reduceRegion({
+      reducer: ee.Reducer.mean(),
+      geometry: feature.geometry(),
+      scale: 250,
+      bestEffort: true
+    }).get('NDVI');
+
+    return feature.set({
+      'image_date': image.date().format('YYYY-MM-dd'),
+      'basin_id': feature.id(),
+      'HYBAS_ID': feature.get('HYBAS_I'),
+      'NDVI': meanNDVI,
+      'landuse_type': 'cropland',
+      'NDVI_type': NDVIType
+    });
+  });
+}
+
+// Split the data into smaller chunks by year
+var years = ee.List.sequence(2000, 2023);
+
+// Mean per basin, for each 16-day period separately
+var meanNDVIResults = ee.FeatureCollection(years.map(function(year) {
+  var yearlyModisNDVI = processedModisNDVI.filter(ee.Filter.calendarRange(year, year, 'year'));
+  return yearlyModisNDVI.map(function(image) {
+    return calculateNDVI(image, 'mean');
+  }).flatten();
+}).flatten());
+
+// Maximum per pixel
+var maxNDVIResults = ee.FeatureCollection(years.map(function(year) {
+  var yearStr = ee.Number(year).format("%.0f");
+  var dateStr = ee.String(yearStr).cat('-06-30'); // Correct date format
+  var dateDat = ee.Date(dateStr);
+  var yearlyModisNDVI = processedModisNDVI.filter(ee.Filter.calendarRange(year, year, 'year'));
+  var maxModisNDVImax = yearlyModisNDVI.max().set('system:time_start', dateDat.millis()); 
+  return calculateNDVI(maxModisNDVImax, 'max');
+}).flatten());
+
+// Export the results to tables
+Export.table.toDrive({
+  collection: meanNDVIResults.flatten(),
+  description: 's22_ndvi_mean_croplands',
+  folder: 'jde_basins', 
+  fileFormat: 'CSV',
+  selectors: ['basin_id', 'HYBAS_ID', 'NDVI', 'image_date', 'landuse_type', 'NDVI_type']
+});
+
+Export.table.toDrive({
+  collection: maxNDVIResults.flatten(),
+  description: 's21_ndvi_max_croplands',
+  folder: 'jde_basins', 
+  fileFormat: 'CSV',
+  selectors: ['basin_id', 'HYBAS_ID', 'NDVI', 'image_date', 'landuse_type', 'NDVI_type']
+});

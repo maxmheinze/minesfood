@@ -1,0 +1,124 @@
+// Load the sample basins dataset
+var basins = ee.FeatureCollection("users/lukasvashold/relevant_basins");
+
+// Define the date range for twenty years
+var startDate = '2000-01-01';
+var endDate = '2023-12-31';
+
+// Load cropland masks for each year from 2000 to 2023
+var croplands = ee.Dictionary({
+  '2000': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2000'),
+  '2001': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2001'),
+  '2002': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2002'),
+  '2003': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2003'),
+  '2004': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2004'),
+  '2005': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2005'),
+  '2006': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2006'),
+  '2007': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2007'),
+  '2008': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2008'),
+  '2009': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2009'),
+  '2010': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2010'),
+  '2011': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2011'),
+  '2012': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2012'),
+  '2013': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2013'),
+  '2014': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2014'),
+  '2015': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2015'),
+  '2016': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2016'),
+  '2017': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2017'),
+  '2018': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2018'),
+  '2019': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2019'),
+  '2020': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2020'),
+  '2021': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2021'),
+  '2022': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2022'),
+  '2023': ee.Image('users/lukasvashold/jde_masks/c_rainfed_2022') // we use 2022 for 2023 as LC map for 2023 is missing
+});
+
+// Load MODIS NDVI image collection
+var modisNDVI = ee.ImageCollection("MODIS/061/MOD13Q1")
+  .filterDate(startDate, endDate)
+  .select(['NDVI', 'SummaryQA']);
+
+// Function for Cloud Masking
+var bitwiseExtract = function(input, fromBit, toBit) {
+  var maskSize = ee.Number(1).add(toBit).subtract(fromBit);
+  var mask = ee.Number(1).leftShift(maskSize).subtract(1);
+  return input.rightShift(fromBit).bitwiseAnd(mask);
+};
+
+var maskSnowAndClouds = function(image) {
+  var summaryQa = image.select('SummaryQA');
+  var qaMask = bitwiseExtract(summaryQa, 0, 1).lte(1);
+  var maskedImage = image.updateMask(qaMask);
+  return maskedImage.copyProperties(
+    image, ['system:index', 'system:time_start']);
+};
+
+// Function for Scaling Pixel Values
+var ndviScaled = function(image) {
+  var scaled = image.divide(10000);
+  return scaled.copyProperties(
+    image, ['system:index', 'system:time_start']);
+};
+
+// Apply the functions and select the 'NDVI' band
+var scaledModisNDVI = modisNDVI
+  .map(maskSnowAndClouds)
+  .map(ndviScaled)
+  .select('NDVI');
+
+// Function to calculate mean NDVI for each image using the cropland mask
+function calculateMeanNDVI(image) {
+  var year = ee.Date(image.get('system:time_start')).get('year').format();
+  var croplandMask = ee.Image(croplands.get(year));
+  var maskedImage = image.updateMask(croplandMask);
+
+  return maskedImage.reduceRegions({
+    collection: basins,
+    reducer: ee.Reducer.mean(),
+    scale: 250
+  }).map(function(feature) {
+    return feature.set({
+      'image_date': image.date().format('YYYY-MM-dd'),
+      'basin_id': feature.id(),
+      'HYBAS_ID': feature.get('HYBAS_I'), // apparently the shape file has not the full name
+      'mean_NDVI': feature.get('mean')
+    });
+  });
+}
+
+// // Split the data into smaller chunks by year
+var years = ee.List.sequence(2000, 2023);
+
+// mean per basin, for each 16-day period separately
+var meanNDVIResults = ee.FeatureCollection(years.map(function(year) {
+  var yearStr = ee.Number(year).format();
+  var yearlyModisNDVI = scaledModisNDVI.filter(ee.Filter.calendarRange(year, year, 'year'));
+  return yearlyModisNDVI.map(calculateMeanNDVI).flatten();
+}).flatten());
+
+// maximum per pixel
+var maxNDVIResults = ee.FeatureCollection(years.map(function(year) {
+  var yearStr = ee.Number(year).format("%.0f");
+  var dateStr = ee.String(yearStr).cat('-06-30');
+  var dateDat = ee.Date(dateStr);
+  var yearlyModisNDVI = scaledModisNDVI.filter(ee.Filter.calendarRange(year, year, 'year'));
+  var maxModisNDVImax = yearlyModisNDVI.max().set('system:time_start', dateDat.millis()); 
+  return calculateMeanNDVI(maxModisNDVImax);
+}).flatten());
+
+// Export the results to tables
+Export.table.toDrive({
+  collection: meanNDVIResults.flatten(),
+  description: '06_ndvi-mean_c_rainfed',
+  folder: 'jde_basins', 
+  fileFormat: 'CSV',
+  selectors: ['basin_id', 'HYBAS_ID', 'mean_NDVI', 'image_date']
+});
+
+Export.table.toDrive({
+  collection: maxNDVIResults.flatten(),
+  description: '16_ndvi-max_c_rainfed',
+  folder: 'jde_basins', 
+  fileFormat: 'CSV',
+  selectors: ['basin_id', 'HYBAS_ID', 'mean_NDVI', 'image_date']
+});

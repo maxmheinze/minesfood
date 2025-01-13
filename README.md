@@ -3,6 +3,7 @@
 The structure of this repository is
 
 - `code/` with scripts to run
+- `gee_code/` with Google Earth Engine scripts
 - `R/` with functions to use
 - `inst/` with small reference files
 - `data/` with (intermediate) data outputs
