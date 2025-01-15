@@ -12,6 +12,21 @@ excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
+# c("nomask", "cci_veg_broad", "cci_veg_narrow")
+v_mask <- "cci_veg_broad" 
+# c("cci_c_broad", "cci_c_narrow", "cci_c_rainfed", "cci_c_irrigated", "af_c", "esri_c")
+c_mask <- "cci_c_broad" 
+
+comp_max <- "16" # c("16", "px")
+
+measure <- "EVI" # c("EVI", "NDVI")
+
+spec_general_max <- paste0("max_", measure, "_", comp_max, "_", v_mask)
+spec_croplands_max <- paste0("max_", measure, "_", comp_max, "_", c_mask)
+
+spec_general_mean <- paste0("mean_", measure, "_16_", v_mask)
+spec_croplands_mean <- paste0("mean_", measure, "_16_", c_mask)
+
 date <- "20250113"
 
 t_folder <- "./output/tables/"
@@ -88,24 +103,7 @@ mod1_dist_square_contr = feols(c(elevation, slope, tmp_max, precipitation,
 
 # Output creation ---------------------------------------------------------
 
-setFixest_dict(dict = c(distance = "Distance",
-                        "as.factor(order)" = "Order",
-                        "order_new" = "Downstream x Order",
-                        "as.factor(order_new)1" = "Downstream x Order $=$ 1",
-                        downstream = "Downstream",
-                        elevation = "Elevation",
-                        slope = "Slope",
-                        tmp_max = "Yearly Max. Temperature",
-                        precipitation = "Yearly Precipitation",
-                        accessibility_to_cities_2015 = "Accessibility in 2015",
-                        pop_2015 = "Population in 2015", 
-                        "I(distance^2)" = "Distance$^2$", 
-                        max_EVI_16_nomask = "Maximum EVI", 
-                        max_EVI_16_af_c = "Maximum Cropland EVI",
-                        max_EVI_16_cci_c_broad = "ESA C EVI",
-                        mean_EVI_16_nomask = "Mean EVI", 
-                        mean_EVI_16_af_c = "Mean C EVI"))
-
+setFixest_dict(dict = dict_fixest)
 
 etable(mod1_dist_square_contr, 
        tex = TRUE, 

@@ -6,8 +6,6 @@ library("rdrobust")
 sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 
 
-date <- "20250113"
-
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
 
@@ -20,6 +18,23 @@ restr_order <- 10 # maximum order of basins to include
 excl_mine_basin <- FALSE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
+
+# c("nomask", "cci_veg_broad", "cci_veg_narrow")
+v_mask <- "cci_veg_broad" 
+# c("cci_c_broad", "cci_c_narrow", "cci_c_rainfed", "cci_c_irrigated", "af_c", "esri_c")
+c_mask <- "cci_c_broad" 
+
+comp_max <- "16" # c("16", "px")
+
+measure <- "EVI" # c("EVI", "NDVI")
+
+spec_general_max <- paste0("max_", measure, "_", comp_max, "_", v_mask)
+spec_croplands_max <- paste0("max_", measure, "_", comp_max, "_", c_mask)
+
+spec_general_mean <- paste0("mean_", measure, "_16_", v_mask)
+spec_croplands_mean <- paste0("mean_", measure, "_16_", c_mask)
+
+date <- "20250113"
 
 f_name <- paste0("table_robustness_y-FEs_maxorder", 
                  restr_order, "_minnumber", restr_number_basins, 
@@ -59,7 +74,8 @@ df_reg_restr <- df_reg_restr |>
 # Order specification
 
 # baseline + ESA cropland
-mod_order_base = feols(c(max_EVI_16_nomask, max_EVI_16_af_c, max_EVI_16_cci_c_broad) ~
+mod_order_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_16_cci_c_broad) ~ 
+                         # add addtional cropland masks
                          i(order_new, ref = -1) +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
@@ -69,7 +85,7 @@ mod_order_base = feols(c(max_EVI_16_nomask, max_EVI_16_af_c, max_EVI_16_cci_c_br
                        cluster = "mine_basin")
 
 # FE - Pfaffstetter level 8
-mod_order_fe8 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                         i(order_new, ref = -1) +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
@@ -79,7 +95,7 @@ mod_order_fe8 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                       cluster = "mine_basin")
 
 # FE - Pfaffstetter level 6
-mod_order_fe6 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                         i(order_new, ref = -1) +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
@@ -89,7 +105,7 @@ mod_order_fe6 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                       cluster = "mine_basin")
 
 # mean EVI
-mod_order_mean = feols(c(mean_EVI_16_nomask, mean_EVI_16_af_c) ~
+mod_order_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
                          i(order_new, ref = -1) +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
@@ -103,7 +119,7 @@ mod_order_mean = feols(c(mean_EVI_16_nomask, mean_EVI_16_af_c) ~
 # Distance specification
 
 # baseline + ESA cropland
-mod_dist_base = feols(c(max_EVI_16_nomask, max_EVI_16_af_c, max_EVI_16_cci_c_broad) ~
+mod_dist_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_16_cci_c_broad) ~
                         (distance + I(distance^2)) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
@@ -113,7 +129,7 @@ mod_dist_base = feols(c(max_EVI_16_nomask, max_EVI_16_af_c, max_EVI_16_cci_c_bro
                       cluster = "mine_basin")
 
 # FE - Pfaffstetter level 8
-mod_dist_fe8 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                        (distance + I(distance^2)) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
@@ -123,7 +139,7 @@ mod_dist_fe8 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                      cluster = "mine_basin")
 
 # FE - Pfaffstetter level 6
-mod_dist_fe6 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                        (distance + I(distance^2)) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
@@ -133,7 +149,7 @@ mod_dist_fe6 = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                      cluster = "mine_basin")
 
 # mean EVI
-mod_dist_mean = feols(c(mean_EVI_16_nomask, mean_EVI_16_af_c) ~
+mod_dist_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
                         (distance + I(distance^2)) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
@@ -146,23 +162,7 @@ mod_dist_mean = feols(c(mean_EVI_16_nomask, mean_EVI_16_af_c) ~
 #####
 # Output creation
 
-setFixest_dict(dict = c(distance = "Distance",
-                        "as.factor(order)" = "Order",
-                        "order_new" = "Downstream x Order",
-                        "as.factor(order_new)1" = "Downstream x Order $=$ 1",
-                        downstream = "Downstream",
-                        elevation = "Elevation",
-                        slope = "Slope",
-                        tmp_max = "Yearly Max. Temperature",
-                        precipitation = "Yearly Precipitation",
-                        accessibility_to_cities_2015 = "Accessibility in 2015",
-                        pop_2015 = "Population in 2015", 
-                        "I(distance^2)" = "Distance$^2$", 
-                        max_EVI_16_nomask = "Maximum EVI", 
-                        max_EVI_16_af_c = "Maximum Cropland EVI",
-                        max_EVI_16_cci_c_broad = "ESA C EVI",
-                        mean_EVI_16_nomask = "Mean EVI", 
-                        mean_EVI_16_af_c = "Mean C EVI"))
+setFixest_dict(dict = dict_fixest)
 
 etable(mod_order_base[1], 
        mod_order_fe8[1],
@@ -229,7 +229,7 @@ mine_number_restr <- df_reg |> filter(year == restr_year[1], order != 0) |>
   pull(mine_basin)
 df_reg_restr_number_basins <- df_reg_restr |> 
   filter(mine_basin %in% mine_number_restr)
-mod_order_restr_number_basins = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_restr_number_basins = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                         i(order_new, ref = -1) +
                                         elevation + slope + soilgrid_grouped +
                                         tmp_max + precipitation +
@@ -238,7 +238,7 @@ mod_order_restr_number_basins = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                                       data = df_reg_restr_number_basins,
                                       cluster = "mine_basin")
 
-mod_dist_restr_number_basins = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_restr_number_basins = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                        (distance + I(distance^2)) * downstream +
                                        elevation + slope + soilgrid_grouped +
                                        tmp_max + precipitation +
@@ -251,7 +251,7 @@ mod_dist_restr_number_basins = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
 restr_order <- 1
 df_reg_restr_order <- df_reg_restr |> 
   filter(order <= restr_order) 
-mod_order_restr_order = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                 i(order_new, ref = -1) +
                                 elevation + slope + soilgrid_grouped +
                                 tmp_max + precipitation +
@@ -260,7 +260,7 @@ mod_order_restr_order = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                               data = df_reg_restr_order,
                               cluster = "mine_basin")
 
-mod_dist_restr_order = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                (distance + I(distance^2)) * downstream +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
@@ -272,7 +272,7 @@ mod_dist_restr_order = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
 # exluding the mine basin itself
 df_reg_restr_mine_basin <- df_reg_restr |> 
   filter(order != 0)
-mod_order_restr_mine_basin = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                 i(order_new, ref = -1) +
                                 elevation + slope + soilgrid_grouped +
                                 tmp_max + precipitation +
@@ -281,7 +281,7 @@ mod_order_restr_mine_basin = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                               data = df_reg_restr_mine_basin,
                               cluster = "mine_basin")
 
-mod_dist_restr_mine_basin = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                (distance + I(distance^2)) * downstream +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
@@ -293,7 +293,7 @@ mod_dist_restr_mine_basin = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
 # including exactly order -1 and 1
 df_reg_restr_comb <- df_reg_restr_number_basins |> 
   filter(order == 1)
-mod_order_restr_comb = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_order_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                                as.factor(order_new) +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
@@ -302,7 +302,7 @@ mod_order_restr_comb = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
                              data = df_reg_restr_comb,
                              cluster = "mine_basin")
 
-mod_dist_restr_comb = feols(c(max_EVI_16_nomask, max_EVI_16_af_c) ~
+mod_dist_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                               (distance + I(distance^2)) * downstream +
                               elevation + slope + soilgrid_grouped +
                               tmp_max + precipitation +

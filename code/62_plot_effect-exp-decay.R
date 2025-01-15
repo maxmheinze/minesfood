@@ -9,9 +9,24 @@ sapply(list.files("./R", ".R$"), \(f) {source(paste0("./R/", f)); TRUE})
 restr_year <- 2016:2023 # years
 restr_area_mined <- 0 # minimum of mined area in mine basin
 restr_order <- 10 # maximum order of basins to include
-excl_mine_basin <- FALSE # should the mine basin itself be excluded?
+excl_mine_basin <- TRUE # should the mine basin itself be excluded?
 mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
+
+# c("nomask", "cci_veg_broad", "cci_veg_narrow")
+v_mask <- "cci_veg_broad" 
+# c("cci_c_broad", "cci_c_narrow", "cci_c_rainfed", "cci_c_irrigated", "af_c", "esri_c")
+c_mask <- "cci_c_broad" 
+
+comp_max <- "16" # c("16", "px")
+
+measure <- "EVI" # c("EVI", "NDVI")
+
+spec_general_max <- paste0("max_", measure, "_", comp_max, "_", v_mask)
+spec_croplands_max <- paste0("max_", measure, "_", comp_max, "_", c_mask)
+
+spec_general_mean <- paste0("mean_", measure, "_16_", v_mask)
+spec_croplands_mean <- paste0("mean_", measure, "_16_", c_mask)
 
 date <- "20250113"
 
@@ -43,7 +58,7 @@ if(restr_number_basins > 0) {
     filter(mine_basin %in% mine_number_restr)
 }
 
-m_evi <- feols(c(max_EVI_16_nomask) ~
+m_evi <- feols(c(get(spec_general_max)) ~
              elevation + slope + soilgrid_grouped +
              tmp_max + precipitation +
              accessibility_to_cities_2015 + pop_2015 |
@@ -51,7 +66,7 @@ m_evi <- feols(c(max_EVI_16_nomask) ~
            data = df_reg_restr,
            cluster = "mine_basin")
 
-m_evi_c <- feols(c(max_EVI_16_af_c) ~
+m_evi_c <- feols(c(get(spec_croplands_max)) ~
                  elevation + slope + soilgrid_grouped +
                  tmp_max + precipitation +
                  accessibility_to_cities_2015 + pop_2015 |
@@ -64,13 +79,13 @@ df_reg_restr <- df_reg_restr |>
          resids_evi = replace(resids_evi, 
                               !is.na(pop_2015) & 
                                 !is.na(accessibility_to_cities_2015) & 
-                                !is.na(max_EVI_16_nomask), 
+                                !is.na(get(spec_general_max)), 
                               residuals(m_evi)),
          resids_evi_c = NA, 
          resids_evi_c = replace(resids_evi_c, 
                                 !is.na(pop_2015) & 
                                   !is.na(accessibility_to_cities_2015) & 
-                                  !is.na(max_EVI_16_af_c),
+                                  !is.na(get(spec_croplands_max)),
                                 residuals(m_evi_c)))
 
 grid_exp <- seq(0.001, 2, by = 0.001)
