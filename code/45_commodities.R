@@ -15,7 +15,7 @@ files <- c(
 shapes <- lapply(paste0("data/commodities/", files), st_read)
 
 # Countries for a plot ---
-countries <- rnaturalearth::ne_countries() |> filter(continent == "Africa")
+countries <- rnaturalearth::ne_countries() |> dplyr::filter(continent == "Africa")
 countries |> st_geometry() |> plot(line = "gray")
 for(shape in shapes) shape |> st_geometry() |> plot(add = TRUE)
 
@@ -70,7 +70,7 @@ comm_jas |> table() |> sort(decreasing = TRUE) |> head(20)
 # Gold, coal, copper, silver, iron, zinc, lead
 jasansky[, "commodity"] <- paste0(jasansky[["primary_commodity"]], ",",
   jasansky[["commodities_list"]])
-  
+
 # S&P would have info on:
 # Gold, copper, diamonds, coal, uranium, iron, platinum, palladium, ...
 
@@ -86,68 +86,6 @@ comm <- structure(c(
 ), names = NULL)
 comm[-grep("^ $", comm)] |> table() |> sort() |>
   write.csv("outputs/commodities.csv", row.names = FALSE)
-
-commodities <- list(
-  # Precious metals --- mercury and cyanide used
-  "gold",
-  "silver",
-  "platinum" = c("platinum", "PGE", "PGM", "palladium", "rhodium", "ruthenium", "iridium", "osmium"),
-  # Gemstones --- conflict
-  "diamonds" = c("diamond", "diamonds", "gems", "gem"),
-  # Energy --- large pits
-  "coal",
-  "uranium" = c("uranium", "u308"),
-  # Base metals --- large pits
-  "copper",
-  "iron",
-  "zinc",
-  "lead",
-  "nickel",
-  # Industrial
-  "industrial minerals",
-  "chromium" = c("chromium", "chromite", "chrome"),
-  "cobalt",
-  "manganese",
-  "tantalum",
-  # Batteries
-  "lithium",
-  "vanadium",
-
-  "titanium",
-  "sands" = c("mineral sands", "rutile", "zircon", "ilmenite", "leucoxene"),
-
-  "rare earth",
-  "germanium",
-  "gallium",
-  "indium",
-
-  "alum" = c("aluminum", "aluminium", "alumina", "bauxite"),
-
-  "potassium" = c("potassium", "potash"),
-
-  "phosphate" = c("phosphate", "phosphorous")
-  "graphite",
-  "tin",
-  "tungsten",
-  "molybdenum",
-  "zirconium",
-  "beryllium",
-  "fluor",
-  "niobium",
-  "asbestos",
-  "limestone",
-  "talc",
-  "barite",
-  "lignite",
-  "sulfur"
-)
-names(commodities) <- ifelse(names(commodities) != "", names(commodities),
-  vapply(commodities, \(x) x[1], character(1L)))
-
-# Co-occurences:
-# Copper-Lead-Zinc
-# Gold-Silver-PGE
-# Iron-Manganese-Chromium
 
 
 # Start off building a shapefile -----
@@ -178,13 +116,12 @@ shp <- shp |> add_shp(jasansky)
 shp <- shp |> st_make_valid()
 st_write(shp, "outputs/commodity_locations.gpkg")
 
-# Now we need to create usable variables
-for(comm in names(commodities)) {
-  shp[[comm]] <- sapply(commodities[[comm]], \(c) { # Many patterns
-    grepl(c, shp[["commodity"]], ignore.case = TRUE)
-  }) |> rowSums() |> pmax(0) |> pmin(1) # Yes or no
-}
-# Which observations remain unmatched?
-tmp <- shp |> st_drop_geometry()
-tmp[ tmp[, -1] |> rowSums() == 0, 1L ]
-
+# Use terra to take samples from the polygons
+library("terra")
+polys <- terra::vect("outputs/commodity_locations.gpkg")
+samples <- round(expanse(polys, unit = "km") / 100) |> pmax(1) |> pmin(5)
+points <- polys |> # There's at least one extremely detailed polygon that crashes the regular sampling
+  simplifyGeom(tolerance = .01, preserveTopology = TRUE, makeValid = TRUE) |>
+  spatSample(size = samples, method = "regular")
+# Write the points
+terra::writeVector(points, "outputs/commodity_polys-to-points.gpkg", overwrite = TRUE)
