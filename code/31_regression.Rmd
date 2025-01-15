@@ -236,6 +236,7 @@ mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_k
                         data = df_reg_restr,
                         cluster = "mine_basin")
 
+
 # with covariates, linear distance
 # mod3_dist_restr = feols(c(max_c_EVI_af, max_c_EVI_ESA, cropland_yield_kg_ha) ~
 #                           (distance) + downstream +
@@ -392,6 +393,8 @@ mod4_order_contr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA, cropland_yield_
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
+
+max_EVI_px_af_c
 
 etable(mod1_order_contr[1], mod2_order_contr[1], mod3_order_contr[1], mod4_order_contr[1], 
        mod1_order_contr[2], mod2_order_contr[2], mod3_order_contr[2], mod4_order_contr[2], 

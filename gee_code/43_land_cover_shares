@@ -1,0 +1,51 @@
+// ESRI Global Land Cover Histogram per Basin
+// Using ee.Filter.calendarRange() for date filtering
+
+// Load basins
+var basins = ee.FeatureCollection("users/maxmheinze/relevant_basins");
+
+// Load land cover data (no date filter yet)
+var landCover = ee.ImageCollection('projects/sat-io/open-datasets/landcover/ESRI_Global-LULC_10m_TS')
+  .select('b1');
+
+// Function that grabs all images whose system:time_start falls in a given year
+var calcHistogram = function(year) {
+  year = ee.Number(year);
+
+  // Use calendarRange so we catch however the dataset is timestamped
+  var filtered = landCover.filter(ee.Filter.calendarRange(year, year, 'year'));
+
+  var mosaic = filtered.mosaic();
+
+  // Compute frequency histogram per basin
+  var reduced = mosaic.reduceRegions({
+    collection: basins,
+    reducer: ee.Reducer.frequencyHistogram(),
+    scale: 10
+  }).map(function(f) {
+    return f.set({
+      'year': year,
+      'basin_id': f.id(),
+      'HYBAS_ID': f.get('HYBAS_I'),
+      'histogram': f.get('histogram')
+    });
+  });
+
+  return reduced;
+};
+
+// Run the histogram for each desired year
+var years = ee.List.sequence(2017, 2023);
+var results = ee.FeatureCollection(years.map(function(year) {
+  return calcHistogram(ee.Number(year));
+})).flatten();
+
+// Export
+Export.table.toDrive({
+  collection: results,
+  description: 's00_land_cover_shares',
+  folder: 'jde_basins',
+  fileFormat: 'CSV',
+  selectors: ['basin_id','HYBAS_ID','year','histogram']
+});
+

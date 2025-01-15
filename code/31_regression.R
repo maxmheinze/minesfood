@@ -35,6 +35,7 @@ mod2_order_full = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
                         data = df_reg,
                         cluster = "HYBAS_ID")
 
+
 # with covariates, order interaction
 # mod3_order_full = feols(c(max_c_EVI_af, max_c_EVI_ESA) ~
 #                           as.factor(order) + downstream +
@@ -258,6 +259,13 @@ df_reg_restr <- df_reg |> filter(order <= 10, year > 2015)
 #                         cluster = "HYBAS_ID")
 
 mod2_dist_restr = feols(c(max_EVI, max_c_EVI_af, max_c_EVI_ESA) ~
+                          (distance) * downstream |
+                          year +  as.factor(mine_basin),
+                        data = df_reg_restr,
+                        cluster = "HYBAS_ID")
+
+
+mod2_dist_restr = feols(c(max_EVI_px_af_c, max_EVI_16_cci_c_irrigated, max_EVI_16_af_c) ~
                           (distance) * downstream |
                           year +  as.factor(mine_basin),
                         data = df_reg_restr,
