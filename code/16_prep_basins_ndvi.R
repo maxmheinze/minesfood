@@ -375,6 +375,46 @@ ndvi_af_c <- max_mean_ndvi_af_c %>%
   full_join(mean_max_ndvi_af_c, by = c("HYBAS_ID", "year"))
 
 
+# Cropland masks ESRI -----------------------------------------------------
+
+# data with 16-day interval data, with mean across pixels within basin for each interval
+ndvi_mean_esri_c <- read_csv(p("basins_evi/s22_ndvi_mean_croplands.csv"))
+
+# maximum of 16-day interval
+max_mean_ndvi_esri_c <- ndvi_mean_esri_c %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
+            max_NDVI_16_esri_c = NDVI) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
+  slice_max(max_NDVI_16_esri_c, n = 1, na_rm = TRUE) %>%
+  slice_head(n = 1)
+
+# mean across 16-day intervals
+mean_mean_ndvi_esri_c <- ndvi_mean_esri_c %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            mean_NDVI_16_esri_c = NDVI) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
+  summarise(mean_NDVI_16_esri_c = mean(mean_NDVI_16_esri_c, na.rm = T))
+
+# data with maximum NDVI per pixel per year, averaged across pixels per year
+ndvi_max_esri_c <- read_csv(p("basins_evi/s21_ndvi_max_croplands.csv"))
+
+mean_max_ndvi_esri_c <- ndvi_max_esri_c %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_esri_c = NDVI) %>%
+  arrange(HYBAS_ID, year)
+
+# join
+ndvi_esri_c <- max_mean_ndvi_esri_c %>%
+  full_join(mean_mean_ndvi_esri_c, by = c("HYBAS_ID", "year")) %>%
+  full_join(mean_max_ndvi_esri_c, by = c("HYBAS_ID", "year"))
+
+
 # Joining data from all masks ---------------------------------------------
 
 basin_ndvi <- full_join(ndvi_nomask, ndvi_cci_veg_broad, 
@@ -385,7 +425,8 @@ basin_ndvi <- full_join(ndvi_nomask, ndvi_cci_veg_broad,
   full_join(ndvi_cci_c_narrow, by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_cci_c_irrigated, by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_cci_c_rainfed, by = c("HYBAS_ID", "year")) %>%
-  full_join(ndvi_af_c, by = c("HYBAS_ID", "year"))
+  full_join(ndvi_af_c, by = c("HYBAS_ID", "year")) %>%
+  full_join(ndvi_esri_c, by = c("HYBAS_ID", "year"))
 
 
 # saving the data -------------------------------------------------------------
