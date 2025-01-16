@@ -10,13 +10,17 @@ p <- \(path, ..., pre = DATA) { # More concise paths
 }
 
 if(!dir.exists(DATA)) {
-  message("\tCouldn't find the shared directory `DATA`. ",
-    "Attempting to create the directory...")
+  message("\tCouldn't find the shared path `DATA`. ",
+    "Adjusting to the local path './data'")
+  DATA <- "./data"
   dir.create(p(DATA, "processed"),
     showWarnings = FALSE, recursive = TRUE) # Make sure this exists
 }
 if(!dir.exists(DATA_ALT)) {
   message("\tCouldn't find the directory `DATA_ALT`. ",
-    "This may prevent some code from executing properly.")
+    "This may prevent some code from executing properly. ",
+    "Adjusting to the local path './data'")
+  DATA_ALT <- "./data"
+  dir.create(p(DATA_ALT, "processed"),
+    showWarnings = FALSE, recursive = TRUE) # Make sure this exists
 }
-

@@ -8,10 +8,14 @@ pacman::p_load(
   tmap,
   tidyverse,
   countrycode,
-  geosphere
+  geosphere,
+  rnaturalearth
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
+CENTROID_INT <- FALSE # Whether to just match on centroids
+MAX_ORDER <- 25 # Subset to the first N basins
+ADD_IPIS <- # Add IPIS ASM point data
 
 # Load and Prepare Mine Data ----------------------------------------------
 
@@ -21,9 +25,20 @@ africa_codes <- codelist |>
   filter(continent == "Africa") |>
   pluck("iso3c")
 
-m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
+if(CENTROID_INT) { # Centroid-based
+  m <- mines |> filter(ISO3_CODE %in% africa_codes) |> st_centroid()
+} else {# Full
+  m <- mines |> filter(ISO3_CODE %in% africa_codes)
+}
 
-
+if(ADD_IPIS) {
+  m <- c("CAF", "TZA", "DRC", "ZWE") |>
+    lapply(\(f) st_read(p("mines/IPIS-ASM_", f, ".gpkg")) |>
+        transmute(ISO3_CODE = f, AREA = 0, source = "IPIS")
+      )
+  m <- mines |> transmute(ISO3_CODE, AREA, source = "POLYS") |>
+    rbind(do.call(rbind, m))
+}
 
 # Load and Prepare HydroBASINS Data ---------------------------------------
 
@@ -56,13 +71,13 @@ basin_mines_iso <- basin_mines |>
   select(-mine_area_km2)
 basin_mines <- basin_mines |>
   group_by(mine_basin) |>
-  summarise(mine_area_km2 = sum(mine_area_km2), 
+  summarise(mine_area_km2 = sum(mine_area_km2),
             mine_number = n()) |>
-  mutate(mine_avg_area_km2 = mine_area_km2 / mine_number) |> 
+  mutate(mine_avg_area_km2 = mine_area_km2 / mine_number) |>
   left_join(basin_mines_iso) |>
-  left_join(s |> st_drop_geometry() |> 
-              transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_basin = as.double(mine_basin), 
+  left_join(s |> st_drop_geometry() |>
+              transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |>
+  mutate(mine_basin = as.double(mine_basin),
          iso3c = replace(iso3c, iso3c == "ESH", "MAR")) |>
   relocate(iso3c:mine_basin_pfaf_id, .after = mine_basin)
 
@@ -74,7 +89,7 @@ treated_id <- s[["HYBAS_ID"]][lengths(int) > 0]
 
 # Function that determines up- and downstream basins from NEXT_DOWN field
 
-stream <- \(id, n = 1L, max = 11L, down = TRUE) {
+stream <- \(id, n = 1L, max = MAX_ORDER + 1, down = TRUE) {
  if(n >= max) return()
  if(down) {
    id_next <- d[["NEXT_DOWN"]][d[["HYBAS_ID"]] == id]
@@ -85,7 +100,7 @@ stream <- \(id, n = 1L, max = 11L, down = TRUE) {
  return(c(id_next, Recall(id_next, n = n + 1L, max = max, down = down)))
 }
 
-stream_ordered <- function(id, n = 1L, max = 11L, down = TRUE) {
+stream_ordered <- function(id, n = 1L, max = MAX_ORDER + 1, down = TRUE) {
   if (n >= max) return(NULL)
   if (down) {
     id_next <- d[["NEXT_DOWN"]][d[["HYBAS_ID"]] == id]
@@ -108,8 +123,8 @@ upstream_ids <- lapply(treated_id, stream, down = FALSE)
 
 # Tracking orders of basins
 downstream_ids_ordered <- lapply(treated_id, stream_ordered, down = TRUE)
-downstream_ids_ordered <- lapply(downstream_ids_ordered,
-                                 function(x) x[which(!x[,1] %in% lake_id), ])
+downstream_ids_ordered <- lapply(downstream_ids_ordered, function(x)
+  x[which(!x[,1] %in% lake_id), ])
 upstream_ids_ordered <- lapply(treated_id, stream_ordered, down = FALSE)
 
 
@@ -144,12 +159,15 @@ relevant_basins <- su |>
   filter(!is.na(status))
 relevant_basins$basin_area_km2 <- units::drop_units(st_area(relevant_basins) / 10^6)
 basin_area <- data.frame(HYBAS_ID = relevant_basins$HYBAS_ID,
-                         basin_area_km2 = units::drop_units(st_area(relevant_basins) / 10^6))
+  basin_area_km2 = units::drop_units(st_area(relevant_basins) / 10^6))
 
-write_sf(relevant_basins, p("processed/relevant_basins.gpkg"))
+file <- p("processed/relevant_basins",
+  if(ADD_IPIS) "-ipis" else "",
+  if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
+write_sf(relevant_basins, file)
 
 # Necessary for Earth Engine
-write_sf(relevant_basins, p("processed/relevant_basins.shp"))
+write_sf(relevant_basins, gsub("gpkg$", "shp", file))
 
 
 # Calculating Elaborated Distances ----------------------------------------
@@ -169,7 +187,7 @@ basin_distances_centroids <- basin_centroids %>%
   relocate(geometry.y, .after = geometry.x) %>%
   mutate(distance = ifelse(NEXT_DOWN == 0, 0,
                            as.numeric(st_distance(st_sfc(geometry.x), # distance in km
-                                           st_sfc(geometry.y), 
+                                           st_sfc(geometry.y),
                                            by_element = TRUE)) / 10^3)) %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
@@ -200,7 +218,7 @@ for (i in seq_along(downstream_ids_ordered)) {
   current_list <- downstream_ids_ordered[[i]]
   distances <- c(0)
   distances_centroid <- c(0)
-  if (nrow(current_list) > 1) {  
+  if (nrow(current_list) > 1) {
     for (j in 2:nrow(current_list)) {
       id_prev <- current_list[j-1, 1]
       id_curr <- current_list[j, 1]
@@ -208,7 +226,7 @@ for (i in seq_along(downstream_ids_ordered)) {
       distances_centroid <- c(distances_centroid, get_distance(id_curr, id_prev, basin_distances_centroids))
     }
   }
- 
+
   distances <- cumsum(distances)
   distances_centroid <- cumsum(distances_centroid)
   downstream_ids_ordered[[i]] <- cbind(current_list, distances, distances_centroid)
@@ -243,22 +261,22 @@ get_distance_upstream <- function(id1, id2, distances_df) {
 
 for (i in seq_along(upstream_ids_ordered)) {
   current_list <- upstream_ids_ordered[[i]]
-  
+
   distances <- numeric(nrow(current_list))
   distances[1] <- 0
-  
+
   distances_centroid <- numeric(nrow(current_list))
   distances_centroid[1] <- 0
-  
+
   if (nrow(current_list) > 1) {
     for (j in 2:nrow(current_list)) {
-      id1 <- current_list[j, 1] 
-      id2 <- current_list[j, 3]  
+      id1 <- current_list[j, 1]
+      id2 <- current_list[j, 3]
       distances[j] <- get_distance_upstream(id1, id2, basin_distances_river)
       distances_centroid[j] <- get_distance_upstream(id1, id2, basin_distances_centroids)
     }
   }
-  
+
  accumulated_distances <- numeric(nrow(current_list))
  accumulated_distances_centroid <- numeric(nrow(current_list))
  for (j in 1:nrow(current_list)) {
@@ -275,7 +293,7 @@ for (i in seq_along(upstream_ids_ordered)) {
    accumulated_distances[j] <- current_distance
    accumulated_distances_centroid[j] <- current_distance_centroid
  }
-  
+
   upstream_ids_ordered[[i]] <- cbind(current_list, distances, distances_centroid, accumulated_distances, accumulated_distances_centroid)
 }
 
@@ -299,27 +317,27 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 # names(downstream_ids_with_name) <- treated_id
 # downstream_ids_with_name <- lapply(downstream_ids_with_name, function(x)
 #   x[which(!x %in% lake_id)])
-# 
+#
 # upstream_ids_with_name <- upstream_ids
 # names(upstream_ids_with_name) <- treated_id
-# 
+#
 # relevant_basins_centroid <- st_centroid(relevant_basins)
-# 
+#
 # basins_df <- relevant_basins_centroid
-# 
+#
 # # Function to calculate the distance between two points
 # calculate_distance <- function(id1, id2, basins_df) {
 #   basin1 <- basins_df[basins_df$HYBAS_ID == id1,]
 #   basin2 <- basins_df[basins_df$HYBAS_ID == id2,]
-# 
+#
 #   if (nrow(basin1) == 0 || nrow(basin2) == 0) {
 #     return(NA)  # If either basin is not found, return NA
 #   }
-# 
+#
 #   # Extract coordinates
 #   coords1 <- st_coordinates(st_centroid(basin1))
 #   coords2 <- st_coordinates(st_centroid(basin2))
-# 
+#
 #   # Calculate the distance
 #   dist <- distHaversine(coords1, coords2)
 #   return(dist)
@@ -330,11 +348,11 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 
 # # Initialize an empty list to store the results
 # downstream_distances_list <- list()
-# 
+#
 # # Loop through each basin and calculate distances to its downstream basins
 # for (basin_id in names(downstream_ids_with_name)) {
 #   downstream_ids <- downstream_ids_with_name[[basin_id]]
-# 
+#
 #   if (!is.null(downstream_ids)) {
 #     for (downstream_id in downstream_ids) {
 #       distance <- calculate_distance(as.numeric(basin_id), as.numeric(downstream_id), basins_df)
@@ -346,7 +364,7 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 #     }
 #   }
 # }
-# 
+#
 # downstream_distances_df <- bind_rows(downstream_distances_list)
 
 
@@ -354,11 +372,11 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 
 # # Initialize an empty list to store the results
 # upstream_distances_list <- list()
-# 
+#
 # # Loop through each basin and calculate distances to its upstream basins
 # for (basin_id in names(upstream_ids_with_name)) {
 #   upstream_ids <- upstream_ids_with_name[[basin_id]]
-# 
+#
 #   if (!is.null(upstream_ids)) {
 #     for (upstream_id in upstream_ids) {
 #       distance <- calculate_distance(as.numeric(basin_id), as.numeric(upstream_id), basins_df)
@@ -370,7 +388,7 @@ upstream_distances_df <- bind_rows(upstream_distances_list)
 #     }
 #   }
 # }
-# 
+#
 # # Combine the list into a data frame
 # upstream_distances_df <- bind_rows(upstream_distances_list)
 
@@ -393,14 +411,16 @@ downstream_upstream_distance <- downstream_upstream_distance %>%
 
 downstream_upstream_distance <- left_join(downstream_upstream_distance, basin_area) |>
   left_join(basin_mines) |>
-  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID = HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
-  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID = HYBAS_ID, basin_pfaf_id = PFAF_ID)) |>
+  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
+  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id,
             iso3c, downstream, order, distance, distance_centroid, basin_area_km2, mine_area_km2,
             mine_number, mine_avg_area_km2)
 
-write.csv(downstream_upstream_distance,
-  p("processed/downstream_upstream_distance.csv"), row.names = FALSE)
+file <- p("processed/downstream_upstream_distance",
+  if(ADD_IPIS) "-ipis" else "",
+  if(CENTROID_INT) "-centroid.csv" else ".csv")
+write.csv(downstream_upstream_distance, file, row.names = FALSE)
 
 
 # Lookup DF with Order ----------------------------------------------------
@@ -440,12 +460,15 @@ so <- s |>
   dplyr::select(HYBAS_ID, mine_basin, status, order) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
-  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |>
   relocate(iso3c, .after = mine_basin) |>
   relocate(geometry, .after = mine_area_km2)
 
-write_sf(so, p("processed/relevant_basins_ordered.gpkg"))
-write_sf(so, p("processed/relevant_basins_ordered.shp"))
+file <- p("processed/relevant_basins_ordered",
+  if(ADD_IPIS) "-ipis" else "",
+  if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
+write_sf(so, file)
+write_sf(so, gsub("gpkg$", "shp", file))
 
 
 # Add Order to Downstream/Upstream Distance DF ----------------------------
@@ -455,18 +478,20 @@ write_sf(so, p("processed/relevant_basins_ordered.shp"))
 # in --Max
 
 downstream_upstream_distance_ordered <- downstream_upstream_distance |>
-  transmute(HYBAS_ID = as.double(HYBAS_ID), mine_basin = as.double(mine_basin), 
+  transmute(HYBAS_ID = as.double(HYBAS_ID), mine_basin = as.double(mine_basin),
             downstream, distance, distance_centroid) |>
   full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) |>
   drop_na(status) |>
   mutate_at(vars(downstream, distance, distance_centroid), ~replace_na(., 0)) |>
   left_join(basin_area) |>
   left_join(basin_mines) |>
-  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |> 
-  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |> 
-  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id, 
+  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |>
+  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
+  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id,
             iso3c, downstream, status, order, distance, distance_centroid, basin_area_km2,
             mine_area_km2, mine_number, mine_avg_area_km2)
 
-write.csv(downstream_upstream_distance_ordered,
-  p("processed/downstream_upstream_distance_ordered.csv"), row.names = FALSE)
+file <- p("processed/downstream_upstream_distance_ordered",
+  if(ADD_IPIS) "-ipis" else "",
+  if(CENTROID_INT) "-centroid.csv" else ".csv")
+write.csv(downstream_upstream_distance_ordered, file, row.names = FALSE)
