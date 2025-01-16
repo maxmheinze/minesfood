@@ -1,0 +1,154 @@
+// Define the hydrobasins FeatureCollection
+var hydrobasins = ee.FeatureCollection("users/gustav/relevant_basins");
+
+// Define the MOD13Q1 ImageCollection, filtering for the years 2000 to 2022
+var mod13q1 = ee.ImageCollection("MODIS/061/MOD13Q1")
+  .filter(ee.Filter.calendarRange(2000, 2022, 'year'));
+
+// Load cropland masks for each year from 2000 to 2022
+var croplands = ee.Dictionary({
+  '2000': ee.Image('users/gustav/jde_basins/croplands_2000'),
+  '2001': ee.Image('users/gustav/jde_basins/croplands_2001'),
+  '2002': ee.Image('users/gustav/jde_basins/croplands_2002'),
+  '2003': ee.Image('users/gustav/jde_basins/croplands_2003'),
+  '2004': ee.Image('users/gustav/jde_basins/croplands_2004'),
+  '2005': ee.Image('users/gustav/jde_basins/croplands_2005'),
+  '2006': ee.Image('users/gustav/jde_basins/croplands_2006'),
+  '2007': ee.Image('users/gustav/jde_basins/croplands_2007'),
+  '2008': ee.Image('users/gustav/jde_basins/croplands_2008'),
+  '2009': ee.Image('users/gustav/jde_basins/croplands_2009'),
+  '2010': ee.Image('users/gustav/jde_basins/croplands_2010'),
+  '2011': ee.Image('users/gustav/jde_basins/croplands_2011'),
+  '2012': ee.Image('users/gustav/jde_basins/croplands_2012'),
+  '2013': ee.Image('users/gustav/jde_basins/croplands_2013'),
+  '2014': ee.Image('users/gustav/jde_basins/croplands_2014'),
+  '2015': ee.Image('users/gustav/jde_basins/croplands_2015'),
+  '2016': ee.Image('users/gustav/jde_basins/croplands_2016'),
+  '2017': ee.Image('users/gustav/jde_basins/croplands_2017'),
+  '2018': ee.Image('users/gustav/jde_basins/croplands_2018'),
+  '2019': ee.Image('users/gustav/jde_basins/croplands_2019'),
+  '2020': ee.Image('users/gustav/jde_basins/croplands_2020'),
+  '2021': ee.Image('users/gustav/jde_basins/croplands_2021'),
+  '2022': ee.Image('users/gustav/jde_basins/croplands_2022')
+});
+
+// Function for Cloud Masking
+var bitwiseExtract = function(input, fromBit, toBit) {
+  var maskSize = ee.Number(1).add(toBit).subtract(fromBit);
+  var mask = ee.Number(1).leftShift(maskSize).subtract(1);
+  return input.rightShift(fromBit).bitwiseAnd(mask);
+};
+
+var maskSnowAndClouds = function(image) {
+  var summaryQa = image.select('SummaryQA');
+  var qaMask = bitwiseExtract(summaryQa, 0, 1).lte(1);
+  var maskedImage = image.updateMask(qaMask);
+  return maskedImage.copyProperties(image, ['system:index', 'system:time_start']);
+};
+
+// Function for Scaling Pixel Values
+var eviScaled = function(image) {
+  var scaled = image.divide(10000);
+  return scaled.copyProperties(image, ['system:index', 'system:time_start']);
+};
+
+// Apply the functions and select the 'EVI' band
+var processedCol = mod13q1
+  .map(maskSnowAndClouds)
+  .map(eviScaled)
+  .select('EVI');
+
+// Function to mask croplands based on year
+var maskCroplands = function(image) {
+  var year = ee.Date(image.get('system:time_start')).get('year').format();
+  var croplandImage = ee.Image(croplands.get(year));
+  return image.updateMask(croplandImage.select('b1'));  // Ensure correct band selection
+};
+
+// Apply cropland mask to processed images
+var maskedCol = processedCol.map(maskCroplands);
+
+// Print one of the cropland masks to check
+print("Cropland mask for 2000:", croplands.get('2000'));
+
+// Function for Cloud Masking
+var bitwiseExtract = function(input, fromBit, toBit) {
+  var maskSize = ee.Number(1).add(toBit).subtract(fromBit);
+  var mask = ee.Number(1).leftShift(maskSize).subtract(1);
+  return input.rightShift(fromBit).bitwiseAnd(mask);
+};
+
+var maskSnowAndClouds = function(image) {
+  var summaryQa = image.select('SummaryQA');
+  var qaMask = bitwiseExtract(summaryQa, 0, 1).lte(1);
+  var maskedImage = image.updateMask(qaMask);
+  return maskedImage.copyProperties(image, ['system:index', 'system:time_start']);
+};
+
+// Function for Scaling Pixel Values
+var eviScaled = function(image) {
+  var scaled = image.divide(10000);
+  return scaled.copyProperties(image, ['system:index', 'system:time_start']);
+};
+
+// Apply the functions and select the 'EVI' band
+var processedCol = mod13q1
+  .map(maskSnowAndClouds)
+  .map(eviScaled)
+  .select('EVI');
+
+// Print the first image in the processed collection to check
+print("First image in processed collection:", processedCol.first());
+
+// Function to mask croplands based on year
+var maskCroplands = function(image) {
+  var year = ee.Date(image.get('system:time_start')).get('year').format();
+  var croplandImage = ee.Image(croplands.get(year));
+  return image.updateMask(croplandImage.select('b1'));  // Ensure correct band selection
+};
+
+// Apply cropland mask to processed images
+var maskedCol = processedCol.map(maskCroplands);
+
+
+// Function to calculate average EVI for each feature (hydrobasin) on each date
+var calculateEVI = function(feature) {
+  var hybasId = feature.get('HYBAS_ID');
+  var evi = maskedCol.select('EVI');
+  
+  // Map over each image in the collection to calculate the mean EVI
+  var eviTimeSeries = evi.map(function(image) {
+    var date = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd');
+    var meanEvi = image.reduceRegion({
+      reducer: ee.Reducer.mean(),
+      geometry: feature.geometry(),
+      scale: 250,  // Try reducing the scale if needed
+      bestEffort: true,
+      maxPixels: 1e8  // Increase if needed
+    }).get('EVI');
+    
+    // Handle null values
+    meanEvi = ee.Algorithms.If(meanEvi, meanEvi, ee.Number(-9999)); // Use -9999 for no data
+
+    return ee.Feature(null, {
+      'date': date,
+      'meanEVI': meanEvi,
+      'HYBAS_ID': hybasId
+    });
+  });
+  
+  return ee.FeatureCollection(eviTimeSeries);
+};
+
+// Apply the function to each hydrobasin
+var eviPerBasin = hydrobasins.map(calculateEVI).flatten();
+
+// Print the result to check
+print("EVI per Basin:", eviPerBasin);
+
+// Export the result as a CSV file
+Export.table.toDrive({
+  collection: eviPerBasin,
+  description: '02_cropland_evi_basin',
+  fileFormat: 'CSV'
+});
