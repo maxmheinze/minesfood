@@ -10,7 +10,7 @@ pacman:: p_load(
 
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
-relevant_basins <- st_read(p("processed/relevant_basins.gpkg"))
+relevant_basins <- st_make_valid(st_read(p("processed/relevant_basins_ordered-ipis.gpkg")))
 
 
 
@@ -23,14 +23,14 @@ worldpop <- mclapply(
   function(x) {
     current_rstr <- terra::rast(x)
     
-    extracted <- terra::extract(terra::subset(current_rstr, 1), relevant_basins, fun = sum, exact = T, na.rm = T)
+    extracted <- terra::extract(terra::subset(current_rstr, 1), 
+                                relevant_basins, 
+                                fun = sum, exact = T, na.rm = T)
     
     return(extracted)
   },
   mc.cores = 12
 )
-
-worldpop1 <- worldpop
 
 for (i in seq_along(worldpop)) {
   worldpop[[i]] <- dplyr::mutate(worldpop[[i]], year = 2010 + i,

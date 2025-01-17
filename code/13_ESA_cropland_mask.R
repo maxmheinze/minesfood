@@ -15,9 +15,6 @@ pacman::p_load(
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
-# basins to get data for
-basins <- read_sf(p("processed/relevant_basins_ordered.gpkg"))
-
 africa <- st_bbox(rnaturalearth::ne_countries(continent = "africa"))
 
 files <- list.files(p("land_use/", pre = "/data/redd/"))

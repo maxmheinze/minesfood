@@ -16,7 +16,7 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
 
 # basins to get data for
-basins <- read_sf(p("processed/relevant_basins_ordered.gpkg"))
+basins <- st_make_valid(read_sf(p("processed/relevant_basins_ordered-ipis.gpkg")))
 
 
 #####
