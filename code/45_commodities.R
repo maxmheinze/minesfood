@@ -1,20 +1,27 @@
 
-library("sf")
-library("dplyr")
+pacman::p_load(
+  sf,
+  dplyr,
+  terra,
+  rnaturalnearth # Used to crosscheck locations
+)
+sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
-# Sources ---
+# Make sure this exists
+dir.create("outputs", showWarnings = FALSE)
+
+# Sources of commodity info
 files <- c(
   # Padilla et al. <https://www.sciencebase.gov/catalog/item/607611a9d34e018b3201cbbf>
-  list.files("data/commodities/", pattern = "padilla"),
+  list.files(p("mines/commodities/"), pattern = "padilla"),
   # Jasansky et al. <https://www.nature.com/articles/s41597-023-01965-y>
-  list.files("data/commodities/", pattern = "jasansky"),
+  list.files(p("mines/commodities/"), pattern = "jasansky"),
   # <https://globalenergymonitor.org/>
-  list.files("data/commodities/", pattern = "GEM")
+  list.files(p("mines/commodities/"), pattern = "GEM")
 )
+shapes <- lapply(p("mines/commodities/", files), st_read)
 
-shapes <- lapply(paste0("data/commodities/", files), st_read)
-
-# Countries for a plot ---
+# Check the locations ---
 countries <- rnaturalearth::ne_countries() |> dplyr::filter(continent == "Africa")
 countries |> st_geometry() |> plot(line = "gray")
 for(shape in shapes) shape |> st_geometry() |> plot(add = TRUE)
@@ -71,24 +78,24 @@ comm_jas |> table() |> sort(decreasing = TRUE) |> head(20)
 jasansky[, "commodity"] <- paste0(jasansky[["primary_commodity"]], ",",
   jasansky[["commodities_list"]])
 
-# S&P would have info on:
-# Gold, copper, diamonds, coal, uranium, iron, platinum, palladium, ...
-
 # Processing facilities -- we skip those
 # shapes[[grep("padilla_facilities.gpkg", files)]]
 
+
+# S&P would have info on:
+#   Gold, copper, diamonds, coal, uranium, iron, platinum, palladium, ...
 # We have specific sources on:
-# coal, copper, potassium, platinum
+#   Coal, copper, potassium, platinum
 
 # Which commodities do we have? ---
 comm <- structure(c(
   comm_dep, comm_exp, comm_gab, comm_mau, comm_jas
 ), names = NULL)
 comm[-grep("^ $", comm)] |> table() |> sort() |>
-  write.csv("outputs/commodities.csv", row.names = FALSE)
+  write.csv("outputs/commodities_present.csv", row.names = FALSE)
 
 
-# Start off building a shapefile -----
+# Start off building one shapefile of commodity locations -----
 
 add_shp <- \(x, y, commodity) {
   if(!missing(commodity)) y <- y |> mutate(commodity = commodity)
@@ -106,7 +113,7 @@ shp <- shp |> add_shp(shapes[[grep("padilla_platinum", files)]], "platinum")
 # Potassium
 shp <- shp |> add_shp(shapes[[grep("padilla_potassium", files)]], "potassium")
 
-# Add sources with multiple commodities
+# Add the earlier sources with multiple commodities
 shp <- shp |> add_shp(deposits)
 shp <- shp |> add_shp(exploration)
 shp <- shp |> add_shp(gabon)
@@ -117,10 +124,11 @@ shp <- shp |> st_make_valid()
 st_write(shp, "outputs/commodity_locations.gpkg")
 
 # Use terra to take samples from the polygons
-library("terra")
-polys <- terra::vect("outputs/commodity_locations.gpkg")
-samples <- round(expanse(polys, unit = "km") / 100) |> pmax(1) |> pmin(5)
-points <- polys |> # There's at least one extremely detailed polygon that crashes the regular sampling
+polys <- terra::vect("outputs/commodity_locations.gpkg") # Only reads polys
+
+# Take between 1 and 10 points per polygon (related to size) as sample
+samples <- round(expanse(polys, unit = "km") / 100) |> pmax(1) |> pmin(10)
+points <- polys |> # Simplify for computation
   simplifyGeom(tolerance = .01, preserveTopology = TRUE, makeValid = TRUE) |>
   spatSample(size = samples, method = "regular")
 # Write the points
