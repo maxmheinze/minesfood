@@ -3,7 +3,7 @@ pacman::p_load(
   sf,
   dplyr,
   GauPro, # Used to create predictions
-  rnaturalnearth # Used for the prediction's extent
+  # rnaturalnearth # Used for the prediction's extent -- bugs out
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
@@ -22,21 +22,26 @@ shp <- rbind(
 
 # Hand-prepared list of commodities and naming variants
 commodities <- list( # Precious metals --- mercury and cyanide used
-  "gold", "silver", "platinum" = c("platinum", "PGE", "PGM", "palladium", "rhodium", "ruthenium", "iridium", "osmium"),
+  "gold" = c("gold", "or"),
+    "silver", "platinum" = c("platinum", "PGE", "PGM", "palladium", "rhodium", "ruthenium", "iridium", "osmium"),
+  "precious",
   # Gemstones --- conflict
-  "diamonds" = c("diamond", "diamonds", "gems", "gem"),
+  "diamonds" = c("diamond", "diamonds", "gems", "gem", "diamant"),
   # Energy --- large pits, acidification, dust
   "coal", "uranium" = c("uranium", "u308"),
   # Base metals --- large pits
-  "copper", "iron", "zinc", "lead", "nickel",
+  "copper" = c("copper", "cuivre"), "iron", "zinc", "lead", "nickel",
   # Industrial
   "industrial minerals",
-  "chromium" = c("chromium", "chromite", "chrome"), "cobalt", "manganese", "tantalum",
+  "chromium" = c("chromium", "chromite", "chrome"), "cobalt", "manganese",
+  "tantalum" = c("tantalum", "coltan"),
   # Batteries
   "lithium", "vanadium",
   # Various
+  "tungsten" = c("tungsten", "wolframite"),
+  "tin" = c("tin", "cassitérite"),
   "titanium", "sands" = c("mineral sands", "rutile", "zircon", "ilmenite", "leucoxene"), "rare earth", "germanium", "gallium", "indium", "aluminium" = c("aluminum", "aluminium", "alumina", "bauxite"), "potassium" = c("potassium", "potash"),
-  "phosphate" = c("phosphate", "phosphorous"), "graphite", "tin", "tungsten", "molybdenum", "zirconium", "beryllium", "fluor", "niobium", "asbestos", "limestone", "talc", "barite", "lignite", "sulfur"
+  "phosphate" = c("phosphate", "phosphorous"), "graphite", "molybdenum", "zirconium", "beryllium", "fluor", "niobium", "asbestos", "limestone", "talc", "barite", "lignite", "sulfur"
 )
 names(commodities) <- ifelse(names(commodities) != "", names(commodities),
   vapply(commodities, \(x) x[1], character(1L)))
@@ -110,22 +115,24 @@ for(comm in names(comm_matches)) {
 
   # Where is comm present
   ones <- shp[shp[[comm]] == 1, c("geom", comm)]
+  # Where it isn't
+  zeros <- shp[shp[[comm]] == 0, c("geom", comm)]
 
   # Impute zeros elsewhere (farthest point sampling would be even better)
-  zeros <- st_sf(geom = continent |> # We want 5000 points
-      st_sample(type = "regular", size = 1000))
-  zeros[[comm]] <- 0
-  st_crs(zeros) <- st_crs(ones) # Somehow needed again
+  # zeros <- st_sf(geom = continent |> # We want 5000 points
+  #     st_sample(type = "regular", size = 1000))
+  # zeros[[comm]] <- 0
+  # st_crs(zeros) <- st_crs(ones) # Somehow needed again
 
   # Consider adding some noise to avoid model collapse
   noise <- st_sf(geom = continent |> # Do this everywhere
       st_bbox() |> st_as_sfc() |> # We want the equivalent of the zeros
-    st_sample(type = "regular", size = 500))
+    st_sample(type = "regular", size = 1000))
   noise[[comm]] <- rbeta(NROW(noise), 5, 100) # Mean 2 / 42, all should be below .4
   st_crs(noise) <- st_crs(ones) # Somehow needed again
 
   # Filter out overlaps via distance
-  dist_zeros <- st_distance(zeros, ones) |> apply(1, min)
+  dist_zeros <- 1e6 # st_distance(zeros, ones) |> apply(1, min)
   dist_noise <- st_distance(noise, ones) |> apply(1, min)
   df <- rbind(
     ones,
@@ -137,7 +144,7 @@ for(comm in names(comm_matches)) {
   k <- GauPro::Gaussian$new(beta = c(0, 0)) # Matern tends to collapse on few locations
   trend <- trend_0$new() # trend_c$new()
   model <- gpkm(coords, df[[comm]], kernel = k, trend = trend,
-    nug.min = 1e-12, restarts = 3)
+    nug.min = 1e-12, restarts = 1)
 
   # Plot the predictions
   # model$plot()
@@ -163,4 +170,3 @@ for(comm in names(comm_matches)) {
 mines <- st_transform(mines, mine_crs)
 saveRDS(mines, "outputs/africa_mining_polygons_v2-pred-commodity.rds")
 st_write(mines, "outputs/africa_mining_polygons_v2-pred-commodity.gpkg")
-

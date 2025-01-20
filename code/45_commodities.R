@@ -2,8 +2,8 @@
 pacman::p_load(
   sf,
   dplyr,
-  terra,
-  rnaturalnearth # Used to crosscheck locations
+  terra #,
+  # rnaturalnearth # Used to crosscheck locations -- bugs out
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
@@ -13,18 +13,20 @@ dir.create("outputs", showWarnings = FALSE)
 # Sources of commodity info
 files <- c(
   # Padilla et al. <https://www.sciencebase.gov/catalog/item/607611a9d34e018b3201cbbf>
-  list.files(p("mines/commodities/"), pattern = "padilla"),
+  paste0("commodities/", list.files(p("mines/commodities/"), pattern = "padilla")),
   # Jasansky et al. <https://www.nature.com/articles/s41597-023-01965-y>
-  list.files(p("mines/commodities/"), pattern = "jasansky"),
+  paste0("commodities/", list.files(p("mines/commodities/"), pattern = "jasansky")),
   # <https://globalenergymonitor.org/>
-  list.files(p("mines/commodities/"), pattern = "GEM")
+  paste0("commodities/", list.files(p("mines/commodities/"), pattern = "GEM")),
+  # IPIS
+  list.files(p("mines/"), pattern = "IPIS-ASM_")
 )
-shapes <- lapply(p("mines/commodities/", files), st_read)
+shapes <- lapply(p("mines/", files), st_read)
 
 # Check the locations ---
 countries <- rnaturalearth::ne_countries() |> dplyr::filter(continent == "Africa")
 countries |> st_geometry() |> plot(line = "gray")
-for(shape in shapes) shape |> st_geometry() |> plot(add = TRUE)
+# for(shape in shapes) shape |> st_geometry() |> plot(add = TRUE)
 
 
 # Check sources on various ores ---
@@ -78,6 +80,27 @@ comm_jas |> table() |> sort(decreasing = TRUE) |> head(20)
 jasansky[, "commodity"] <- paste0(jasansky[["primary_commodity"]], ",",
   jasansky[["commodities_list"]])
 
+# IPIS
+ipis <- bind_rows(
+  shapes[[grep("CAF", files)]] |>
+    filter(visit == 1, grepl("GPS", location_origin)) |>
+    transmute(commodity = minerals),
+  shapes[[grep("DRC", files)]] |>
+    filter(visit_onsite == 1, grepl("GPS", location_origin)) |>
+    transmute(commodity = paste(mineral1, mineral2, mineral3, sep = ", ")),
+  shapes[[grep("TZA", files)]] |>
+    filter(visit == 1, grepl("Mine", sitetype)) |>
+    transmute(commodity = paste(mineral1name, mineral2name, sep = ", ")),
+  shapes[[grep("ZWE", files)]] |>
+    filter(visit == 1) |>
+    transmute(commodity = mineral1_name)
+)
+ipis <- ipis[!duplicated(ipis), ]
+comm_ipis <- ipis |> pull(commodity) |> strsplit(", ") |> unlist()
+comm_ipis <- comm_ipis[!grepl("^NA$", comm_ipis)]
+comm_ipis |> table() |> sort()
+# Gold, tin (cassiterite), tantalite (coltan), limestone, diamonds, copper, wolfram, chrome
+
 # Processing facilities -- we skip those
 # shapes[[grep("padilla_facilities.gpkg", files)]]
 
@@ -89,7 +112,7 @@ jasansky[, "commodity"] <- paste0(jasansky[["primary_commodity"]], ",",
 
 # Which commodities do we have? ---
 comm <- structure(c(
-  comm_dep, comm_exp, comm_gab, comm_mau, comm_jas
+  comm_dep, comm_exp, comm_gab, comm_mau, comm_jas, comm_ipis
 ), names = NULL)
 comm[-grep("^ $", comm)] |> table() |> sort() |>
   write.csv("outputs/commodities_present.csv", row.names = FALSE)
@@ -113,21 +136,23 @@ shp <- shp |> add_shp(shapes[[grep("padilla_platinum", files)]], "platinum")
 # Potassium
 shp <- shp |> add_shp(shapes[[grep("padilla_potassium", files)]], "potassium")
 
+
 # Add the earlier sources with multiple commodities
 shp <- shp |> add_shp(deposits)
 shp <- shp |> add_shp(exploration)
 shp <- shp |> add_shp(gabon)
 shp <- shp |> add_shp(mauritania)
 shp <- shp |> add_shp(jasansky)
+shp <- shp |> add_shp(ipis)
 
 shp <- shp |> st_make_valid()
-st_write(shp, "outputs/commodity_locations.gpkg")
+st_write(shp, "outputs/commodity_locations.gpkg", append = FALSE)
 
 # Use terra to take samples from the polygons
 polys <- terra::vect("outputs/commodity_locations.gpkg") # Only reads polys
 
 # Take between 1 and 10 points per polygon (related to size) as sample
-samples <- round(expanse(polys, unit = "km") / 100) |> pmax(1) |> pmin(10)
+samples <- round(expanse(polys, unit = "km") / 100) |> pmax(1) |> pmin(3)
 points <- polys |> # Simplify for computation
   simplifyGeom(tolerance = .01, preserveTopology = TRUE, makeValid = TRUE) |>
   spatSample(size = samples, method = "regular")
