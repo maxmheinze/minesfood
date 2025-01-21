@@ -109,8 +109,8 @@ pred <- expand.grid( # ~80km^2 per pixel
 pred[, c("X", "Y")] <- pred[, c("x", "y")] |> rescale_coords() # Model space to true
 
 set.seed(42)
-for(comm in names(comm_matches)) {
-# for(comm in re) {
+# for(comm in names(comm_matches)) {
+for(comm in names(comm_matches)[c(-1, -2)]) {
   cat("Predicting", comm, "\n")
 
   # Where is comm present

@@ -142,10 +142,10 @@ for (i in seq_along(ds_dists)) {
   )
   d <- d_centroid <- rep(0, NROW(elem))
   if (nrow(elem) > 1) { for (j in 2:nrow(elem)) { # First row is the mine
-    id1 <- elem[j - 1, 1]
-    id2 <- elem[j, 1]
-    d[j] <- get_distance(id1, id2, distances_river)
-    d_centroid[j] <- get_distance(id1, id2, distances_centroids)
+    id_prev <- elem[j - 1, 1]
+    id_curr <- elem[j, 1]
+    d[j] <- get_distance(id_curr, id_prev, distances_river)
+    d_centroid[j] <- get_distance(id_curr, id_prev, distances_centroids)
   } }
   elem$dist_km <- cumsum(d)
   elem$dist_km_centroid <- cumsum(d_centroid)
