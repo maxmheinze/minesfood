@@ -13,7 +13,7 @@ sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 # Settings
 CENTROID_INT <- FALSE # Intersect using centroids (or polygons)
 MAX_ORDER <- 25 # Subset to the first MAX_ORDER basins
-ADD_IPIS <- TRUE # Add IPIS artisanal mine locations (point data)
+ADD_IPIS <- FALSE # Add IPIS artisanal mine locations (point data)
 
 # Load and Prepare Mine Data ----------------------------------------------
 
@@ -84,7 +84,7 @@ s_relevant <- s_relevant |> filter(!is.na(status))
 s_relevant$basin_area_km2 <- units::drop_units(st_area(s_relevant) / 1e6)
 
 # Store the result
-file <- p("processed/relevant_basins",
+file <- p("processed/basins/relevant_basins",
   if(ADD_IPIS) "-ipis" else "",
   if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
 write_sf(s_relevant, file) # GPKG
@@ -265,7 +265,7 @@ so <- basins_ordered_unique |>
   left_join(mine_basins, by = join_by("basin_id")) |>
   relocate(geometry, .after = mine_basins)
 
-file <- p("processed/basins",
+file <- p("processed/basins/basins",
   if(ADD_IPIS) "-ipis" else "",
   if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
 write_sf(so, file)

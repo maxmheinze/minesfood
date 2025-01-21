@@ -2,7 +2,7 @@
 pacman::p_load(
   sf,
   dplyr,
-  GauPro, # Used to create predictions
+  GauPro #, # Used to create predictions
   # rnaturalnearth # Used for the prediction's extent -- bugs out
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
@@ -65,7 +65,7 @@ print("Commodities (+ count) that were matched:")
 comm_matches <- shp[, -1] |> st_drop_geometry() |> colSums() |> sort()
 comm_matches |> print()
 # Subset to ones with enough locations
-comm_matches <- comm_matches[comm_matches > 25]
+comm_matches <- comm_matches[comm_matches > 45]
 
 
 # Prepare the regional mask (and projection) ---
@@ -165,6 +165,7 @@ for(comm in names(comm_matches)) {
   mines[[comm]] <- scaled_coords |> model$predict() |> z()
   # plot(continent)
   # plot(mines |> select(comm) |> st_centroid(), add = TRUE, pch = 18)
+  saveRDS(mines, "outputs/tmp.rds")
 }
 
 mines <- st_transform(mines, mine_crs)
