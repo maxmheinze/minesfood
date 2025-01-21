@@ -13,9 +13,10 @@ pacman::p_load(
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
-CENTROID_INT <- FALSE # Whether to just match on centroids
-MAX_ORDER <- 25 # Subset to the first N basins
-ADD_IPIS <- TRUE# Add IPIS ASM point data
+# Settings
+CENTROID_INT <- FALSE # Intersect using centroids (or polygons)
+MAX_ORDER <- 25 # Subset to the first MAX_ORDER basins
+ADD_IPIS <- TRUE # Add IPIS artisanal mine locations (point data)
 
 # Load and Prepare Mine Data ----------------------------------------------
 
@@ -272,7 +273,6 @@ for (i in seq_along(upstream_distances_list)) {
 
 
 # Merge upstream, downstream and mines
-
 basins_ordered <- rbind(
   bind_rows(downstream_distances_list) |> mutate(status = "downstream"),
   bind_rows(upstream_distances_list) |> mutate(status = "upstream")
@@ -292,79 +292,49 @@ basins_ordered_unique <- basins_ordered |>
     dist_order, dist_km, .by_group = TRUE) |>
   slice_head(n = 1)
 
+# Which mine basins are associated with which basin?
+mine_basins <- basins_ordered |>
+  group_by(basin_id) |>
+  summarise(mine_basins = paste(unique(mine_basin), collapse = ", "))
+  # summarise(mine_basins = list(unique(mine_basin)))
+
+# Which mines are in which basin
+basin_mines <- data.frame(
+  "mine_basin" = rep(names(mine_ids), lengths(mine_ids)),
+  "mine_id" = mine_ids |> purrr::map_dfr(as_tibble) |> pull(value)) |>
+  left_join(
+    m |> st_drop_geometry() |> transmute(
+      mine_id = seq_len(nrow(m)),
+      iso3c = ISO3_CODE,
+      mine_area_km2 = AREA
+    ),
+    by = "mine_id")
+
+# Add the country by largest area of mine and add mine areas
+basin_mines_iso <- basin_mines |> group_by(mine_basin, iso3c) |>
+  summarise(mine_area_km2 = sum(mine_area_km2)) |>
+  group_by(mine_basin) |> slice_max(mine_area_km2, n = 1) |>
+  select(-mine_area_km2)
+basin_mines <- basin_mines |> group_by(mine_basin) |>
+  summarise(mine_area_km2 = sum(mine_area_km2), mine_number = n()) |>
+  mutate(mine_avg_area_km2 = mine_area_km2 / mine_number) |>
+  left_join(basin_mines_iso) |>
+  # left_join(s |> st_drop_geometry() |>
+  #   transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |>
+  mutate(mine_basin = as.double(mine_basin),
+    iso3c = replace(iso3c, iso3c == "ESH", "MAR"))
+
+
 so <- basins_ordered_unique |>
-  left_join(s, by = join_by("basin_id" == "HYBAS_ID"))
+  left_join(s, by = join_by("basin_id" == "HYBAS_ID")) |>
+  left_join(basin_area, by = join_by("basin_id" == "HYBAS_ID")) |>
+  left_join(basin_area, by = join_by("basin_id" == "HYBAS_ID")) |>
+  left_join(basin_mines, by = join_by("mine_basin")) |>
+  left_join(mine_basins, by = join_by("basin_id")) |>
+  relocate(geometry, .after = mine_basins)
 
 file <- p("processed/relevant_basins_ordered",
   if(ADD_IPIS) "-ipis" else "",
   if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
 write_sf(so, file)
-write_sf(so, gsub("gpkg$", "shp", file))
-
-
-# TODO
-# so <- s |>
-#   left_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin_id")) |>
-#   dplyr::filter(!is.na(status)) |>
-#   dplyr::select(HYBAS_ID, mine_basin, status, order) |>
-#   left_join(basin_area) |>
-#   left_join(basin_mines) |>
-#   left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |>
-#   relocate(iso3c, .after = mine_basin) |>
-#   relocate(geometry, .after = mine_area_km2)
-
-
-# Gather some info ---
-mine_ids <- int[lengths(int) > 0]
-names(mine_ids) <- s[["HYBAS_ID"]][lengths(int) > 0]
-
-basin_mines <- data.frame(
-  "mine_basin" = rep(names(mine_ids), lengths(mine_ids)),
-  "mine_id" = mine_ids |> purrr::map_dfr(as_tibble) |> pull(value))
-basin_mines <- basin_mines |>
-  left_join(m |> st_drop_geometry() |> transmute(
-    mine_id = seq_len(nrow(m)), iso3c = ISO3_CODE, mine_area_km2 = AREA),
-    by = "mine_id")
-
-# Assign country by larger area of mine and add mine areas
-basin_mines_iso <- basin_mines |>
-  group_by(mine_basin, iso3c) |>
-  summarise(mine_area_km2 = sum(mine_area_km2)) |>
-  group_by(mine_basin) |>
-  slice_max(mine_area_km2, n = 1) |>
-  select(-mine_area_km2)
-basin_mines <- basin_mines |>
-  group_by(mine_basin) |>
-  summarise(mine_area_km2 = sum(mine_area_km2), mine_number = n()) |>
-  mutate(mine_avg_area_km2 = mine_area_km2 / mine_number) |>
-  left_join(basin_mines_iso) |>
-  left_join(s |> st_drop_geometry() |>
-      transmute(mine_basin = as.character(HYBAS_ID), mine_basin_pfaf_id = PFAF_ID)) |>
-  mutate(mine_basin = as.double(mine_basin),
-         iso3c = replace(iso3c, iso3c == "ESH", "MAR")) |>
-  relocate(iso3c:mine_basin_pfaf_id, .after = mine_basin)
-
-# Add Order to Downstream/Upstream Distance DF ----------------------------
-
-# This is legacy code that is redundant (I think) but I'm not sure whether
-# we use this some time later so I just ensured consistency and left it
-# in --Max
-
-downstream_upstream_distance_ordered <- downstream_upstream_distance |>
-  transmute(HYBAS_ID = as.double(HYBAS_ID), mine_basin = as.double(mine_basin),
-            downstream, distance, distance_centroid) |>
-  full_join(basins_ordered_unique, by = join_by("HYBAS_ID" == "basin", "mine_basin")) |>
-  drop_na(status) |>
-  mutate_at(vars(downstream, distance, distance_centroid), ~replace_na(., 0)) |>
-  left_join(basin_area) |>
-  left_join(basin_mines) |>
-  left_join(s |> st_drop_geometry() |> transmute(HYBAS_ID, basin_pfaf_id = PFAF_ID)) |>
-  mutate(mine_area_km2 = replace(mine_area_km2, mine_basin != HYBAS_ID, 0)) |>
-  transmute(HYBAS_ID, HYBAS_PFAF_ID = basin_pfaf_id, mine_basin, mine_basin_pfaf_id,
-            iso3c, downstream, status, order, distance, distance_centroid, basin_area_km2,
-            mine_area_km2, mine_number, mine_avg_area_km2)
-
-file <- p("processed/downstream_upstream_distance_ordered",
-  if(ADD_IPIS) "-ipis" else "",
-  if(CENTROID_INT) "-centroid.csv" else ".csv")
-write.csv(downstream_upstream_distance_ordered, file, row.names = FALSE)
+# write_sf(so, gsub("gpkg$", "shp", file))
