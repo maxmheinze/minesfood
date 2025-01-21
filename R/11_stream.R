@@ -37,7 +37,10 @@ get_distance <- function(id1, id2, dataframe, downstream = TRUE) {
   } else {
     dataframe[["distance"]][dataframe[["HYBAS_ID"]] == id1 & dataframe[["NEXT_DOWN"]] == id2]
   }
-  if (length(distance) == 0) stop("No distance between ", id1, " and ", id2, " found.")
+  if (length(distance) == 0) {
+    message("No distance between ", id1, " and ", id2, " found.")
+    return(NA_real_)
+  }
   return(distance)
 }
 get_distance_upstream <- \(...) get_distance(..., downstream = FALSE)

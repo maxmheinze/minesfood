@@ -66,8 +66,8 @@ downstream_ids <- lapply(treated_id, stream, down = TRUE)
 upstream_ids <- lapply(treated_id, stream, down = FALSE)
 
 # Also track the orders of basins
-downstream_ids_ordered <- lapply(treated_id, stream_ordered, down = TRUE)
-upstream_ids_ordered <- lapply(treated_id, stream_ordered, down = FALSE)
+downstream_order <- lapply(treated_id, stream_ordered, down = TRUE)
+upstream_order <- lapply(treated_id, stream_ordered, down = FALSE)
 
 
 # Relevant Basins Shapefile -----------------------------------------------
@@ -108,7 +108,7 @@ distances_centroids <- basin_centroids %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
 # River Flow Distances
-distances_river <- relevant_basins %>%
+distances_river <- s_relevant %>%
   st_drop_geometry() %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, NEXT_SINK, DIST_SINK, DIST_MAIN) %>%
   left_join(., ., by = join_by("NEXT_DOWN" == "HYBAS_ID")) %>%
@@ -116,14 +116,16 @@ distances_river <- relevant_basins %>%
   dplyr::select(HYBAS_ID, NEXT_DOWN, distance)
 
 # Basins sizes
-basin_area <- data.frame(HYBAS_ID = relevant_basins$HYBAS_ID,
-  basin_area_km2 = units::drop_units(st_area(relevant_basins) / 1e6))
+basin_area <- data.frame(HYBAS_ID = s_relevant$HYBAS_ID,
+  basin_area_km2 = units::drop_units(st_area(s_relevant) / 1e6))
 
 
 # Elaborated Distances ----------------------------------------------------
 
+# Functions from R/11_stream.R -- get a distance from a dataframe
+
 # Downstream ---
-ds_dists <- downstream_ids_ordered
+ds_dists <- downstream_order
 
 for (i in seq_along(ds_dists)) {
   ds_dists[[i]] <- rbind( # Add the mine basin as order 0
@@ -151,7 +153,7 @@ for (i in seq_along(ds_dists)) {
 }
 
 # Upstream ---
-us_dists <- upstream_ids_ordered
+us_dists <- upstream_order
 
 for (i in seq_along(us_dists)) { # Add the mine basin as order 0
   us_dists[[i]] <- rbind( c(treated_id[i], 0), us_dists[[i]])
@@ -166,7 +168,6 @@ for (i in seq_along(us_dists)) { # Add the mine basin as order 0
 # Build dataframes with distances
 for (i in seq_along(us_dists)) {
   elem <- us_dists[[i]]
-
   d <- d_centroid <- rep(0, NROW(elem))
   if (nrow(elem) > 1) { for (j in 2:nrow(elem)) {
     id1 <- elem[j, 1]
@@ -174,7 +175,6 @@ for (i in seq_along(us_dists)) {
     d[j] <- get_distance_upstream(id1, id2, distances_river)
     d_centroid[j] <- get_distance_upstream(id1, id2, distances_centroids)
   } }
-
   # Accumulate distances (we can no longer accumulate over rows)
   acc_d <- acc_d_centroid <- numeric(nrow(elem))
   for (j in 1:nrow(elem)) {
@@ -211,13 +211,14 @@ basins_ordered <- rbind(
     dist_order = dist_n * ifelse(status == "upstream", -1, 1)
   )
 
-# Basins may appear multiple times – we keep basins with
-#   1) mines
-#   2) downstream > upstream
-#   3) close > far
+# Basins may appear multiple times – we keep one each
 basins_ordered_unique <- basins_ordered |>
   group_by(basin_id) |>
-  arrange(status != "mine", status != "downstream", dist_n, dist_km, .by_group = TRUE) |>
+  arrange( # We keep basin information in the order of
+    status != "mine", # mines trump all
+    status != "downstream", # downstream > upstream
+    dist_n, dist_km, # closer > farther
+    .by_group = TRUE) |>
   slice_head(n = 1) # Only keep the first per basin_id
 
 
@@ -251,7 +252,7 @@ basin_mines <- basin_mines |>
   mutate(mine_basin = as.double(mine_basin),
     iso3c = replace(iso3c, iso3c == "ESH", "MAR"))
 
-# Which mine basins are associated with which basin?
+# Which basins are associated with which mine basins?
 mine_basins <- basins_ordered |>
   group_by(basin_id) |>
   summarise(mine_basins = paste(unique(mine_basin), collapse = ", "))
@@ -260,8 +261,8 @@ mine_basins <- basins_ordered |>
 so <- basins_ordered_unique |>
   left_join(s, by = join_by("basin_id" == "HYBAS_ID")) |>
   left_join(basin_area, by = join_by("basin_id" == "HYBAS_ID")) |>
-  left_join(basin_area, by = join_by("basin_id" == "HYBAS_ID")) |>
   left_join(basin_mines, by = join_by("mine_basin")) |>
+  left_join(mine_basins, by = join_by("basin_id")) |>
   relocate(geometry, .after = mine_basins)
 
 file <- p("processed/basins",
