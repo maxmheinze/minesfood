@@ -14,8 +14,8 @@ ndvi_mean_nomask <- read_csv(p("basins_evi/update_revision/00_ndvi-mean_nomask.c
 
 # maximum of 16-day interval
 max_mean_ndvi_nomask <- ndvi_mean_nomask %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             # image_date, # exclude date of maximum NDVI for now
             max_NDVI_16_nomask = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
@@ -25,8 +25,8 @@ max_mean_ndvi_nomask <- ndvi_mean_nomask %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_nomask <- ndvi_mean_nomask %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_nomask = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -36,17 +36,17 @@ mean_mean_ndvi_nomask <- ndvi_mean_nomask %>%
 ndvi_max_nomask <- read_csv(p("basins_evi/update_revision/10_ndvi-max_nomask.csv"))
 
 mean_max_ndvi_nomask <- ndvi_max_nomask %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_nomask = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_nomask = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_nomask <- max_mean_ndvi_nomask %>% 
-  full_join(mean_mean_ndvi_nomask, by = c("HYBAS_ID", "year")) %>% 
+ndvi_nomask <- max_mean_ndvi_nomask %>%
+  full_join(mean_mean_ndvi_nomask, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_nomask, by = c("HYBAS_ID", "year"))
 
-# for some basins the average of the maximum NDVI per pixel is lower than the 
+# for some basins the average of the maximum NDVI per pixel is lower than the
 # maximum of the 16-day basin averages, makes that sense? maybe because of infrastructure?
 ndvi_nomask |> filter(max_NDVI_px_nomask < max_NDVI_16_nomask)
 
@@ -60,9 +60,9 @@ ndvi_mean_cci_veg_broad <- read_csv(p("basins_evi/update_revision/01_ndvi-mean_v
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_veg_broad <- ndvi_mean_cci_veg_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_veg_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -71,8 +71,8 @@ max_mean_ndvi_cci_veg_broad <- ndvi_mean_cci_veg_broad %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_veg_broad <- ndvi_mean_cci_veg_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_veg_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -82,14 +82,14 @@ mean_mean_ndvi_cci_veg_broad <- ndvi_mean_cci_veg_broad %>%
 ndvi_max_cci_veg_broad <- read_csv(p("basins_evi/update_revision/11_ndvi-max_veg_broad.csv"))
 
 mean_max_ndvi_cci_veg_broad <- ndvi_max_cci_veg_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_veg_broad = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_veg_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_veg_broad <- max_mean_ndvi_cci_veg_broad %>% 
-  full_join(mean_mean_ndvi_cci_veg_broad, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_veg_broad <- max_mean_ndvi_cci_veg_broad %>%
+  full_join(mean_mean_ndvi_cci_veg_broad, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_veg_broad, by = c("HYBAS_ID", "year"))
 
 
@@ -100,9 +100,9 @@ ndvi_mean_cci_veg_narrow <- read_csv(p("basins_evi/update_revision/02_ndvi-mean_
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_veg_narrow <- ndvi_mean_cci_veg_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_veg_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -111,8 +111,8 @@ max_mean_ndvi_cci_veg_narrow <- ndvi_mean_cci_veg_narrow %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_veg_narrow <- ndvi_mean_cci_veg_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_veg_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -122,14 +122,14 @@ mean_mean_ndvi_cci_veg_narrow <- ndvi_mean_cci_veg_narrow %>%
 ndvi_max_cci_veg_narrow <- read_csv(p("basins_evi/update_revision/12_ndvi-max_veg_narrow.csv"))
 
 mean_max_ndvi_cci_veg_narrow <- ndvi_max_cci_veg_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_veg_narrow = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_veg_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_veg_narrow <- max_mean_ndvi_cci_veg_narrow %>% 
-  full_join(mean_mean_ndvi_cci_veg_narrow, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_veg_narrow <- max_mean_ndvi_cci_veg_narrow %>%
+  full_join(mean_mean_ndvi_cci_veg_narrow, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_veg_narrow, by = c("HYBAS_ID", "year"))
 
 
@@ -140,9 +140,9 @@ ndvi_mean_cci_veg_fs <- read_csv(p("basins_evi/update_revision/07_ndvi-mean_floo
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_veg_fs <- ndvi_mean_cci_veg_fs %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_veg_fs = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -151,8 +151,8 @@ max_mean_ndvi_cci_veg_fs <- ndvi_mean_cci_veg_fs %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_veg_fs <- ndvi_mean_cci_veg_fs %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_veg_fs = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -162,14 +162,14 @@ mean_mean_ndvi_cci_veg_fs <- ndvi_mean_cci_veg_fs %>%
 ndvi_max_cci_veg_fs <- read_csv(p("basins_evi/update_revision/17_ndvi-max_flooded_sparse.csv"))
 
 mean_max_ndvi_cci_veg_fs <- ndvi_max_cci_veg_fs %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_veg_fs = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_veg_fs = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_veg_fs <- max_mean_ndvi_cci_veg_fs %>% 
-  full_join(mean_mean_ndvi_cci_veg_fs, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_veg_fs <- max_mean_ndvi_cci_veg_fs %>%
+  full_join(mean_mean_ndvi_cci_veg_fs, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_veg_fs, by = c("HYBAS_ID", "year"))
 
 
@@ -182,9 +182,9 @@ ndvi_mean_cci_c_broad <- read_csv(p("basins_evi/update_revision/03_ndvi-mean_c_b
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_c_broad <- ndvi_mean_cci_c_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_c_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -193,8 +193,8 @@ max_mean_ndvi_cci_c_broad <- ndvi_mean_cci_c_broad %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_c_broad <- ndvi_mean_cci_c_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_c_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -204,14 +204,14 @@ mean_mean_ndvi_cci_c_broad <- ndvi_mean_cci_c_broad %>%
 ndvi_max_cci_c_broad <- read_csv(p("basins_evi/update_revision/13_ndvi-max_c_broad.csv"))
 
 mean_max_ndvi_cci_c_broad <- ndvi_max_cci_c_broad %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_c_broad = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_c_broad = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_c_broad <- max_mean_ndvi_cci_c_broad %>% 
-  full_join(mean_mean_ndvi_cci_c_broad, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_c_broad <- max_mean_ndvi_cci_c_broad %>%
+  full_join(mean_mean_ndvi_cci_c_broad, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_c_broad, by = c("HYBAS_ID", "year"))
 
 
@@ -222,9 +222,9 @@ ndvi_mean_cci_c_narrow <- read_csv(p("basins_evi/update_revision/04_ndvi-mean_c_
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_c_narrow <- ndvi_mean_cci_c_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_c_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -233,8 +233,8 @@ max_mean_ndvi_cci_c_narrow <- ndvi_mean_cci_c_narrow %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_c_narrow <- ndvi_mean_cci_c_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_c_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -244,14 +244,14 @@ mean_mean_ndvi_cci_c_narrow <- ndvi_mean_cci_c_narrow %>%
 ndvi_max_cci_c_narrow <- read_csv(p("basins_evi/update_revision/14_ndvi-max_c_narrow.csv"))
 
 mean_max_ndvi_cci_c_narrow <- ndvi_max_cci_c_narrow %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_c_narrow = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_c_narrow = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_c_narrow <- max_mean_ndvi_cci_c_narrow %>% 
-  full_join(mean_mean_ndvi_cci_c_narrow, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_c_narrow <- max_mean_ndvi_cci_c_narrow %>%
+  full_join(mean_mean_ndvi_cci_c_narrow, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_c_narrow, by = c("HYBAS_ID", "year"))
 
 
@@ -262,9 +262,9 @@ ndvi_mean_cci_c_irrigated <- read_csv(p("basins_evi/update_revision/05_ndvi-mean
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_c_irrigated <- ndvi_mean_cci_c_irrigated %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_c_irrigated = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -273,8 +273,8 @@ max_mean_ndvi_cci_c_irrigated <- ndvi_mean_cci_c_irrigated %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_c_irrigated <- ndvi_mean_cci_c_irrigated %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_c_irrigated = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -284,14 +284,14 @@ mean_mean_ndvi_cci_c_irrigated <- ndvi_mean_cci_c_irrigated %>%
 ndvi_max_cci_c_irrigated <- read_csv(p("basins_evi/update_revision/15_ndvi-max_c_irrigated.csv"))
 
 mean_max_ndvi_cci_c_irrigated <- ndvi_max_cci_c_irrigated %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_c_irrigated = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_c_irrigated = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_c_irrigated <- max_mean_ndvi_cci_c_irrigated %>% 
-  full_join(mean_mean_ndvi_cci_c_irrigated, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_c_irrigated <- max_mean_ndvi_cci_c_irrigated %>%
+  full_join(mean_mean_ndvi_cci_c_irrigated, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_c_irrigated, by = c("HYBAS_ID", "year"))
 
 
@@ -302,9 +302,9 @@ ndvi_mean_cci_c_rainfed <- read_csv(p("basins_evi/update_revision/06_ndvi-mean_c
 
 # maximum of 16-day interval
 max_mean_ndvi_cci_c_rainfed <- ndvi_mean_cci_c_rainfed %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_cci_c_rainfed = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -313,8 +313,8 @@ max_mean_ndvi_cci_c_rainfed <- ndvi_mean_cci_c_rainfed %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_cci_c_rainfed <- ndvi_mean_cci_c_rainfed %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_cci_c_rainfed = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -324,14 +324,14 @@ mean_mean_ndvi_cci_c_rainfed <- ndvi_mean_cci_c_rainfed %>%
 ndvi_max_cci_c_rainfed <- read_csv(p("basins_evi/update_revision/16_ndvi-max_c_rainfed.csv"))
 
 mean_max_ndvi_cci_c_rainfed <- ndvi_max_cci_c_rainfed %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_cci_c_rainfed = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_cci_c_rainfed = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_cci_c_rainfed <- max_mean_ndvi_cci_c_rainfed %>% 
-  full_join(mean_mean_ndvi_cci_c_rainfed, by = c("HYBAS_ID", "year")) %>% 
+ndvi_cci_c_rainfed <- max_mean_ndvi_cci_c_rainfed %>%
+  full_join(mean_mean_ndvi_cci_c_rainfed, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_cci_c_rainfed, by = c("HYBAS_ID", "year"))
 
 
@@ -342,9 +342,9 @@ ndvi_mean_af_c <- read_csv(p("basins_evi/update_revision/09_ndvi-mean_africover.
 
 # maximum of 16-day interval
 max_mean_ndvi_af_c <- ndvi_mean_af_c %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            # image_date, 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
             max_NDVI_16_af_c = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -353,8 +353,8 @@ max_mean_ndvi_af_c <- ndvi_mean_af_c %>%
 
 # mean across 16-day intervals
 mean_mean_ndvi_af_c <- ndvi_mean_af_c %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
             mean_NDVI_16_af_c = mean_NDVI) %>%
   arrange(HYBAS_ID, year) %>%
   group_by(HYBAS_ID, year) %>%
@@ -364,21 +364,62 @@ mean_mean_ndvi_af_c <- ndvi_mean_af_c %>%
 ndvi_max_af_c <- read_csv(p("basins_evi/update_revision/19_ndvi-max_africover.csv"))
 
 mean_max_ndvi_af_c <- ndvi_max_af_c %>%
-  transmute(HYBAS_ID = as.numeric(HYBAS_ID), 
-            year = year(image_date), 
-            max_NDVI_px_af_c = mean_NDVI) %>% 
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_af_c = mean_NDVI) %>%
   arrange(HYBAS_ID, year)
 
 # join
-ndvi_af_c <- max_mean_ndvi_af_c %>% 
-  full_join(mean_mean_ndvi_af_c, by = c("HYBAS_ID", "year")) %>% 
+ndvi_af_c <- max_mean_ndvi_af_c %>%
+  full_join(mean_mean_ndvi_af_c, by = c("HYBAS_ID", "year")) %>%
   full_join(mean_max_ndvi_af_c, by = c("HYBAS_ID", "year"))
 
 
-# Cropland masks ESRI -----------------------------------------------------
+# Vegetation mask ESRI ----------------------------------------------------
 
 # data with 16-day interval data, with mean across pixels within basin for each interval
-ndvi_mean_esri_c <- read_csv(p("basins_evi/s22_ndvi_mean_croplands.csv"))
+ndvi_mean_esri_veg <- read_csv(p("basins_evi/update_revision/s24_ndvi_mean_vegetation.csv"))
+
+# maximum of 16-day interval
+max_mean_ndvi_esri_veg <- ndvi_mean_esri_veg %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            # image_date,
+            max_NDVI_16_esri_veg = NDVI) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
+  slice_max(max_NDVI_16_esri_veg, n = 1, na_rm = TRUE) %>%
+  slice_head(n = 1)
+
+# mean across 16-day intervals
+mean_mean_ndvi_esri_veg <- ndvi_mean_esri_veg %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            mean_NDVI_16_esri_veg = NDVI) %>%
+  arrange(HYBAS_ID, year) %>%
+  group_by(HYBAS_ID, year) %>%
+  summarise(mean_NDVI_16_esri_veg = mean(mean_NDVI_16_esri_veg, na.rm = T))
+
+# data with maximum NDVI per pixel per year, averaged across pixels per year
+ndvi_max_esri_veg <- read_csv(p("basins_evi/update_revision/s23_ndvi_max_vegetation.csv"))
+
+mean_max_ndvi_esri_veg <- ndvi_max_esri_veg %>%
+  transmute(HYBAS_ID = as.numeric(HYBAS_ID),
+            year = year(image_date),
+            max_NDVI_px_esri_veg = NDVI) %>%
+  arrange(HYBAS_ID, year)
+
+# join
+ndvi_esri_veg <- max_mean_ndvi_esri_veg %>%
+  full_join(mean_mean_ndvi_esri_veg, by = c("HYBAS_ID", "year")) %>%
+  full_join(mean_max_ndvi_esri_veg, by = c("HYBAS_ID", "year"))
+
+
+
+# Cropland mask ESRI ------------------------------------------------------
+
+# data with 16-day interval data, with mean across pixels within basin for each interval
+ndvi_mean_esri_c <- read_csv(p("basins_evi/update_revision/s22_ndvi_mean_croplands.csv"))
 
 # maximum of 16-day interval
 max_mean_ndvi_esri_c <- ndvi_mean_esri_c %>%
@@ -401,7 +442,7 @@ mean_mean_ndvi_esri_c <- ndvi_mean_esri_c %>%
   summarise(mean_NDVI_16_esri_c = mean(mean_NDVI_16_esri_c, na.rm = T))
 
 # data with maximum NDVI per pixel per year, averaged across pixels per year
-ndvi_max_esri_c <- read_csv(p("basins_evi/s21_ndvi_max_croplands.csv"))
+ndvi_max_esri_c <- read_csv(p("basins_evi/update_revision/s21_ndvi_max_croplands.csv"))
 
 mean_max_ndvi_esri_c <- ndvi_max_esri_c %>%
   transmute(HYBAS_ID = as.numeric(HYBAS_ID),
@@ -417,7 +458,7 @@ ndvi_esri_c <- max_mean_ndvi_esri_c %>%
 
 # Joining data from all masks ---------------------------------------------
 
-basin_ndvi <- full_join(ndvi_nomask, ndvi_cci_veg_broad, 
+basin_ndvi <- full_join(ndvi_nomask, ndvi_cci_veg_broad,
                        by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_cci_veg_narrow, by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_cci_veg_fs, by = c("HYBAS_ID", "year")) %>%
@@ -426,7 +467,8 @@ basin_ndvi <- full_join(ndvi_nomask, ndvi_cci_veg_broad,
   full_join(ndvi_cci_c_irrigated, by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_cci_c_rainfed, by = c("HYBAS_ID", "year")) %>%
   full_join(ndvi_af_c, by = c("HYBAS_ID", "year")) %>%
-  full_join(ndvi_esri_c, by = c("HYBAS_ID", "year"))
+  full_join(ndvi_esri_c, by = c("HYBAS_ID", "year")) %>%
+  full_join(ndvi_esri_veg, by = c("HYBAS_ID", "year"))
 
 
 # saving the data -------------------------------------------------------------
