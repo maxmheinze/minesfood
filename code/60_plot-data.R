@@ -17,48 +17,48 @@ restr_year <- 2016:2023
 
 df_reg <- readRDS(p("processed/df_reg.RDS")) |> filter(year %in% restr_year)
 
-df_reg <- df_reg |> 
+df_reg <- df_reg |>
   mutate( # Signed shorthands
-    dist = distance * ifelse(status == "upstream", -1, 1),
-    ord = order * ifelse(status == "upstream", -1, 1),
+    dist = dist_km * ifelse(status == "upstream", -1, 1),
+    ord = dist_n * ifelse(status == "upstream", -1, 1),
   )
 df_reg$country <- countrycode::countrycode(df_reg$iso3c, "iso3c", "country.name")
 
 
 # Subset to mines w/ up- and downstream
-df_reg |> group_by(mine_basin) |> 
-  summarize(min = min(ord), max = max(ord)) |> 
-  group_by(min, max) |> 
-  summarize(n = n(), value = cut(n(), c(-Inf, 0, 1, 2, 3, 4, 5, 10, 20, 50, 100, Inf))) |> 
-  ggplot(aes(x = -min, y = max, fill = value)) + 
-  scale_fill_viridis_d() + 
+df_reg |> group_by(mine_basin) |>
+  summarize(min = min(ord), max = max(ord)) |>
+  group_by(min, max) |>
+  summarize(n = n(), value = cut(n(), c(-Inf, 0, 1, 2, 3, 4, 5, 10, 20, 50, 100, Inf))) |>
+  ggplot(aes(x = -min, y = max, fill = value)) +
+  scale_fill_viridis_d() +
   scale_color_viridis_d(direction = -1) +
   geom_raster() + geom_text(aes(label = n, col = value)) +
   ggtitle("Up- and downstream range of mine-basins") +
   ylab("Number of downstream basins") + xlab("Number of upstream basins")
 
 ggsave("outputs/mine-basin_extents.png", height = 4, width = 5)
-  
-ids <- df_reg |> group_by(mine_basin) |> 
-  summarize(min = min(ord), max = max(ord)) |> 
+
+ids <- df_reg |> group_by(mine_basin) |>
+  summarize(min = min(ord), max = max(ord)) |>
   filter(min < -3, max > 3) |> pull(mine_basin)
 
-df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |> 
+df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |>
   summarize(value = mean(max_EVI)) |> tidyr::pivot_wider(names_from = status)
 
-df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |> 
-  summarize(value = mean(max_EVI)) |> tidyr::pivot_wider(names_from = status) |> 
-  filter(downstream < upstream) |> 
+df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |>
+  summarize(value = mean(max_EVI)) |> tidyr::pivot_wider(names_from = status) |>
+  filter(downstream < upstream) |>
   transmute(v = downstream - upstream) |> arrange(v) |> pull(mine_basin) -> id_discrep
 
-df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |> 
+df_reg |> filter(mine_basin %in% ids) |> group_by(mine_basin, status) |>
   filter(order <= 1) |>
-  summarize(value = mean(max_EVI)) |> tidyr::pivot_wider(names_from = status) |> 
-  filter(downstream < upstream) |> 
+  summarize(value = mean(max_EVI)) |> tidyr::pivot_wider(names_from = status) |>
+  filter(downstream < upstream) |>
   transmute(v = downstream - upstream) |> arrange(v) |> pull(mine_basin) -> id_jump
 
 df_reg |> filter(mine_basin %in% id_jump[!id_jump %in% id_hand]) |>
-  ggplot(aes(x = dist, y = max_EVI, 
+  ggplot(aes(x = dist, y = max_EVI,
     group = factor(year), color = order)) +
   geom_point() + geom_smooth(aes(group = status), method = "lm") +
   scale_color_viridis_c() +
@@ -66,7 +66,7 @@ df_reg |> filter(mine_basin %in% id_jump[!id_jump %in% id_hand]) |>
   facet_wrap(~ mine_basin, scales = "free_y")
 
 id_hand_full <- c(
-  1120626610, 1120646490, 1120750930, 1120779630, 1120789240, 1120917960, 
+  1120626610, 1120646490, 1120750930, 1120779630, 1120789240, 1120917960,
   1121351150, 1121856160, 1120676692, 1120956310, 1121167700, 1121227390,
   1121234010, 1121401751, 1122192740, 1120113840, 1121290010,
   1120149060, 1120486920, 1120701340, 1120771890, 1121284950, 1121335732,
@@ -75,12 +75,12 @@ id_hand_full <- c(
 )
 
 id_hand <- c(
-  # 1120113840, 1121583640, 1121227390, 1121406230, 
+  # 1120113840, 1121583640, 1121227390, 1121406230,
   # 1120626610,
   1122192740, 1122205610, 1122289440, 1120956310
 )
 
-df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
+df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
   # mutate(label = paste0(iso3c, " (", mine_basin, ")")) |>
   mutate(label = paste0("Mine in ", country)) |>
   ggplot(aes(x = dist, y = max_EVI, color = order)) +
@@ -96,8 +96,8 @@ df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |>
 ggsave("outputs/mine-basin_dist-discont.png", height = 3, width = 5, scale = 1)
 ggsave("outputs/mine-basin_dist-discont.pdf", height = 3, width = 5, scale = 1)
 
-# df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
-#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |> 
+# df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
+#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |>
 #   ggplot(aes(x = dist, y = elevation, color = order)) +
 #   geom_vline(xintercept = 0, col = "gray", linetype = 2) +
 #   geom_point() + geom_smooth(aes(group = status), method = "lm") +
@@ -106,9 +106,9 @@ ggsave("outputs/mine-basin_dist-discont.pdf", height = 3, width = 5, scale = 1)
 #   ggtitle("Mine basin discontinuity") +
 #   ylab("Elevation") + xlab("Distance to the mine basin")
 # ggsave("outputs/mine-basin_elevation.png", height = 4, width = 7, scale = 1.5)
-# 
-# df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
-#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |> 
+#
+# df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
+#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |>
 #   ggplot(aes(x = dist, y = slope, color = order)) +
 #   geom_vline(xintercept = 0, col = "gray", linetype = 2) +
 #   geom_point() + geom_smooth(aes(group = status), method = "lm") +
@@ -117,10 +117,10 @@ ggsave("outputs/mine-basin_dist-discont.pdf", height = 3, width = 5, scale = 1)
 #   ggtitle("Mine basin discontinuity") +
 #   ylab("Slope") + xlab("Distance to the mine basin")
 # ggsave("outputs/mine-basin_slope.png", height = 4, width = 7, scale = 1.5)
-# 
-# 
-# df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
-#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |> 
+#
+#
+# df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
+#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |>
 #   ggplot(aes(x = dist, y = mean_EVI, color = order)) +
 #   geom_vline(xintercept = 0, col = "gray", linetype = 2) +
 #   geom_point() + geom_smooth(aes(group = status), method = "lm") +
@@ -130,10 +130,10 @@ ggsave("outputs/mine-basin_dist-discont.pdf", height = 3, width = 5, scale = 1)
 #   ylab("Mean EVI") + xlab("Distance to the mine basin")
 # ggsave("outputs/mine-basin_dist-discont_mean.png", height = 4, width = 7, scale = 1.5)
 
-df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
-  # mutate(label = paste0(mine_basin, " (", iso3c, ")")) |> 
+df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
+  # mutate(label = paste0(mine_basin, " (", iso3c, ")")) |>
   mutate(label = paste0("Mine in ", country)) |>
-  ggplot(aes(x = ord, y = max_EVI, color = distance)) +
+  ggplot(aes(x = ord, y = max_EVI, color = dist_km)) +
   geom_vline(xintercept = 0, col = "gray", linetype = 2) +
   # geom_point() +
   geom_jitter(width = .05) +
@@ -147,12 +147,12 @@ ggsave("outputs/mine-basin_ord-discont.png", height = 3, width = 5, scale = 1)
 ggsave("outputs/mine-basin_ord-discont.pdf", height = 3, width = 5, scale = 1)
 
 
-# df_reg |> filter(mine_basin %in% id_hand) |> # filter(distance <= 50) |> 
-#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |> 
+# df_reg |> filter(mine_basin %in% id_hand) |> # filter(dist_km <= 50) |>
+#   mutate(label = paste0(iso3c, " (", mine_basin, ")")) |>
 #   ggplot(aes(x = ord, y = max_EVI)) +
 #   geom_vline(xintercept = 0, col = "gray", linetype = 2) +
-#   geom_jitter(aes(col = distance), alpha = .5) +
-#   geom_boxplot(aes(group = ord), outliers = FALSE) + 
+#   geom_jitter(aes(col = dist_km), alpha = .5) +
+#   geom_boxplot(aes(group = ord), outliers = FALSE) +
 #   geom_smooth(aes(group = status), method = "lm") +
 #   scale_color_viridis_c(begin = .2, end = .8, direction = -1) +
 #   # scale_color_viridis_d(begin = .2, end = .8, direction = -1) +
