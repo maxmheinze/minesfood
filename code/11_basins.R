@@ -10,10 +10,18 @@ pacman::p_load(
 )
 sapply(list.files("R", ".R$"), \(f) {source(paste0("R/", f)); TRUE})
 
-# Settings
-CENTROID_INT <- FALSE # Intersect using centroids (or polygons)
-MAX_ORDER <- 25 # Subset to the first MAX_ORDER basins
-ADD_IPIS <- FALSE # Add IPIS artisanal mine locations (point data)
+# Settings ---
+
+# The closest MAX_ORDER basins are considered treated/controls
+MAX_ORDER <- 10
+# Add IPIS locations of artisanal mines (a lot and noisy)
+ADD_IPIS <- FALSE
+# Keep mines > downstream > distance OR mines > distance > downstream
+ORDER_OVER_DOWNSTREAM <- FALSE
+# Intersect using centroids (legacy, otherwise use the full polygons)
+CENTROID_INT <- FALSE
+# Filter out lakes (legacy, breaks basin-links)
+FILTER_LAKES <- FALSE
 
 # Load and Prepare Mine Data ----------------------------------------------
 
@@ -43,8 +51,12 @@ if(ADD_IPIS) {
 # https://data.hydrosheds.org/file/hydrobasins/standard/hybas_af_lev01-12_v1c.zip
 lvl <- "12"
 s <- st_read(p("hybas_lakes/hybas_lake_af_lev", lvl, "_v1c.shp"))
-s <- st_make_valid(s) |>
+s <- st_make_valid(s) |> # Overwrite artifical long-distance links
   mutate(NEXT_DOWN = ifelse(DIST_SINK == 0, 0, NEXT_DOWN))
+
+if(FILTER_LAKES) {
+  s <- s |> filter(LAKE != 1)
+}
 
 d <- s |> select(HYBAS_ID, NEXT_DOWN) |> st_drop_geometry()
 
@@ -84,8 +96,9 @@ s_relevant <- s_relevant |> filter(!is.na(status))
 s_relevant$basin_area_km2 <- units::drop_units(st_area(s_relevant) / 1e6)
 
 # Store the result
-file <- p("processed/basins/relevant_basins",
+file <- p("processed/basins/relevant_basins-order-", MAX_ORDER,
   if(ADD_IPIS) "-ipis" else "",
+  if(FILTER_LAKES) "-nolake" else "",
   if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
 write_sf(s_relevant, file) # GPKG
 write_sf(s_relevant, gsub("gpkg$", "shp", file)) # SHP for GEE
@@ -212,14 +225,27 @@ basins_ordered <- rbind(
   )
 
 # Basins may appear multiple times – we keep one each
-basins_ordered_unique <- basins_ordered |>
-  group_by(basin_id) |>
-  arrange( # We keep basin information in the order of
-    status != "mine", # mines trump all
-    status != "downstream", # downstream > upstream
-    dist_n, dist_km, # closer > farther
-    .by_group = TRUE) |>
-  slice_head(n = 1) # Only keep the first per basin_id
+if(ORDER_OVER_DOWNSTREAM) {
+  # Basins may appear multiple times – we keep one each
+  basins_ordered_unique <- basins_ordered |>
+    group_by(basin_id) |>
+    arrange( # We keep basin information in the order of
+      status != "mine", # mines trump all
+      dist_n, # closer order
+      status != "downstream", # downstream > upstream
+      dist_km, # closer > farther
+      .by_group = TRUE) |>
+    slice_head(n = 1) # Only keep the first per basin_id
+} else {
+  basins_ordered_unique <- basins_ordered |>
+    group_by(basin_id) |>
+    arrange( # We keep basin information in the order of
+      status != "mine", # mines trump all
+      status != "downstream", # downstream > upstream
+      dist_n, dist_km, # closer > farther
+      .by_group = TRUE) |>
+    slice_head(n = 1) # Only keep the first per basin_id
+}
 
 
 # Add other info related to the mines ---
@@ -265,8 +291,10 @@ so <- basins_ordered_unique |>
   left_join(mine_basins, by = join_by("basin_id")) |>
   relocate(geometry, .after = mine_basins)
 
-file <- p("processed/basins/basins",
+file <- p("processed/basins/basins-order-", MAX_ORDER,
+  if(ORDER_OVER_DOWNSTREAM) "-order-trumps-downstream-" else "",
   if(ADD_IPIS) "-ipis" else "",
+  if(FILTER_LAKES) "-nolake" else "",
   if(CENTROID_INT) "-centroid.gpkg" else ".gpkg")
 write_sf(so, file)
 # write_sf(so, gsub("gpkg$", "shp", file))

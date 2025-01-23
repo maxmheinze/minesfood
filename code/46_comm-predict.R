@@ -65,7 +65,7 @@ print("Commodities (+ count) that were matched:")
 comm_matches <- shp[, -1] |> st_drop_geometry() |> colSums() |> sort()
 comm_matches |> print()
 # Subset to ones with enough locations
-comm_matches <- comm_matches[comm_matches > 45]
+comm_matches <- comm_matches[comm_matches > 150]
 
 
 # Prepare the regional mask (and projection) ---
@@ -127,7 +127,7 @@ for(comm in names(comm_matches)[c(-1, -2)]) {
   # Consider adding some noise to avoid model collapse
   noise <- st_sf(geom = continent |> # Do this everywhere
       st_bbox() |> st_as_sfc() |> # We want the equivalent of the zeros
-    st_sample(type = "regular", size = 1000))
+    st_sample(type = "regular", size = 500))
   noise[[comm]] <- rbeta(NROW(noise), 5, 100) # Mean 2 / 42, all should be below .4
   st_crs(noise) <- st_crs(ones) # Somehow needed again
 
@@ -144,7 +144,7 @@ for(comm in names(comm_matches)[c(-1, -2)]) {
   k <- GauPro::Gaussian$new(beta = c(0, 0)) # Matern tends to collapse on few locations
   trend <- trend_0$new() # trend_c$new()
   model <- gpkm(coords, df[[comm]], kernel = k, trend = trend,
-    nug.min = 1e-12, restarts = 1)
+    nug.min = 1e-10, restarts = 1)
 
   # Plot the predictions
   # model$plot()
@@ -166,6 +166,7 @@ for(comm in names(comm_matches)[c(-1, -2)]) {
   # plot(continent)
   # plot(mines |> select(comm) |> st_centroid(), add = TRUE, pch = 18)
   saveRDS(mines, "outputs/tmp.rds")
+  gc()
 }
 
 mines <- st_transform(mines, mine_crs)
