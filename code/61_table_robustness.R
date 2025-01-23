@@ -20,9 +20,9 @@ mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
 # c("nomask", "cci_veg_broad", "cci_veg_narrow")
-v_mask <- "cci_veg_broad" 
+v_mask <- "cci_veg_broad"
 # c("cci_c_broad", "cci_c_narrow", "cci_c_rainfed", "cci_c_irrigated", "af_c", "esri_c")
-c_mask <- "cci_c_broad" 
+c_mask <- "cci_c_broad"
 
 comp_max <- "16" # c("16", "px")
 
@@ -36,37 +36,36 @@ spec_croplands_mean <- paste0("mean_", measure, "_16_", c_mask)
 
 date <- "20250113"
 
-f_name <- paste0("table_robustness_y-FEs_maxorder", 
-                 restr_order, "_minnumber", restr_number_basins, 
-                 "_EXCLmine", excl_mine_basin, "_", date) 
+f_name <- paste0("table_robustness_y-FEs_maxorder",
+                 restr_order, "_minnumber", restr_number_basins,
+                 "_EXCLmine", excl_mine_basin, "_", date)
 
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 mine_size_restr <- df_reg |> filter(mine_area_km2 > restr_area_mined) |> pull(mine_basin) |> unique()
 
-df_reg_restr <- df_reg |> 
-  filter(order <= restr_order, 
-         year %in% restr_year, 
-         mine_basin %in% mine_size_restr, 
-         if(excl_mine_basin) order > 0 else order >= 0) 
+df_reg_restr <- df_reg |>
+  filter(dist_n <= restr_order,
+         year %in% restr_year,
+         mine_basin %in% mine_size_restr,
+         if(excl_mine_basin) dist_n > 0 else dist_n >= 0)
 if(!mine_downstream) {
-  df_reg_restr <- df_reg_restr |> 
-    mutate(downstream = replace(downstream, order == 0, 0))
+  df_reg_restr <- df_reg_restr |>
+    mutate(downstream = replace(downstream, dist_n == 0, 0))
 }
 if(restr_number_basins > 0) {
-  mine_number_restr <- df_reg |> filter(year == restr_year[1], order != 0) |> 
-    group_by(mine_basin, downstream, order) |> count() |> 
-    group_by(mine_basin, downstream) |> count() |> 
-    filter(n >= restr_number_basins) |> 
-    group_by(mine_basin) |> count() |> 
-    filter(n == 2) |> 
+  mine_number_restr <- df_reg |> filter(year == restr_year[1], dist_n != 0) |>
+    group_by(mine_basin, downstream, dist_n) |> count() |>
+    group_by(mine_basin, downstream) |> count() |>
+    filter(n >= restr_number_basins) |>
+    group_by(mine_basin) |> count() |>
+    filter(n == 2) |>
     pull(mine_basin)
-  df_reg_restr <- df_reg_restr |> 
+  df_reg_restr <- df_reg_restr |>
     filter(mine_basin %in% mine_number_restr)
 }
 
-df_reg_restr <- df_reg_restr |> 
-  mutate(order_new = ifelse(downstream == 0, -order, order), 
-         mine_pfaf_lvl4 = substr(mine_basin_pfaf_id, 1, 4),
+df_reg_restr <- df_reg_restr |>
+  mutate(mine_pfaf_lvl4 = substr(mine_basin_pfaf_id, 1, 4),
          mine_pfaf_lvl6 = substr(mine_basin_pfaf_id, 1, 6),
          mine_pfaf_lvl8 = substr(mine_basin_pfaf_id, 1, 8))
 
@@ -74,9 +73,9 @@ df_reg_restr <- df_reg_restr |>
 # Order specification
 
 # baseline + ESA cropland
-mod_order_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_16_cci_c_broad) ~ 
+mod_order_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_16_cci_c_broad) ~
                          # add addtional cropland masks
-                         i(order_new, ref = -1) +
+                         i(dist_order, ref = -1) +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
                          accessibility_to_cities_2015 + pop_2015 |
@@ -86,7 +85,7 @@ mod_order_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI
 
 # FE - Pfaffstetter level 8
 mod_order_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                        i(order_new, ref = -1) +
+                        i(dist_order, ref = -1) +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
                         accessibility_to_cities_2015 + pop_2015 |
@@ -96,7 +95,7 @@ mod_order_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
 
 # FE - Pfaffstetter level 6
 mod_order_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                        i(order_new, ref = -1) +
+                        i(dist_order, ref = -1) +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
                         accessibility_to_cities_2015 + pop_2015 |
@@ -106,7 +105,7 @@ mod_order_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
 
 # mean EVI
 mod_order_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
-                         i(order_new, ref = -1) +
+                         i(dist_order, ref = -1) +
                          elevation + slope + soilgrid_grouped +
                          tmp_max + precipitation +
                          accessibility_to_cities_2015 + pop_2015 |
@@ -120,7 +119,7 @@ mod_order_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
 
 # baseline + ESA cropland
 mod_dist_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_16_cci_c_broad) ~
-                        (distance + I(distance^2)) * downstream +
+                        (dist_km + I(dist_km^2)) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
                         accessibility_to_cities_2015 + pop_2015 |
@@ -130,7 +129,7 @@ mod_dist_base = feols(c(get(spec_general_max), get(spec_croplands_max), max_EVI_
 
 # FE - Pfaffstetter level 8
 mod_dist_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                       (distance + I(distance^2)) * downstream +
+                       (dist_km + I(dist_km^2)) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
                        accessibility_to_cities_2015 + pop_2015 |
@@ -140,7 +139,7 @@ mod_dist_fe8 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
 
 # FE - Pfaffstetter level 6
 mod_dist_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                       (distance + I(distance^2)) * downstream +
+                       (dist_km + I(dist_km^2)) * downstream +
                        elevation + slope + soilgrid_grouped +
                        tmp_max + precipitation +
                        accessibility_to_cities_2015 + pop_2015 |
@@ -150,7 +149,7 @@ mod_dist_fe6 = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
 
 # mean EVI
 mod_dist_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
-                        (distance + I(distance^2)) * downstream +
+                        (dist_km + I(dist_km^2)) * downstream +
                         elevation + slope + soilgrid_grouped +
                         tmp_max + precipitation +
                         accessibility_to_cities_2015 + pop_2015 |
@@ -164,43 +163,43 @@ mod_dist_mean = feols(c(get(spec_general_mean), get(spec_croplands_mean)) ~
 
 setFixest_dict(dict = dict_fixest)
 
-etable(mod_order_base[1], 
+etable(mod_order_base[1],
        mod_order_fe8[1],
        mod_order_fe6[1],
-       mod_order_mean[1], 
-       mod_order_base[2], 
+       mod_order_mean[1],
+       mod_order_base[2],
        mod_order_fe8[2],
        mod_order_fe6[2],
        mod_order_mean[2],
        mod_order_base[3],
        drop = "soilgrid|-", keep = " 0|1$|2$|3$",
-       notes = paste0("This specification includes years ", 
-                      restr_year[1], " to ", restr_year[length(restr_year)], 
-                      ", up to ", restr_order, " order basins away from the mined basin, ", 
-                      ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
-                      "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.  ", 
+       notes = paste0("This specification includes years ",
+                      restr_year[1], " to ", restr_year[length(restr_year)],
+                      ", up to ", restr_order, " order basins away from the mined basin, ",
+                      ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ",
+                      "and restricts the sample to include only mine basin systems with at least ",
+                      restr_number_basins, " basins up/downstream.  ",
                       "Models (1) and (5) are the baseline models for overall maximum EVI and the cropland-specific maximum EVI, respectively, with mine fixed effects. Models (2) and (6) use fixed effects at Pfaffstetter level 8 basins, models (3) and (7) fixed effects at Pfaffstetter level 6 basins. Models (4) and (8) report results for the yearly mean of the overall EVI and the cropland-specific EVI instead of the maximum, respectively. Model (9) reports result for the cropland-specific EVI based on the time-varying cropland mask retreived from \\cite{cci2024} instead of the time-invariant of \\cite{DigitalEarthAfrica2022}."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = TRUE)
 
-etable(mod_dist_base[1], 
+etable(mod_dist_base[1],
        mod_dist_fe8[1],
        mod_dist_fe6[1],
-       mod_dist_mean[1], 
-       mod_dist_base[2], 
+       mod_dist_mean[1],
+       mod_dist_base[2],
        mod_dist_fe8[2],
        mod_dist_fe6[2],
        mod_dist_mean[2],
        mod_dist_base[3],
-       keep = "Distance|Downstream", 
+       keep = "Distance|Downstream",
        interaction.order = "Downstream", order = c("Downstream"),
-       notes = paste0("This specification includes years ", 
-                      restr_year[1], " to ", restr_year[length(restr_year)], 
-                      ", up to ", restr_order, " order basins away from the mined basin, ", 
-                      ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ", 
-                      "and restricts the sample to include only mine basin systems with at least ", 
-                      restr_number_basins, " basins up/downstream.  ", 
+       notes = paste0("This specification includes years ",
+                      restr_year[1], " to ", restr_year[length(restr_year)],
+                      ", up to ", restr_order, " order basins away from the mined basin, ",
+                      ifelse(excl_mine_basin, "excludes", "includes"), " the mined basin, ",
+                      "and restricts the sample to include only mine basin systems with at least ",
+                      restr_number_basins, " basins up/downstream.  ",
                       "Models (1) and (5) are the baseline models for overall maximum EVI and the cropland-specific maximum EVI, respectively, with mine fixed effects. Models (2) and (6) use fixed effects at Pfaffstetter level 8 basins, models (3) and (7) fixed effects at Pfaffstetter level 6 basins. Models (4) and (8) report results for the yearly mean of the overall EVI and the cropland-specific EVI instead of the maximum, respectively. Model (9) reports result for the cropland-specific EVI based on the time-varying cropland mask retreived from \\cite{cci2024} instead of the time-invariant of \\cite{DigitalEarthAfrica2022}."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -209,28 +208,27 @@ etable(mod_dist_base[1],
 
 # Subsetting basins -------------------------------------------------------
 
-f_name <- paste0("table_robustness_order_subsets_", date) 
+f_name <- paste0("table_robustness_order_subsets_", date)
 
 restr_year <- 2016:2023
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 mine_size_restr <- df_reg |> filter(mine_area_km2 > restr_area_mined) |> pull(mine_basin) |> unique()
-df_reg_restr <- df_reg |> 
-  filter(year %in% restr_year) |> 
-  mutate(order_new = ifelse(downstream == 0, -order, order))
+df_reg_restr <- df_reg |>
+  filter(year %in% restr_year)
 
-# restricting sample to basins with at least one up/downstream 
+# restricting sample to basins with at least one up/downstream
 restr_number_basins <- 1
-mine_number_restr <- df_reg |> filter(year == restr_year[1], order != 0) |> 
-  group_by(mine_basin, downstream, order) |> count() |> 
-  group_by(mine_basin, downstream) |> count() |> 
-  filter(n >= restr_number_basins) |> 
-  group_by(mine_basin) |> count() |> 
-  filter(n == 2) |> 
+mine_number_restr <- df_reg |> filter(year == restr_year[1], dist_n != 0) |>
+  group_by(mine_basin, downstream, dist_n) |> count() |>
+  group_by(mine_basin, downstream) |> count() |>
+  filter(n >= restr_number_basins) |>
+  group_by(mine_basin) |> count() |>
+  filter(n == 2) |>
   pull(mine_basin)
-df_reg_restr_number_basins <- df_reg_restr |> 
+df_reg_restr_number_basins <- df_reg_restr |>
   filter(mine_basin %in% mine_number_restr)
 mod_order_restr_number_basins = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                                        i(order_new, ref = -1) +
+                                        i(dist_order, ref = -1) +
                                         elevation + slope + soilgrid_grouped +
                                         tmp_max + precipitation +
                                         accessibility_to_cities_2015 + pop_2015 |
@@ -239,7 +237,7 @@ mod_order_restr_number_basins = feols(c(get(spec_general_max), get(spec_cropland
                                       cluster = "mine_basin")
 
 mod_dist_restr_number_basins = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                                       (distance + I(distance^2)) * downstream +
+                                       (dist_km + I(dist_km^2)) * downstream +
                                        elevation + slope + soilgrid_grouped +
                                        tmp_max + precipitation +
                                        accessibility_to_cities_2015 + pop_2015 |
@@ -249,10 +247,10 @@ mod_dist_restr_number_basins = feols(c(get(spec_general_max), get(spec_croplands
 
 # including only order 1
 restr_order <- 1
-df_reg_restr_order <- df_reg_restr |> 
-  filter(order <= restr_order) 
+df_reg_restr_order <- df_reg_restr |>
+  filter(dist_n <= restr_order)
 mod_order_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                                i(order_new, ref = -1) +
+                                i(dist_order, ref = -1) +
                                 elevation + slope + soilgrid_grouped +
                                 tmp_max + precipitation +
                                 accessibility_to_cities_2015 + pop_2015 |
@@ -261,7 +259,7 @@ mod_order_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) 
                               cluster = "mine_basin")
 
 mod_dist_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                               (distance + I(distance^2)) * downstream +
+                               (dist_km + I(dist_km^2)) * downstream +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
                                accessibility_to_cities_2015 + pop_2015 |
@@ -270,10 +268,10 @@ mod_dist_restr_order = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                              cluster = "mine_basin")
 
 # exluding the mine basin itself
-df_reg_restr_mine_basin <- df_reg_restr |> 
+df_reg_restr_mine_basin <- df_reg_restr |>
   filter(order != 0)
 mod_order_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                                i(order_new, ref = -1) +
+                                i(dist_order, ref = -1) +
                                 elevation + slope + soilgrid_grouped +
                                 tmp_max + precipitation +
                                 accessibility_to_cities_2015 + pop_2015 |
@@ -282,7 +280,7 @@ mod_order_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_m
                               cluster = "mine_basin")
 
 mod_dist_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                               (distance + I(distance^2)) * downstream +
+                               (dist_km + I(dist_km^2)) * downstream +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
                                accessibility_to_cities_2015 + pop_2015 |
@@ -291,10 +289,10 @@ mod_dist_restr_mine_basin = feols(c(get(spec_general_max), get(spec_croplands_ma
                              cluster = "mine_basin")
 
 # including exactly order -1 and 1
-df_reg_restr_comb <- df_reg_restr_number_basins |> 
-  filter(order == 1)
+df_reg_restr_comb <- df_reg_restr_number_basins |>
+  filter(dist_n == 1)
 mod_order_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                               as.factor(order_new) +
+                               as.factor(dist_order) +
                                elevation + slope + soilgrid_grouped +
                                tmp_max + precipitation +
                                accessibility_to_cities_2015 + pop_2015 |
@@ -303,7 +301,7 @@ mod_order_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
                              cluster = "mine_basin")
 
 mod_dist_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
-                              (distance + I(distance^2)) * downstream +
+                              (dist_km + I(dist_km^2)) * downstream +
                               elevation + slope + soilgrid_grouped +
                               tmp_max + precipitation +
                               accessibility_to_cities_2015 + pop_2015 |
@@ -314,33 +312,33 @@ mod_dist_restr_comb = feols(c(get(spec_general_max), get(spec_croplands_max)) ~
 #####
 # Output creation
 
-etable(mod_order_base[1], 
-       mod_order_restr_number_basins[1], 
-       mod_order_restr_order[1], 
-       mod_order_restr_mine_basin[1], 
+etable(mod_order_base[1],
+       mod_order_restr_number_basins[1],
+       mod_order_restr_order[1],
+       mod_order_restr_mine_basin[1],
        mod_order_restr_comb[1],
-       mod_order_base[2], 
-       mod_order_restr_number_basins[2], 
-       mod_order_restr_order[2], 
-       mod_order_restr_mine_basin[2], 
+       mod_order_base[2],
+       mod_order_restr_number_basins[2],
+       mod_order_restr_order[2],
+       mod_order_restr_mine_basin[2],
        mod_order_restr_comb[2],
        drop = "soilgrid|-", keep = " 0|1$|2$|3$",
        notes = paste0("Models (1) and (6) are the baseline models, models (2) and (7) only include basin systems with at least one up- and downstream basin, models (3) and (8) include maximum order one up- and downstream basins, models (4) and (9) exclude the mine basin itself, models (5) and (10) include only basins systems with one basin up- and downstream and excludes the mine basin."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = TRUE)
 
-etable(mod_dist_base[1], 
-       mod_dist_restr_number_basins[1], 
-       mod_dist_restr_order[1], 
-       mod_dist_restr_mine_basin[1], 
+etable(mod_dist_base[1],
+       mod_dist_restr_number_basins[1],
+       mod_dist_restr_order[1],
+       mod_dist_restr_mine_basin[1],
        mod_dist_restr_comb[1],
-       mod_dist_base[2], 
-       mod_dist_restr_number_basins[2], 
-       mod_dist_restr_order[2], 
-       mod_dist_restr_mine_basin[2], 
+       mod_dist_base[2],
+       mod_dist_restr_number_basins[2],
+       mod_dist_restr_order[2],
+       mod_dist_restr_mine_basin[2],
        mod_dist_restr_comb[2],
        keep = "Distance|Downstream",
-       interaction.order = "Downstream", order = c("Downstream"), 
+       interaction.order = "Downstream", order = c("Downstream"),
        notes = paste0("Models (1) and (6) are the baseline models, models (2) and (7) only include basin systems with at least one up- and downstream basin, models (3) and (8) include maximum order one up- and downstream basins, models (4) and (9) exclude the mine basin itself, models (5) and (10) include only basins systems with one basin up- and downstream and excludes the mine basin."),
        adjustbox = TRUE,
        file = paste0(t_folder, f_name, ".tex"), replace = FALSE)
@@ -351,36 +349,36 @@ etable(mod_dist_base[1],
 library(broom)
 library(ggplot2)
 
-p_name <- paste0("plot_robustness_", date) 
+p_name <- paste0("plot_robustness_", date)
 
-names_mods <- c("Baseline", 
-                "At least one basin\n up/downstream", 
-                "Maximum order of 1", 
-                "Excluding mine basin", 
-                "Maximum order of 1 &\n at least one up/downstream &\nexcluding mine basin", 
-                "FE: Basin level 8", "FE: Basin level 6", 
+names_mods <- c("Baseline",
+                "At least one basin\n up/downstream",
+                "Maximum order of 1",
+                "Excluding mine basin",
+                "Maximum order of 1 &\n at least one up/downstream &\nexcluding mine basin",
+                "FE: Basin level 8", "FE: Basin level 6",
                 "Mean instead of Max") # add ESA for croplands EVI below
 
 # Order
-mod_order_evi_list <- list(mod_order_base[[1]], 
-                           mod_order_restr_number_basins[[1]], 
-                           mod_order_restr_order[[1]], 
-                           mod_order_restr_mine_basin[[1]], 
+mod_order_evi_list <- list(mod_order_base[[1]],
+                           mod_order_restr_number_basins[[1]],
+                           mod_order_restr_order[[1]],
+                           mod_order_restr_mine_basin[[1]],
                            mod_order_restr_comb[[1]],
                            mod_order_fe8[[1]],
                            mod_order_fe6[[1]],
                            mod_order_mean[[1]])
 
 list_tidy_mod_order_evi <- lapply(mod_order_evi_list, tidy, conf.int = T, conf.level = 0.95)
-list_tidy_mod_order_evi[[4]] <- list_tidy_mod_order_evi[[4]] |> 
-  mutate(term = replace(term, term == "order_new::1", "order_new::0"))
-list_tidy_mod_order_evi[[5]] <- list_tidy_mod_order_evi[[5]] |> 
-  mutate(term = replace(term, term == "as.factor(order_new)1", "order_new::0"))
-df_tidy_mod_order_evi <- bind_rows(list_tidy_mod_order_evi) |> 
-  filter(term == "order_new::0") |> 
-  mutate(term = names_mods, 
-         mod = "Order: EVI", 
-         term = factor(term, 
+list_tidy_mod_order_evi[[4]] <- list_tidy_mod_order_evi[[4]] |>
+  mutate(term = replace(term, term == "dist_order::1", "dist_order::0"))
+list_tidy_mod_order_evi[[5]] <- list_tidy_mod_order_evi[[5]] |>
+  mutate(term = replace(term, term == "as.factor(dist_order)1", "dist_order::0"))
+df_tidy_mod_order_evi <- bind_rows(list_tidy_mod_order_evi) |>
+  filter(term == "dist_order::0") |>
+  mutate(term = names_mods,
+         mod = "Order: EVI",
+         term = factor(term,
                        levels = names_mods))
 
 p_mod_order_evi <- ggplot(df_tidy_mod_order_evi, aes(estimate, term)) +
@@ -392,27 +390,27 @@ p_mod_order_evi <- ggplot(df_tidy_mod_order_evi, aes(estimate, term)) +
   theme_bw()
 
 
-mod_order_evi_c_list <- list(mod_order_base[[2]], 
-                           mod_order_restr_number_basins[[2]], 
-                           mod_order_restr_order[[2]], 
-                           mod_order_restr_mine_basin[[2]], 
+mod_order_evi_c_list <- list(mod_order_base[[2]],
+                           mod_order_restr_number_basins[[2]],
+                           mod_order_restr_order[[2]],
+                           mod_order_restr_mine_basin[[2]],
                            mod_order_restr_comb[[2]],
                            mod_order_fe8[[2]],
                            mod_order_fe6[[2]],
-                           mod_order_mean[[2]], 
+                           mod_order_mean[[2]],
                            mod_order_base[[3]])
 
 list_tidy_mod_order_evi_c <- lapply(mod_order_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
-list_tidy_mod_order_evi_c[[4]] <- list_tidy_mod_order_evi_c[[4]] |> 
-  mutate(term = replace(term, term == "order_new::1", "order_new::0"))
-list_tidy_mod_order_evi_c[[5]] <- list_tidy_mod_order_evi_c[[5]] |> 
-  mutate(term = replace(term, term == "as.factor(order_new)1", "order_new::0"))
-df_tidy_mod_order_evi_c <- bind_rows(list_tidy_mod_order_evi_c) |> 
-  filter(term == "order_new::0") |> 
-  mutate(term = c(names_mods, "ESA cropland mask"), 
-         mod = "Order: EVI croplands", 
-         term = factor(term, 
-                       levels = c(names_mods, 
+list_tidy_mod_order_evi_c[[4]] <- list_tidy_mod_order_evi_c[[4]] |>
+  mutate(term = replace(term, term == "dist_order::1", "dist_order::0"))
+list_tidy_mod_order_evi_c[[5]] <- list_tidy_mod_order_evi_c[[5]] |>
+  mutate(term = replace(term, term == "as.factor(dist_order)1", "dist_order::0"))
+df_tidy_mod_order_evi_c <- bind_rows(list_tidy_mod_order_evi_c) |>
+  filter(term == "dist_order::0") |>
+  mutate(term = c(names_mods, "ESA cropland mask"),
+         mod = "Order: EVI croplands",
+         term = factor(term,
+                       levels = c(names_mods,
                                   "ESA cropland mask")))
 
 p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
@@ -425,21 +423,21 @@ p_mod_order_evi_c <- ggplot(df_tidy_mod_order_evi_c, aes(estimate, term)) +
 
 
 # Distance
-mod_dist_evi_list <- list(mod_dist_base[[1]], 
-                           mod_dist_restr_number_basins[[1]], 
-                           mod_dist_restr_order[[1]], 
-                           mod_dist_restr_mine_basin[[1]], 
+mod_dist_evi_list <- list(mod_dist_base[[1]],
+                           mod_dist_restr_number_basins[[1]],
+                           mod_dist_restr_order[[1]],
+                           mod_dist_restr_mine_basin[[1]],
                            mod_dist_restr_comb[[1]],
                            mod_dist_fe8[[1]],
                            mod_dist_fe6[[1]],
                            mod_dist_mean[[1]])
 
 list_tidy_mod_dist_evi <- lapply(mod_dist_evi_list, tidy, conf.int = T, conf.level = 0.95)
-df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |> 
-  filter(term == "downstream") |> 
-  mutate(term = names_mods, 
-         mod = "Distance: EVI", 
-         term = factor(term, 
+df_tidy_mod_dist_evi <- bind_rows(list_tidy_mod_dist_evi) |>
+  filter(term == "downstream") |>
+  mutate(term = names_mods,
+         mod = "Distance: EVI",
+         term = factor(term,
                        levels = names_mods))
 
 p_mod_dist_evi <- ggplot(df_tidy_mod_dist_evi, aes(estimate, term)) +
@@ -450,23 +448,23 @@ p_mod_dist_evi <- ggplot(df_tidy_mod_dist_evi, aes(estimate, term)) +
   labs(x = "Estimate and 95% Conf. Int.", y = "", title = "Distance Interaction: EVI") +
   theme_bw()
 
-mod_dist_evi_c_list <- list(mod_dist_base[[2]], 
-                             mod_dist_restr_number_basins[[2]], 
-                             mod_dist_restr_order[[2]], 
-                             mod_dist_restr_mine_basin[[2]], 
+mod_dist_evi_c_list <- list(mod_dist_base[[2]],
+                             mod_dist_restr_number_basins[[2]],
+                             mod_dist_restr_order[[2]],
+                             mod_dist_restr_mine_basin[[2]],
                              mod_dist_restr_comb[[2]],
                              mod_dist_fe8[[2]],
                              mod_dist_fe6[[2]],
-                             mod_dist_mean[[2]], 
+                             mod_dist_mean[[2]],
                              mod_dist_base[[3]])
 
 list_tidy_mod_dist_evi_c <- lapply(mod_dist_evi_c_list, tidy, conf.int = T, conf.level = 0.95)
-df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |> 
-  filter(term == "downstream") |> 
-  mutate(term = c(names_mods, "ESA cropland mask"), 
-         mod = "Distance: EVI croplands", 
-         term = factor(term, 
-                       levels = c(names_mods, 
+df_tidy_mod_dist_evi_c <- bind_rows(list_tidy_mod_dist_evi_c) |>
+  filter(term == "downstream") |>
+  mutate(term = c(names_mods, "ESA cropland mask"),
+         mod = "Distance: EVI croplands",
+         term = factor(term,
+                       levels = c(names_mods,
                                   "ESA cropland mask")))
 
 p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
@@ -479,17 +477,17 @@ p_mod_dist_evi_c <- ggplot(df_tidy_mod_dist_evi_c, aes(estimate, term)) +
 
 
 pdf(paste0(p_folder, p_name, ".pdf"), width = 10, height = 12)
-cowplot::plot_grid(p_mod_order_evi, p_mod_order_evi_c, 
+cowplot::plot_grid(p_mod_order_evi, p_mod_order_evi_c,
                    p_mod_dist_evi, p_mod_dist_evi_c, ncol = 2)
 dev.off()
 
 
 # Combining plots in one
-df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c, 
-                          df_tidy_mod_dist_evi, df_tidy_mod_dist_evi_c) |> 
-  mutate(mod = factor(mod, levels = c("Order: EVI", 
-                                      "Order: EVI croplands", 
-                                      "Distance: EVI", 
+df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c,
+                          df_tidy_mod_dist_evi, df_tidy_mod_dist_evi_c) |>
+  mutate(mod = factor(mod, levels = c("Order: EVI",
+                                      "Order: EVI croplands",
+                                      "Distance: EVI",
                                       "Distance: EVI croplands")))
 
 p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
@@ -506,13 +504,13 @@ p_effects_comb
 dev.off()
 
 
-df_tidy_mod_comb_order <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |> 
-  mutate(mod = factor(mod, levels = c("Order: EVI", 
-                                      "Order: EVI croplands"), 
-                      labels = c("Dependent Variable: EVI", 
+df_tidy_mod_comb_order <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |>
+  mutate(mod = factor(mod, levels = c("Order: EVI",
+                                      "Order: EVI croplands"),
+                      labels = c("Dependent Variable: EVI",
                                  "Dependent Variable: EVI croplands")))
 
-p_effects_comb_order <- ggplot(df_tidy_mod_comb_order, 
+p_effects_comb_order <- ggplot(df_tidy_mod_comb_order,
                                aes(estimate, term)) +
   geom_point()  +
   scale_y_discrete(limits = rev) +
@@ -542,10 +540,10 @@ dev.off()
 
 
 # Combining plots in one
-df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |> 
-  mutate(mod = factor(mod, levels = c("Order: EVI", 
-                                      "Order: EVI croplands", 
-                                      "Distance: EVI", 
+df_tidy_mod_comb <- rbind(df_tidy_mod_order_evi, df_tidy_mod_order_evi_c) |>
+  mutate(mod = factor(mod, levels = c("Order: EVI",
+                                      "Order: EVI croplands",
+                                      "Distance: EVI",
                                       "Distance: EVI croplands")))
 
 p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
@@ -574,7 +572,7 @@ p_effects_comb <- ggplot(df_tidy_mod_comb, aes(estimate, term)) +
   theme(
     text = element_text(color = "black", size = 14, face = "bold"), # Set text color to black and increase text size
     axis.title = element_text(size = 15, color = "black", face = "bold"), # Increase axis title size and set to black
-    axis.text = element_text(size = 16, color = "black", face = "bold"), 
+    axis.text = element_text(size = 16, color = "black", face = "bold"),
     axis.text.x = element_text(size = 10, color = "black", face = "bold"  # Increase axis text size and set to black)  # Increase axis text size and set to black
   ))
 

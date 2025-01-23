@@ -13,9 +13,9 @@ mine_downstream <- TRUE # if included, should the mine basin downstream?
 restr_number_basins <- 0 # minimum number of up/downstream basins each mine basin has to have
 
 # c("nomask", "cci_veg_broad", "cci_veg_narrow")
-v_mask <- "cci_veg_broad" 
+v_mask <- "cci_veg_broad"
 # c("cci_c_broad", "cci_c_narrow", "cci_c_rainfed", "cci_c_irrigated", "af_c", "esri_c")
-c_mask <- "cci_c_broad" 
+c_mask <- "cci_c_broad"
 
 comp_max <- "16" # c("16", "px")
 
@@ -32,46 +32,42 @@ date <- "20250113"
 t_folder <- "./output/tables/"
 p_folder <- "./output/plots/"
 
-f_name <- paste0("table_main_maxorder", restr_order, "_minnumber", restr_number_basins, 
-                 "_EXCLmine", excl_mine_basin, "_", date) 
-p_name <- paste0("plot_order_effects_maxorder", restr_order, "_minnumber", restr_number_basins, 
-                 "_EXCLmine", excl_mine_basin, "_", date) 
+f_name <- paste0("table_main_maxorder", restr_order, "_minnumber", restr_number_basins,
+                 "_EXCLmine", excl_mine_basin, "_", date)
+p_name <- paste0("plot_order_effects_maxorder", restr_order, "_minnumber", restr_number_basins,
+                 "_EXCLmine", excl_mine_basin, "_", date)
 
 df_reg <- readRDS(p("processed/df_reg.RDS"))
 mine_size_restr <- df_reg |> filter(mine_area_km2 > restr_area_mined) |> pull(mine_basin) |> unique()
 
-df_reg_restr <- df_reg |> 
-  filter(order <= restr_order, 
-         year %in% restr_year, 
-         mine_basin %in% mine_size_restr, 
-         if(excl_mine_basin) order > 0 else order >= 0) 
+df_reg_restr <- df_reg |>
+  filter(dist_n <= restr_order,
+         year %in% restr_year,
+         mine_basin %in% mine_size_restr,
+         if(excl_mine_basin) dist_n > 0 else dist_n >= 0)
 if(!mine_downstream) {
-  df_reg_restr <- df_reg_restr |> 
-    mutate(downstream = replace(downstream, order == 0, 0))
+  df_reg_restr <- df_reg_restr |>
+    mutate(downstream = replace(downstream, dist_n == 0, 0))
 }
 if(restr_number_basins > 0) {
-  mine_number_restr <- df_reg |> filter(year == restr_year[1], order != 0) |> 
-    group_by(mine_basin, downstream, order) |> count() |> 
-    group_by(mine_basin, downstream) |> count() |> 
-    filter(n >= restr_number_basins) |> 
-    group_by(mine_basin) |> count() |> 
-    filter(n == 2) |> 
+  mine_number_restr <- df_reg |> filter(year == restr_year[1], dist_n != 0) |>
+    group_by(mine_basin, downstream, dist_n) |> count() |>
+    group_by(mine_basin, downstream) |> count() |>
+    filter(n >= restr_number_basins) |>
+    group_by(mine_basin) |> count() |>
+    filter(n == 2) |>
     pull(mine_basin)
-  df_reg_restr <- df_reg_restr |> 
+  df_reg_restr <- df_reg_restr |>
     filter(mine_basin %in% mine_number_restr)
 }
-
-df_reg_restr <- df_reg_restr |> 
-  mutate(order_new = ifelse(downstream == 0, -order, order))
-
 
 
 # Order specification -----------------------------------------------------
 
 # no covariates
-mod4_order_contr = feols(c(elevation, slope, tmp_max, precipitation, 
+mod4_order_contr = feols(c(elevation, slope, tmp_max, precipitation,
                              accessibility_to_cities_2015, pop_2015) ~
-                           i(order_new, ref = -1) |
+                           i(dist_order, ref = -1) |
                            year +  as.factor(mine_basin),
                          data = df_reg_restr,
                          cluster = "mine_basin")
@@ -79,9 +75,9 @@ mod4_order_contr = feols(c(elevation, slope, tmp_max, precipitation,
 
 # Distance linear specification -------------------------------------------
 
-mod1_dist_linear_contr = feols(c(elevation, slope, tmp_max, precipitation, 
+mod1_dist_linear_contr = feols(c(elevation, slope, tmp_max, precipitation,
                                  accessibility_to_cities_2015, pop_2015) ~
-                                 (distance) * downstream |
+                                 (dist_km) * downstream |
                                  year +  as.factor(mine_basin),
                                data = df_reg_restr,
                                cluster = "mine_basin")
@@ -91,9 +87,9 @@ mod1_dist_linear_contr = feols(c(elevation, slope, tmp_max, precipitation,
 # Distance square specification -------------------------------------------
 
 # no covariates
-mod1_dist_square_contr = feols(c(elevation, slope, tmp_max, precipitation, 
+mod1_dist_square_contr = feols(c(elevation, slope, tmp_max, precipitation,
                                  accessibility_to_cities_2015, pop_2015) ~
-                                 (distance + I(distance^2)) * downstream |
+                                 (dist_km + I(dist_km^2)) * downstream |
                                  year +  as.factor(mine_basin),
                                data = df_reg_restr,
                                cluster = "mine_basin")
@@ -105,20 +101,20 @@ mod1_dist_square_contr = feols(c(elevation, slope, tmp_max, precipitation,
 
 setFixest_dict(dict = dict_fixest)
 
-etable(mod1_dist_square_contr, 
-       tex = TRUE, 
+etable(mod1_dist_square_contr,
+       tex = TRUE,
        adjustbox = TRUE,
-       replace = TRUE, 
-       drop = "soilgrid", 
-       order = c("Downstream") 
+       replace = TRUE,
+       drop = "soilgrid",
+       order = c("Downstream")
 )
 
 
-etable(mod1_dist_linear_contr, 
-       tex = TRUE, 
+etable(mod1_dist_linear_contr,
+       tex = TRUE,
        adjustbox = TRUE,
-       replace = TRUE, 
-       drop = "soilgrid", 
+       replace = TRUE,
+       drop = "soilgrid",
        order = c("Downstream")
 )
 
